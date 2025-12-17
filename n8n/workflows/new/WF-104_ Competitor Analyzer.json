@@ -1,0 +1,821 @@
+{
+  "name": "WF-104: Competitor Analyzer",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": ":projectId/analyze-competitors",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "3deaa9f2-7984-48b1-bb90-47711af241a3",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -3008,
+        272
+      ],
+      "webhookId": "tool1-competitor-analyze"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Input validation\nconst projectId = $json.params?.projectId;\n\nif (!projectId) {\n  return {\n    json: {\n      isValid: false,\n      error: 'projectId parametresi zorunludur',\n      errorCode: 400\n    }\n  };\n}\n\nconst parsedId = parseInt(projectId);\nif (isNaN(parsedId) || parsedId <= 0) {\n  return {\n    json: {\n      isValid: false,\n      error: 'projectId gecerli bir pozitif sayi olmalidir',\n      errorCode: 400\n    }\n  };\n}\n\n// Get competitor count from body (optional)\nconst body = $json.body || {};\nlet competitorCount = parseInt(body.competitor_count) || 10;\ncompetitorCount = Math.min(Math.max(competitorCount, 3), 20); // 3-20 arası\n\nreturn {\n  json: {\n    isValid: true,\n    projectId: parsedId,\n    competitorCount: competitorCount\n  }\n};"
+      },
+      "id": "c508e0d3-01f1-42d6-bd58-2b1418d82754",
+      "name": "Code - Validate Input",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2784,
+        272
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "is-valid",
+              "leftValue": "={{ $json.isValid }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "2a661f3a-f279-4eb4-afb2-a1a415e2d046",
+      "name": "IF - Valid Input",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        -2560,
+        272
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": false,\n  \"error\": \"Validation failed\",\n  \"message\": \"{{ $json.error }}\"\n}",
+        "options": {
+          "responseCode": "={{ $json.errorCode }}"
+        }
+      },
+      "id": "3467abf0-9a8c-40a1-8e9a-8956de020aff",
+      "name": "Respond - Validation Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        -2336,
+        464
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=SELECT \n  (SELECT id FROM keyword_projects WHERE id = {{ $json.projectId }}) as project_id,\n  (SELECT project_name FROM keyword_projects WHERE id = {{ $json.projectId }}) as project_name,\n  (SELECT main_keyword FROM keyword_projects WHERE id = {{ $json.projectId }}) as main_keyword,\n  (SELECT target_country FROM keyword_projects WHERE id = {{ $json.projectId }}) as target_country,\n  (SELECT target_language FROM keyword_projects WHERE id = {{ $json.projectId }}) as target_language,\n  (SELECT client_id FROM keyword_projects WHERE id = {{ $json.projectId }}) as client_id",
+        "options": {}
+      },
+      "id": "2eff7ce1-782a-4971-8ba5-fc309e17c4ec",
+      "name": "MySQL - Check Project",
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.4,
+      "position": [
+        -2336,
+        272
+      ],
+      "credentials": {
+        "mySql": {
+          "id": "LYQGH6Sr5DJDmTWl",
+          "name": "SEO Suite MySQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Check if project exists\nconst result = $input.first().json;\nconst validatedData = $('Code - Validate Input').first().json;\n\nif (!result.project_id) {\n  return [{\n    json: {\n      projectExists: false,\n      projectId: validatedData.projectId\n    }\n  }];\n}\n\nreturn [{\n  json: {\n    projectExists: true,\n    projectId: result.project_id,\n    projectName: result.project_name,\n    mainKeyword: result.main_keyword,\n    targetCountry: result.target_country || 'tr',\n    targetLanguage: result.target_language || 'tr',\n    clientId: result.client_id,\n    competitorCount: validatedData.competitorCount\n  }\n}];"
+      },
+      "id": "922a883f-5988-4c99-ac60-30db85006f43",
+      "name": "Code - Check Project",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2128,
+        272
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "project-exists",
+              "leftValue": "={{ $json.projectExists }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "171fdb16-55e0-4bfe-ac75-6fe8fcd1c0ba",
+      "name": "IF - Project Exists",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        -1904,
+        272
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": false,\n  \"error\": \"Project not found\",\n  \"message\": \"Proje bulunamadi: {{ $json.projectId }}\"\n}",
+        "options": {
+          "responseCode": 404
+        }
+      },
+      "id": "0e94aff4-0438-45a7-9c6d-7dc25ccdf014",
+      "name": "Respond - Not Found",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        -1680,
+        464
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=SELECT \n  COALESCE(cc.enable_ahrefs_api, 0) as enable_ahrefs_api,\n  COALESCE(cc.enable_serper_api, 1) as enable_serper_api,\n  COALESCE(cc.competitor_count, 10) as competitor_count\nFROM clients c\nLEFT JOIN client_configurations cc ON c.id = cc.client_id\nWHERE c.id = {{ $json.clientId }}",
+        "options": {}
+      },
+      "id": "e880f038-833a-4095-85e7-b9f3454474dc",
+      "name": "MySQL - Get Client Config",
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.4,
+      "position": [
+        -1680,
+        272
+      ],
+      "credentials": {
+        "mySql": {
+          "id": "LYQGH6Sr5DJDmTWl",
+          "name": "SEO Suite MySQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Determine which API to use\nconst config = $input.first().json;\nconst projectData = $('IF - Project Exists').first().json;\n\n// Priority: Ahrefs > Serper > Mock\nlet apiSource = 'mock';\nif (config.enable_ahrefs_api === 1) {\n  apiSource = 'ahrefs';\n} else if (config.enable_serper_api === 1) {\n  apiSource = 'serper';\n}\n\nreturn [{\n  json: {\n    ...projectData,\n    apiSource: apiSource,\n    competitorCount: projectData.competitorCount || config.competitor_count || 10\n  }\n}];"
+      },
+      "id": "ec1a3482-a8f6-4d55-8de5-3c191df984a0",
+      "name": "Code - Determine API Source",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1456,
+        272
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=UPDATE keyword_projects SET status = 'processing' WHERE id = {{ $json.projectId }}",
+        "options": {}
+      },
+      "id": "06f88033-2132-46d1-b3f7-2445422a65eb",
+      "name": "MySQL - Update Status",
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.4,
+      "position": [
+        -1248,
+        272
+      ],
+      "credentials": {
+        "mySql": {
+          "id": "LYQGH6Sr5DJDmTWl",
+          "name": "SEO Suite MySQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.apiSource }}",
+                    "rightValue": "ahrefs",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "0a75c2c1-b101-4b8b-b03f-c6d2cfc8fdf1"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Ahrefs"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.apiSource }}",
+                    "rightValue": "serper",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "38e8a40a-2671-40db-8f5b-5659d5c3aaaf"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Serper"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.apiSource }}",
+                    "rightValue": "mock",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "e82ba37f-d3c2-45b8-a4c0-032e1bc6e13d"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Mock"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "694eaae8-90c4-4405-ae70-ba35157ee19a",
+      "name": "Switch - API Source",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [
+        -1024,
+        272
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://api.ahrefs.com/v3/serp-overview/serp",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "target",
+              "value": "={{ $('Code - Determine API Source').first().json.mainKeyword }}"
+            },
+            {
+              "name": "country",
+              "value": "={{ $('Code - Determine API Source').first().json.targetCountry }}"
+            },
+            {
+              "name": "limit",
+              "value": "={{ $('Code - Determine API Source').first().json.competitorCount }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "929bd3ce-90e5-43ad-900b-3e07e4d7e334",
+      "name": "HTTP - Ahrefs SERP",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -736,
+        64
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://google.serper.dev/search",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\"q\": \"{{ $json.mainKeyword }}\", \"gl\": \"{{ $json.targetCountry }}\", \"hl\": \"{{ $json.targetLanguage }}\", \"num\": {{ $json.competitorCount }}}",
+        "options": {}
+      },
+      "id": "e4fbef00-6777-48fb-b67d-67a82c341815",
+      "name": "HTTP - Serper SERP",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -736,
+        272
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "cJriPdlzxhSpC5n2",
+          "name": "Serper API"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// Generate mock SERP data for testing\nconst projectData = $('Code - Determine API Source').first().json;\nconst keyword = projectData.mainKeyword || 'test keyword';\nconst count = projectData.competitorCount || 10;\n\nconst mockResults = [];\nfor (let i = 1; i <= count; i++) {\n  mockResults.push({\n    position: i,\n    url: `https://example${i}.com/${keyword.replace(/\\s+/g, '-')}`,\n    domain: `example${i}.com`,\n    title: `${keyword} - Ornek Baslik ${i}`,\n    description: `${keyword} hakkinda detayli bilgi. Ornek aciklama ${i}.`,\n    source: 'mock'\n  });\n}\n\nreturn [{ json: { organic: mockResults, source: 'mock' } }];"
+      },
+      "id": "8aaa22c2-7010-4929-9f1b-4f0884a791b8",
+      "name": "Code - Mock SERP",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -736,
+        464
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Transform Ahrefs response to standard format\nconst response = $input.first().json;\nconst projectData = $('Code - Determine API Source').first().json;\n\n// Handle error\nif (response.error || !response.serp) {\n  return [{ json: { organic: [], source: 'ahrefs', error: response.error || 'No data' } }];\n}\n\nconst positions = response.serp?.positions || response.positions || [];\nconst organic = positions.map((pos, idx) => ({\n  position: pos.position || idx + 1,\n  url: pos.url || '',\n  domain: pos.domain || '',\n  title: pos.title || '',\n  description: pos.description || '',\n  domainRating: pos.domain_rating || pos.dr || null,\n  backlinks: pos.backlinks || null,\n  source: 'ahrefs'\n}));\n\nreturn [{ json: { organic, source: 'ahrefs' } }];"
+      },
+      "id": "f9c8b044-1e22-42ac-9937-13940dab053d",
+      "name": "Code - Transform Ahrefs",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -528,
+        64
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Transform Serper response to standard format\nconst response = $input.first().json;\n\n// Handle error\nif (response.error || !response.organic) {\n  return [{ json: { organic: [], source: 'serper', error: response.error || 'No data' } }];\n}\n\n// Extract domain from URL using regex\nconst getDomain = (url) => {\n  if (!url) return '';\n  const match = url.match(/^https?[:][\\/][\\/]([^\\/]+)/);\n  return match ? match[1] : '';\n};\n\nconst organic = (response.organic || []).map((item, idx) => ({\n  position: item.position || idx + 1,\n  url: item.link || '',\n  domain: getDomain(item.link),\n  title: item.title || '',\n  description: item.snippet || '',\n  source: 'serper'\n}));\n\nreturn [{ json: { organic, source: 'serper' } }];"
+      },
+      "id": "3f5b2daa-b7b8-46de-b38f-6e396aeeb134",
+      "name": "Code - Transform Serper",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -528,
+        272
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "options": {}
+      },
+      "id": "d25f195d-3a15-43f7-a677-7ac77f6e1d5e",
+      "name": "Merge Results",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        -304,
+        272
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Process results and prepare for database insert\nconst serpData = $input.first().json;\nconst projectData = $('Code - Determine API Source').first().json;\n\nif (!serpData || !serpData.organic || serpData.organic.length === 0) {\n  return [{\n    json: {\n      success: false,\n      error: 'No SERP data received',\n      projectId: projectData.projectId,\n      source: serpData?.source || 'none'\n    }\n  }];\n}\n\n// Return each competitor as separate item for batch insert\nconst competitors = serpData.organic.map(comp => ({\n  json: {\n    projectId: projectData.projectId,\n    position: comp.position,\n    url: comp.url,\n    domain: comp.domain,\n    title: (comp.title || '').substring(0, 500),\n    description: (comp.description || '').substring(0, 1000),\n    domainRating: comp.domainRating || null,\n    backlinks: comp.backlinks || null,\n    source: serpData.source\n  }\n}));\n\nreturn competitors;"
+      },
+      "id": "ee5562b7-3683-48cf-a189-658ab35e1813",
+      "name": "Code - Process Results",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -80,
+        272
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "has-data",
+              "leftValue": "={{ $json.url }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "443a0884-fac9-4440-895d-0421031e4874",
+      "name": "IF - Has Data",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        144,
+        272
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=INSERT INTO competitor_data (project_id, competitor_url, competitor_domain, serp_position, title, meta_description, domain_rating, backlinks_count, source)\nVALUES (\n  {{ $json.projectId }},\n  '{{ $json.url.replace(/'/g, \"''\") }}',\n  '{{ $json.domain.replace(/'/g, \"''\") }}',\n  {{ $json.position }},\n  '{{ $json.title.replace(/'/g, \"''\") }}',\n  '{{ $json.description.replace(/'/g, \"''\") }}',\n  {{ $json.domainRating || 'NULL' }},\n  {{ $json.backlinks || 'NULL' }},\n  '{{ $json.source }}'\n)\nON DUPLICATE KEY UPDATE\n  serp_position = VALUES(serp_position),\n  title = VALUES(title),\n  meta_description = VALUES(meta_description)",
+        "options": {}
+      },
+      "id": "926c7192-53ca-4c1e-a148-f22c8de1a0ba",
+      "name": "MySQL - Insert Competitor",
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.4,
+      "position": [
+        368,
+        272
+      ],
+      "credentials": {
+        "mySql": {
+          "id": "LYQGH6Sr5DJDmTWl",
+          "name": "SEO Suite MySQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=UPDATE keyword_projects \nSET \n  status = 'competitors_analyzed',\n  total_competitors_analyzed = (SELECT COUNT(*) FROM competitor_data WHERE project_id = {{ $('Code - Determine API Source').first().json.projectId }}),\n  updated_at = NOW()\nWHERE id = {{ $('Code - Determine API Source').first().json.projectId }}",
+        "options": {}
+      },
+      "id": "ab3b079d-8c43-492b-80a0-edb77c08f285",
+      "name": "MySQL - Update Project",
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.4,
+      "position": [
+        592,
+        272
+      ],
+      "credentials": {
+        "mySql": {
+          "id": "LYQGH6Sr5DJDmTWl",
+          "name": "SEO Suite MySQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Prepare success response\nconst projectData = $('Code - Determine API Source').first().json;\nconst insertedItems = $('MySQL - Insert Competitor').all();\n\nreturn [{\n  json: {\n    success: true,\n    data: {\n      projectId: projectData.projectId,\n      projectName: projectData.projectName,\n      mainKeyword: projectData.mainKeyword,\n      competitorsAnalyzed: insertedItems.length,\n      source: projectData.apiSource,\n      status: 'competitors_analyzed'\n    },\n    message: `${insertedItems.length} rakip basariyla analiz edildi`\n  }\n}];"
+      },
+      "id": "c36d1689-0587-40fb-b68a-03236c9a7c4e",
+      "name": "Code - Prepare Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        800,
+        272
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "id": "a53aea64-9778-40bc-94e1-07bfcfee4eff",
+      "name": "Respond - Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1024,
+        272
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": false,\n  \"error\": \"No SERP data\",\n  \"message\": \"{{ $json.error || 'Hicbir kaynaktan SERP verisi alinamadi' }}\"\n}",
+        "options": {
+          "responseCode": 500
+        }
+      },
+      "id": "e8d4bd94-512c-47ba-9a27-43958a51c803",
+      "name": "Respond - No Data",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        368,
+        464
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Code - Validate Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code - Validate Input": {
+      "main": [
+        [
+          {
+            "node": "IF - Valid Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF - Valid Input": {
+      "main": [
+        [
+          {
+            "node": "MySQL - Check Project",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond - Validation Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MySQL - Check Project": {
+      "main": [
+        [
+          {
+            "node": "Code - Check Project",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code - Check Project": {
+      "main": [
+        [
+          {
+            "node": "IF - Project Exists",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF - Project Exists": {
+      "main": [
+        [
+          {
+            "node": "MySQL - Get Client Config",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond - Not Found",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MySQL - Get Client Config": {
+      "main": [
+        [
+          {
+            "node": "Code - Determine API Source",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code - Determine API Source": {
+      "main": [
+        [
+          {
+            "node": "Switch - API Source",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch - API Source": {
+      "main": [
+        [
+          {
+            "node": "HTTP - Ahrefs SERP",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "HTTP - Serper SERP",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Code - Mock SERP",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP - Ahrefs SERP": {
+      "main": [
+        [
+          {
+            "node": "Code - Transform Ahrefs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP - Serper SERP": {
+      "main": [
+        [
+          {
+            "node": "Code - Transform Serper",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code - Transform Ahrefs": {
+      "main": [
+        [
+          {
+            "node": "Code - Process Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code - Transform Serper": {
+      "main": [
+        [
+          {
+            "node": "Code - Process Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code - Mock SERP": {
+      "main": [
+        [
+          {
+            "node": "Code - Process Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code - Process Results": {
+      "main": [
+        [
+          {
+            "node": "IF - Has Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF - Has Data": {
+      "main": [
+        [
+          {
+            "node": "MySQL - Insert Competitor",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond - No Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MySQL - Insert Competitor": {
+      "main": [
+        [
+          {
+            "node": "MySQL - Update Project",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MySQL - Update Project": {
+      "main": [
+        [
+          {
+            "node": "Code - Prepare Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code - Prepare Response": {
+      "main": [
+        [
+          {
+            "node": "Respond - Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "c0f98041-129d-487e-86d6-9e9a2cf65fed",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "b468285422c3ac1dfe43a49affb64495474f15ffdd0b5464abf91e9f69526166"
+  },
+  "id": "h8ZIrTtK8ej2ed0O",
+  "tags": [
+    {
+      "updatedAt": "2025-12-10T13:07:57.042Z",
+      "createdAt": "2025-12-10T13:07:57.042Z",
+      "id": "U3rvT53H4fecxr38",
+      "name": "Tool1-KeywordResearch"
+    }
+  ]
+}

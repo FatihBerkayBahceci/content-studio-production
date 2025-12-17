@@ -1,0 +1,248 @@
+{
+  "name": "WF-103: List Keyword Projects",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "tool1/projects",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "f0d8b8b9-2ffd-42c5-89cc-49f6a41b1186",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "tool1-projects-list"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Input validation and sanitization\nconst query = $json.query || {};\n\n// Validate and sanitize limit\nlet limit = parseInt(query.limit) || 50;\nlimit = Math.min(Math.max(limit, 1), 100); // 1-100 arası\n\n// Validate and sanitize offset\nlet offset = parseInt(query.offset) || 0;\noffset = Math.max(offset, 0);\n\n// Validate client_id if provided\nlet clientId = null;\nlet filterByClient = false;\nif (query.client_id) {\n  const parsedClientId = parseInt(query.client_id);\n  if (isNaN(parsedClientId) || parsedClientId <= 0) {\n    return {\n      json: {\n        isValid: false,\n        error: 'client_id gecerli bir pozitif sayi olmalidir',\n        errorCode: 400\n      }\n    };\n  }\n  clientId = parsedClientId;\n  filterByClient = true;\n}\n\n// Validate status filter if provided\nconst validStatuses = ['pending', 'discovering', 'discovered', 'filtering', 'keywords_filtered', 'completed', 'failed'];\nlet status = null;\nlet filterByStatus = false;\nif (query.status) {\n  if (!validStatuses.includes(query.status)) {\n    return {\n      json: {\n        isValid: false,\n        error: 'Gecersiz status. Gecerli degerler: ' + validStatuses.join(', '),\n        errorCode: 400\n      }\n    };\n  }\n  status = query.status;\n  filterByStatus = true;\n}\n\nreturn {\n  json: {\n    isValid: true,\n    limit: limit,\n    offset: offset,\n    clientId: clientId,\n    filterByClient: filterByClient,\n    status: status,\n    filterByStatus: filterByStatus\n  }\n};"
+      },
+      "id": "226241e4-f546-4fc9-a45e-c765ef52bcab",
+      "name": "Code - Validate Input",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "is-valid",
+              "leftValue": "={{ $json.isValid }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "4b5c300f-9525-4065-b5ef-170c7ff1330b",
+      "name": "IF - Valid Input",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        448,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": false,\n  \"error\": \"Validation failed\",\n  \"message\": \"{{ $json.error }}\"\n}",
+        "options": {
+          "responseCode": "={{ $json.errorCode }}"
+        }
+      },
+      "id": "0ec44746-e2f2-4525-9c86-2bb86cb529bc",
+      "name": "Respond - Validation Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        672,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=SELECT \n  kp.id,\n  kp.uuid,\n  kp.project_name,\n  kp.main_keyword,\n  kp.scenario_type,\n  kp.target_country,\n  kp.target_language,\n  kp.status,\n  kp.created_at,\n  kp.updated_at,\n  c.id as client_id,\n  c.name as client_name,\n  (SELECT COUNT(*) FROM keyword_results WHERE project_id = kp.id) as keyword_count\nFROM keyword_projects kp\nLEFT JOIN clients c ON kp.client_id = c.id\nWHERE 1=1\n{{ $json.filterByClient ? ' AND kp.client_id = ' + $json.clientId : '' }}\n{{ $json.filterByStatus ? \" AND kp.status = '\" + $json.status + \"'\" : '' }}\nORDER BY kp.created_at DESC\nLIMIT {{ $json.limit }}\nOFFSET {{ $json.offset }}",
+        "options": {}
+      },
+      "id": "c70c8c35-d903-44d0-8837-0bb82b7afcd6",
+      "name": "MySQL - List Projects",
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.4,
+      "position": [
+        672,
+        0
+      ],
+      "credentials": {
+        "mySql": {
+          "id": "LYQGH6Sr5DJDmTWl",
+          "name": "SEO Suite MySQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=SELECT COUNT(*) as total \nFROM keyword_projects kp\nWHERE 1=1\n{{ $('Code - Validate Input').first().json.filterByClient ? ' AND kp.client_id = ' + $('Code - Validate Input').first().json.clientId : '' }}\n{{ $('Code - Validate Input').first().json.filterByStatus ? \" AND kp.status = '\" + $('Code - Validate Input').first().json.status + \"'\" : '' }}",
+        "options": {}
+      },
+      "id": "ae1eb670-3426-43f0-ac00-efe318c37a19",
+      "name": "MySQL - Count Total",
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.4,
+      "position": [
+        880,
+        0
+      ],
+      "credentials": {
+        "mySql": {
+          "id": "LYQGH6Sr5DJDmTWl",
+          "name": "SEO Suite MySQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Format response\nconst projectItems = $('MySQL - List Projects').all();\nconst countResult = $input.first().json;\nconst validatedData = $('Code - Validate Input').first().json;\n\n// Check if we have actual projects\nconst hasProjects = projectItems.length > 0 && !!projectItems[0].json.id;\nconst projects = hasProjects ? projectItems.map(item => {\n  const p = item.json;\n  return {\n    id: p.id,\n    uuid: p.uuid,\n    project_name: p.project_name,\n    main_keyword: p.main_keyword,\n    scenario_type: p.scenario_type,\n    target_country: p.target_country,\n    target_language: p.target_language,\n    status: p.status,\n    created_at: p.created_at,\n    updated_at: p.updated_at,\n    client: p.client_id ? {\n      id: p.client_id,\n      name: p.client_name\n    } : null,\n    keyword_count: parseInt(p.keyword_count) || 0\n  };\n}) : [];\n\nconst total = parseInt(countResult.total) || 0;\n\nreturn [{\n  json: {\n    success: true,\n    data: projects,\n    pagination: {\n      total: total,\n      limit: validatedData.limit,\n      offset: validatedData.offset,\n      returned: projects.length,\n      has_more: (validatedData.offset + projects.length) < total\n    },\n    filters: {\n      client_id: validatedData.clientId,\n      status: validatedData.status\n    }\n  }\n}];"
+      },
+      "id": "f607ca4a-0369-4e5f-bb70-c4cd474d906a",
+      "name": "Code - Format Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1104,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "id": "26788c63-dff8-4132-877f-5013a7bd7b88",
+      "name": "Respond - Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1328,
+        0
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Code - Validate Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code - Validate Input": {
+      "main": [
+        [
+          {
+            "node": "IF - Valid Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF - Valid Input": {
+      "main": [
+        [
+          {
+            "node": "MySQL - List Projects",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond - Validation Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MySQL - List Projects": {
+      "main": [
+        [
+          {
+            "node": "MySQL - Count Total",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MySQL - Count Total": {
+      "main": [
+        [
+          {
+            "node": "Code - Format Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code - Format Response": {
+      "main": [
+        [
+          {
+            "node": "Respond - Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "332a0dc6-b79b-4221-b1f8-75e9a2f9bb4f",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "b468285422c3ac1dfe43a49affb64495474f15ffdd0b5464abf91e9f69526166"
+  },
+  "id": "jucLPduQR0VnGBgN",
+  "tags": [
+    {
+      "updatedAt": "2025-12-10T13:07:57.042Z",
+      "createdAt": "2025-12-10T13:07:57.042Z",
+      "id": "U3rvT53H4fecxr38",
+      "name": "Tool1-KeywordResearch"
+    }
+  ]
+}

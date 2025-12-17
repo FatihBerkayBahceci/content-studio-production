@@ -1,0 +1,702 @@
+{
+  "name": "WF-106: Content Gap Finder",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": ":projectId/analyze",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "cce9cd7d-12fc-433f-9da9-d4dd875ecbd8",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -3088,
+        112
+      ],
+      "webhookId": "tool1-content-gap"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Input validation\nconst projectId = $json.params?.projectId;\n\nif (!projectId) {\n  return {\n    json: {\n      isValid: false,\n      error: 'projectId parametresi zorunludur',\n      errorCode: 400\n    }\n  };\n}\n\nconst parsedId = parseInt(projectId);\nif (isNaN(parsedId) || parsedId <= 0) {\n  return {\n    json: {\n      isValid: false,\n      error: 'projectId gecerli bir pozitif sayi olmalidir',\n      errorCode: 400\n    }\n  };\n}\n\nreturn {\n  json: {\n    isValid: true,\n    projectId: parsedId\n  }\n};"
+      },
+      "id": "02406bb3-0e3d-4f06-9b69-a3853539b71c",
+      "name": "Code - Validate Input",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2864,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "is-valid",
+              "leftValue": "={{ $json.isValid }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "52273c0a-fc8d-45aa-8439-1001cd1b3cbb",
+      "name": "IF - Valid Input",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        -2640,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": false,\n  \"error\": \"Validation failed\",\n  \"message\": \"{{ $json.error }}\"\n}",
+        "options": {
+          "responseCode": "={{ $json.errorCode }}"
+        }
+      },
+      "id": "ecf7e32b-1b08-46c5-a996-0cbdea78032d",
+      "name": "Respond - Validation Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        -2416,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=SELECT \n  kp.id as project_id,\n  kp.client_id,\n  kp.main_keyword,\n  kp.target_language,\n  kp.target_country,\n  kp.scenario_type,\n  c.domain as client_domain,\n  cc.ai_model_preference as client_ai_model,\n  cc.ai_temperature as client_ai_temperature\nFROM keyword_projects kp\nJOIN clients c ON c.id = kp.client_id\nLEFT JOIN client_configurations cc ON cc.client_id = kp.client_id\nWHERE kp.id = {{ $json.projectId }}\nLIMIT 1",
+        "options": {}
+      },
+      "id": "199f02c0-2b52-4ea1-90e6-5ef6628b3e26",
+      "name": "MySQL - Get Project",
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.4,
+      "position": [
+        -2416,
+        112
+      ],
+      "credentials": {
+        "mySql": {
+          "id": "LYQGH6Sr5DJDmTWl",
+          "name": "SEO Suite MySQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "project-exists",
+              "leftValue": "={{ $json.project_id }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "e9095142-607a-49b9-8981-f172eb6ebd13",
+      "name": "IF - Project Exists",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        -2208,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": false,\n  \"error\": \"Project not found\",\n  \"message\": \"Proje bulunamadi: {{ $('Code - Validate Input').first().json.projectId }}\"\n}",
+        "options": {
+          "responseCode": 404
+        }
+      },
+      "id": "c772699f-2d4c-4ec9-b1ad-a7d9d52a5504",
+      "name": "Respond - Not Found",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        -1984,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT setting_key, setting_value FROM system_settings WHERE setting_key IN ('default_ai_model', 'default_ai_temperature')",
+        "options": {}
+      },
+      "id": "3fa65e2e-d7e1-4ded-a31a-99294f1726bf",
+      "name": "MySQL - Get System Settings",
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.4,
+      "position": [
+        -1984,
+        112
+      ],
+      "credentials": {
+        "mySql": {
+          "id": "LYQGH6Sr5DJDmTWl",
+          "name": "SEO Suite MySQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT prompt_text FROM system_prompts WHERE slug = 'content-gap-analyzer' AND is_active = 1 LIMIT 1",
+        "options": {}
+      },
+      "id": "7a921222-fc0a-4b06-8d14-2e42ddef8d30",
+      "name": "MySQL - Get System Prompt",
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.4,
+      "position": [
+        -1760,
+        112
+      ],
+      "credentials": {
+        "mySql": {
+          "id": "LYQGH6Sr5DJDmTWl",
+          "name": "SEO Suite MySQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=SELECT competitor_domain, competitor_url, title, COALESCE(word_count, 0) as word_count, headings_json, COALESCE(domain_rating, 0) as domain_rating FROM competitor_data WHERE project_id = {{ $('MySQL - Get Project').first().json.project_id }} ORDER BY serp_position ASC LIMIT 5",
+        "options": {}
+      },
+      "id": "806a47a4-7a41-42a6-add3-f1b5a736f382",
+      "name": "MySQL - Get Competitors",
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.4,
+      "position": [
+        -1536,
+        112
+      ],
+      "credentials": {
+        "mySql": {
+          "id": "LYQGH6Sr5DJDmTWl",
+          "name": "SEO Suite MySQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=SELECT has_featured_snippet, featured_snippet_type, featured_snippet_content, has_paa, paa_count, has_video_results, has_image_pack, has_local_pack, has_knowledge_panel, zero_click_risk FROM serp_features WHERE project_id = {{ $('MySQL - Get Project').first().json.project_id }} UNION ALL SELECT 0,NULL,NULL,0,0,0,0,0,0,NULL FROM dual WHERE NOT EXISTS (SELECT 1 FROM serp_features WHERE project_id = {{ $('MySQL - Get Project').first().json.project_id }}) LIMIT 1",
+        "options": {}
+      },
+      "id": "1f2ee9d5-d304-4215-9eef-107294af846d",
+      "name": "MySQL - Get SERP Features",
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.4,
+      "position": [
+        -1328,
+        112
+      ],
+      "credentials": {
+        "mySql": {
+          "id": "LYQGH6Sr5DJDmTWl",
+          "name": "SEO Suite MySQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=SELECT question, answer_snippet FROM paa_data WHERE project_id = {{ $('MySQL - Get Project').first().json.project_id }} UNION ALL SELECT NULL as question, NULL as answer_snippet FROM dual WHERE NOT EXISTS (SELECT 1 FROM paa_data WHERE project_id = {{ $('MySQL - Get Project').first().json.project_id }}) LIMIT 10",
+        "options": {}
+      },
+      "id": "ade595ff-c3a1-46da-82af-1e6a1b0ad0c4",
+      "name": "MySQL - Get PAA",
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.4,
+      "position": [
+        -1104,
+        112
+      ],
+      "credentials": {
+        "mySql": {
+          "id": "LYQGH6Sr5DJDmTWl",
+          "name": "SEO Suite MySQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Prepare AI prompt - COMPACT CSV FORMAT\nconst project = $('MySQL - Get Project').first().json;\nconst systemSettingsItems = $('MySQL - Get System Settings').all();\nconst systemPromptResult = $('MySQL - Get System Prompt').first().json;\nconst competitorItems = $('MySQL - Get Competitors').all();\nconst competitors = competitorItems.filter(i => i.json.competitor_domain).map(i => i.json);\n\n// System settings\nconst systemSettings = {};\nsystemSettingsItems.forEach(item => {\n  systemSettings[item.json.setting_key] = item.json.setting_value;\n});\n\n// Model selection\nconst clientModel = project.client_ai_model;\nconst systemDefaultModel = systemSettings.default_ai_model || 'gemini-2.0-flash';\nconst primaryModel = clientModel || systemDefaultModel;\nlet fallbackModel = null;\nif (clientModel && systemDefaultModel && clientModel !== systemDefaultModel) {\n  fallbackModel = systemDefaultModel;\n}\nconst temperature = parseFloat(project.client_ai_temperature) || parseFloat(systemSettings.default_ai_temperature) || 0.7;\n\n// COMPACT CSV format for competitors: domain|dr|words\nconst competitorCsv = competitors.map((c, i) => \n  `${c.competitor_domain}|${i+1}|${c.domain_rating || 0}|${c.word_count || 0}`\n).join('\\n');\n\n// System prompt template\nlet systemPromptTemplate = systemPromptResult?.prompt_text || '';\n\n// Replace template variables\nlet finalPrompt = systemPromptTemplate\n  .replace(/\\{\\{main_keyword\\}\\}/g, project.main_keyword || '')\n  .replace(/\\{\\{target_country\\}\\}/g, project.target_country || 'TR')\n  .replace(/\\{\\{competitor_csv\\}\\}/g, competitorCsv);\n\n// Fallback prompt if no system prompt\nif (!systemPromptTemplate) {\n  finalPrompt = `Content gap analizi. Konu: ${project.main_keyword} | Ulke: ${project.target_country}\\nRAKIPLER (domain|pos|dr|words):\\n${competitorCsv}\\nCIKTI (sadece CSV, baslik yok):\\nkeyword|type|intent|score|format`;\n}\n\nreturn [{\n  json: {\n    project_id: project.project_id,\n    client_id: project.client_id,\n    main_keyword: project.main_keyword,\n    primary_model: primaryModel,\n    fallback_model: fallbackModel,\n    temperature: temperature,\n    prompt: finalPrompt,\n    competitor_count: competitors.length,\n    has_system_prompt: !!systemPromptTemplate\n  }\n}];"
+      },
+      "id": "6fa302fe-3db7-468c-bdef-b95bb8d9248f",
+      "name": "Code - Prepare AI Prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -880,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// AI API calls - COMPACT CSV OUTPUT: keyword|type|intent|score|format + TOKEN TRACKING\nconst data = $input.first().json;\nconst primaryModel = data.primary_model;\nconst fallbackModel = data.fallback_model;\nconst temperature = data.temperature;\nconst prompt = data.prompt;\n\nconst GEMINI_API_KEY = $env.GEMINI_API_KEY || '';\nconst OPENAI_API_KEY = $env.OPENAI_API_KEY || '';\n\nlet tokenUsage = { input: 0, output: 0, model: '', provider: 'none' };\nlet responseTime = 0;\n\n// Gemini API call\nconst callGemini = async (promptText) => {\n  const startTime = Date.now();\n  try {\n    const response = await this.helpers.httpRequest({\n      method: 'POST',\n      url: `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`,\n      body: {\n        contents: [{ parts: [{ text: promptText }] }],\n        generationConfig: { temperature: temperature, maxOutputTokens: 2048 }\n      },\n      headers: { 'Content-Type': 'application/json' },\n      timeout: 60000\n    });\n    const elapsed = Date.now() - startTime;\n    if (response.candidates && response.candidates.length > 0) {\n      const usage = response.usageMetadata || {};\n      return { success: true, content: response.candidates[0].content.parts[0].text, source: 'gemini', tokens: { input: usage.promptTokenCount || 0, output: usage.candidatesTokenCount || 0 }, model: 'gemini-2.0-flash', elapsed: elapsed };\n    }\n    return { success: false, error: 'No candidates', elapsed: elapsed };\n  } catch (e) {\n    return { success: false, error: e.message, elapsed: Date.now() - startTime };\n  }\n};\n\n// OpenAI API call\nconst callOpenAI = async (promptText) => {\n  const startTime = Date.now();\n  try {\n    const response = await this.helpers.httpRequest({\n      method: 'POST',\n      url: 'https://api.openai.com/v1/chat/completions',\n      body: { model: 'gpt-4o-mini', messages: [{ role: 'user', content: promptText }], temperature: temperature, max_tokens: 2048 },\n      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${OPENAI_API_KEY}` },\n      timeout: 60000\n    });\n    const elapsed = Date.now() - startTime;\n    if (response.choices && response.choices.length > 0) {\n      const usage = response.usage || {};\n      return { success: true, content: response.choices[0].message.content, source: 'openai', tokens: { input: usage.prompt_tokens || 0, output: usage.completion_tokens || 0 }, model: 'gpt-4o-mini', elapsed: elapsed };\n    }\n    return { success: false, error: 'No choices', elapsed: elapsed };\n  } catch (e) {\n    return { success: false, error: e.message, elapsed: Date.now() - startTime };\n  }\n};\n\nconst callModel = async (model, promptText) => {\n  if (model && model.toLowerCase().includes('gemini')) return await callGemini(promptText);\n  if (model && (model.toLowerCase().includes('openai') || model.toLowerCase().includes('gpt'))) return await callOpenAI(promptText);\n  return { success: false, error: 'Unknown model: ' + model, elapsed: 0 };\n};\n\n// Parse CSV response: keyword|type|intent|score|format\nconst parseCSVResponse = (content) => {\n  const csvContent = content.replace(/```[a-z]*\\n?/g, '').replace(/```/g, '').trim();\n  const lines = csvContent.split('\\n').filter(l => l.trim() && !l.startsWith('keyword|'));\n  const gaps = [];\n  for (const line of lines) {\n    const parts = line.split('|').map(p => p.trim());\n    if (parts.length >= 5) {\n      gaps.push({\n        keyword: parts[0],\n        keyword_type: parts[1] || 'related',\n        search_intent: parts[2] || 'informational',\n        opportunity_score: parseInt(parts[3]) || 50,\n        content_format: parts[4] || 'blog'\n      });\n    }\n  }\n  return { content_gaps: gaps, analysis_summary: `${gaps.length} keyword onerisi olusturuldu.` };\n};\n\n// Mock response\nconst getMockResponse = (mainKeyword) => ({\n  analysis_summary: `[MOCK] ${mainKeyword} icin 5 keyword onerisi.`,\n  content_gaps: [\n    { keyword: `${mainKeyword} nedir`, keyword_type: 'question', search_intent: 'informational', opportunity_score: 85, content_format: 'blog' },\n    { keyword: `${mainKeyword} fiyatlari`, keyword_type: 'related', search_intent: 'commercial', opportunity_score: 78, content_format: 'comparison' },\n    { keyword: `${mainKeyword} nasil yapilir`, keyword_type: 'question', search_intent: 'informational', opportunity_score: 82, content_format: 'guide' },\n    { keyword: `en iyi ${mainKeyword}`, keyword_type: 'related', search_intent: 'commercial', opportunity_score: 75, content_format: 'comparison' },\n    { keyword: `${mainKeyword} 2024`, keyword_type: 'related', search_intent: 'informational', opportunity_score: 88, content_format: 'blog' }\n  ]\n});\n\n// Main flow\nlet result = null;\nlet aiSource = 'mock';\n\nif (primaryModel) {\n  const primaryResult = await callModel(primaryModel, prompt);\n  responseTime = primaryResult.elapsed || 0;\n  if (primaryResult.success) {\n    result = parseCSVResponse(primaryResult.content);\n    aiSource = primaryResult.source;\n    tokenUsage = { input: primaryResult.tokens?.input || 0, output: primaryResult.tokens?.output || 0, model: primaryResult.model, provider: primaryResult.source };\n  }\n}\n\nif ((!result || !result.content_gaps || result.content_gaps.length === 0) && fallbackModel) {\n  const fallbackResult = await callModel(fallbackModel, prompt);\n  responseTime = fallbackResult.elapsed || 0;\n  if (fallbackResult.success) {\n    result = parseCSVResponse(fallbackResult.content);\n    aiSource = fallbackResult.source + '-fallback';\n    tokenUsage = { input: fallbackResult.tokens?.input || 0, output: fallbackResult.tokens?.output || 0, model: fallbackResult.model, provider: fallbackResult.source };\n  }\n}\n\nif (!result || !result.content_gaps || result.content_gaps.length === 0) {\n  result = getMockResponse(data.main_keyword);\n  aiSource = 'mock';\n}\n\nreturn [{\n  json: {\n    project_id: data.project_id,\n    client_id: data.client_id,\n    main_keyword: data.main_keyword,\n    content_gaps: result.content_gaps || [],\n    analysis_summary: result.analysis_summary || '',\n    ai_source: aiSource,\n    token_usage: tokenUsage,\n    response_time_ms: responseTime\n  }\n}];"
+      },
+      "id": "c285b4d6-e7e3-4ba5-ada0-6b7c6c66c41a",
+      "name": "Code - AI Analysis",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -656,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=INSERT INTO api_usage_tracking (client_id, tool_name, project_id, workflow_name, api_provider, model_name, tokens_input, tokens_output, requests_count, response_time_ms, was_successful) VALUES ({{ $json.client_id || 0 }}, 'tool1', {{ $json.project_id || 0 }}, 'WF-106-content-gap-finder', '{{ $json.token_usage?.provider === 'gemini' ? 'google' : $json.token_usage?.provider === 'openai' ? 'openai' : 'other' }}', '{{ $json.token_usage?.model || '' }}', {{ $json.token_usage?.input || 0 }}, {{ $json.token_usage?.output || 0 }}, 1, {{ $json.response_time_ms || 0 }}, {{ $json.ai_source !== 'mock' ? 1 : 0 }})",
+        "options": {}
+      },
+      "id": "5c7d22f1-6e86-4630-80bc-6e0deba97de6",
+      "name": "MySQL - Log Token Usage",
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.4,
+      "position": [
+        -544,
+        112
+      ],
+      "credentials": {
+        "mySql": {
+          "id": "LYQGH6Sr5DJDmTWl",
+          "name": "SEO Suite MySQL"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Content gap keyword'lerini ayrı ayrı insert için hazırla\nconst data = $('Code - AI Analysis').first().json;\nconst gaps = data.content_gaps || [];\n\nif (gaps.length === 0) {\n  return [{ json: { skip: true, project_id: data.project_id, ai_source: data.ai_source, analysis_summary: data.analysis_summary } }];\n}\n\nreturn gaps.map(gap => ({\n  json: {\n    project_id: data.project_id,\n    keyword: gap.keyword,\n    keyword_type: gap.keyword_type || 'related',\n    search_intent: gap.search_intent || 'informational',\n    opportunity_score: gap.opportunity_score || 50,\n    content_format: gap.content_format || 'blog',\n    reasoning: gap.reasoning || '',\n    source: 'ai',\n    ai_source: data.ai_source,\n    analysis_summary: data.analysis_summary,\n    pillar_suggestion: data.pillar_suggestion,\n    cluster_suggestions: data.cluster_suggestions\n  }\n}));"
+      },
+      "id": "4019c267-2f91-42e2-9cb1-5a464989b238",
+      "name": "Code - Split Keywords",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -448,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "has-keywords",
+              "leftValue": "={{ $json.skip }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "notEquals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "c2c62019-64b9-499c-856b-df575832ab25",
+      "name": "IF - Has Keywords",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        -224,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=INSERT INTO keyword_results \n  (project_id, keyword, keyword_type, search_intent, opportunity_score, source)\nVALUES \n  ({{ $json.project_id }}, '{{ $json.keyword.replace(/'/g, \"''\") }}', '{{ $json.keyword_type }}', '{{ $json.search_intent }}', {{ $json.opportunity_score }}, '{{ $json.source }}')\nON DUPLICATE KEY UPDATE\n  opportunity_score = VALUES(opportunity_score),\n  search_intent = VALUES(search_intent)",
+        "options": {}
+      },
+      "id": "3c1bcaac-9e72-43f5-a863-a43d21baac14",
+      "name": "MySQL - Save Keyword",
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.4,
+      "position": [
+        0,
+        0
+      ],
+      "credentials": {
+        "mySql": {
+          "id": "LYQGH6Sr5DJDmTWl",
+          "name": "SEO Suite MySQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=UPDATE keyword_projects \nSET \n  total_keywords_found = (SELECT COUNT(*) FROM keyword_results WHERE project_id = {{ $('Code - Split Keywords').first().json.project_id }})\nWHERE id = {{ $('Code - Split Keywords').first().json.project_id }}",
+        "options": {}
+      },
+      "id": "6312aaa7-4007-4940-bc67-34570697a30a",
+      "name": "MySQL - Update Project",
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.4,
+      "position": [
+        224,
+        112
+      ],
+      "credentials": {
+        "mySql": {
+          "id": "LYQGH6Sr5DJDmTWl",
+          "name": "SEO Suite MySQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Response için veri hazırla\nconst firstItem = $('Code - Split Keywords').first().json;\nconst keywordCount = $('Code - Split Keywords').all().filter(i => !i.json.skip).length;\n\nreturn {\n  success: true,\n  message: `Content Gap analizi tamamlandi. ${keywordCount} keyword onerisi olusturuldu.`,\n  project_id: firstItem.project_id,\n  analysis_summary: firstItem.analysis_summary || '',\n  pillar_suggestion: firstItem.pillar_suggestion || '',\n  cluster_suggestions: firstItem.cluster_suggestions || [],\n  keywords_found: keywordCount,\n  ai_source: firstItem.ai_source || 'unknown'\n};"
+      },
+      "id": "18e67a79-255e-42ee-912f-41dce45d3156",
+      "name": "Code - Prepare Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        448,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "id": "25378127-8b1c-4138-8fa3-088e969969c2",
+      "name": "Respond - Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        672,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Keyword yoksa da response döndür\nconst firstItem = $('Code - Split Keywords').first().json;\n\nreturn {\n  success: true,\n  message: 'Content Gap analizi tamamlandi ancak keyword onerisi bulunamadi.',\n  project_id: firstItem.project_id,\n  analysis_summary: firstItem.analysis_summary || 'Analiz yapildi ancak sonuc uretilemedi',\n  keywords_found: 0,\n  ai_source: firstItem.ai_source || 'unknown'\n};"
+      },
+      "id": "d85b1590-66c8-4a95-9560-8a3d4e1d44f9",
+      "name": "Code - No Keywords Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        0,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "id": "ea5e43e2-7f87-4531-8fc7-2fbb7eebe362",
+      "name": "Respond - No Keywords",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        224,
+        208
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Code - Validate Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code - Validate Input": {
+      "main": [
+        [
+          {
+            "node": "IF - Valid Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF - Valid Input": {
+      "main": [
+        [
+          {
+            "node": "MySQL - Get Project",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond - Validation Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MySQL - Get Project": {
+      "main": [
+        [
+          {
+            "node": "IF - Project Exists",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF - Project Exists": {
+      "main": [
+        [
+          {
+            "node": "MySQL - Get System Settings",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond - Not Found",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MySQL - Get System Settings": {
+      "main": [
+        [
+          {
+            "node": "MySQL - Get System Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MySQL - Get System Prompt": {
+      "main": [
+        [
+          {
+            "node": "MySQL - Get Competitors",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MySQL - Get Competitors": {
+      "main": [
+        [
+          {
+            "node": "MySQL - Get SERP Features",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MySQL - Get SERP Features": {
+      "main": [
+        [
+          {
+            "node": "MySQL - Get PAA",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MySQL - Get PAA": {
+      "main": [
+        [
+          {
+            "node": "Code - Prepare AI Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code - Prepare AI Prompt": {
+      "main": [
+        [
+          {
+            "node": "Code - AI Analysis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code - AI Analysis": {
+      "main": [
+        [
+          {
+            "node": "MySQL - Log Token Usage",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MySQL - Log Token Usage": {
+      "main": [
+        [
+          {
+            "node": "Code - Split Keywords",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code - Split Keywords": {
+      "main": [
+        [
+          {
+            "node": "IF - Has Keywords",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF - Has Keywords": {
+      "main": [
+        [
+          {
+            "node": "MySQL - Save Keyword",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Code - No Keywords Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MySQL - Save Keyword": {
+      "main": [
+        [
+          {
+            "node": "MySQL - Update Project",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MySQL - Update Project": {
+      "main": [
+        [
+          {
+            "node": "Code - Prepare Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code - Prepare Response": {
+      "main": [
+        [
+          {
+            "node": "Respond - Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code - No Keywords Response": {
+      "main": [
+        [
+          {
+            "node": "Respond - No Keywords",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "225d00d0-aeb7-4769-b59e-da04048e0adf",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "b468285422c3ac1dfe43a49affb64495474f15ffdd0b5464abf91e9f69526166"
+  },
+  "id": "1XAaHQBT5IrYfHOC",
+  "tags": [
+    {
+      "updatedAt": "2025-12-10T13:07:57.042Z",
+      "createdAt": "2025-12-10T13:07:57.042Z",
+      "id": "U3rvT53H4fecxr38",
+      "name": "Tool1-KeywordResearch"
+    }
+  ]
+}

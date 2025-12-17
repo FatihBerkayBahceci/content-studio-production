@@ -1,0 +1,783 @@
+{
+  "name": "WF-107: Opportunity Scorer",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": ":projectId/calculate",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "964685df-73b9-4f41-8cf2-4f51b0d12421",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -3296,
+        208
+      ],
+      "webhookId": "tool1-opportunity-scorer"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Input validation\nconst projectId = $json.params?.projectId;\n\nif (!projectId) {\n  return {\n    json: {\n      isValid: false,\n      error: 'projectId parametresi zorunludur',\n      errorCode: 400\n    }\n  };\n}\n\nconst parsedId = parseInt(projectId);\nif (isNaN(parsedId) || parsedId <= 0) {\n  return {\n    json: {\n      isValid: false,\n      error: 'projectId gecerli bir pozitif sayi olmalidir',\n      errorCode: 400\n    }\n  };\n}\n\nreturn {\n  json: {\n    isValid: true,\n    projectId: parsedId\n  }\n};"
+      },
+      "id": "152e3c5a-6c9c-41b3-b53e-55b9bb21b404",
+      "name": "Code - Validate Input",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -3088,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "is-valid",
+              "leftValue": "={{ $json.isValid }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "d97ec332-2e7b-4532-84c6-780267390788",
+      "name": "IF - Valid Input",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        -2864,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": false,\n  \"error\": \"Validation failed\",\n  \"message\": \"{{ $json.error }}\"\n}",
+        "options": {
+          "responseCode": "={{ $json.errorCode }}"
+        }
+      },
+      "id": "4bd2b3f6-2cc2-4efb-934d-acf0ae020354",
+      "name": "Respond - Validation Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        -2640,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=SELECT \n  kp.id as project_id,\n  kp.client_id,\n  kp.main_keyword,\n  kp.scenario_type,\n  kp.target_country,\n  kp.target_language,\n  c.domain as client_domain,\n  c.name as client_name,\n  cc.ai_model_preference as client_ai_model\nFROM keyword_projects kp\nJOIN clients c ON c.id = kp.client_id\nLEFT JOIN client_configurations cc ON cc.client_id = kp.client_id\nWHERE kp.id = {{ $json.projectId }}\nLIMIT 1",
+        "options": {}
+      },
+      "id": "07713d9d-2834-4883-9684-6a62466e4b3f",
+      "name": "MySQL - Get Project",
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.4,
+      "position": [
+        -2640,
+        208
+      ],
+      "credentials": {
+        "mySql": {
+          "id": "LYQGH6Sr5DJDmTWl",
+          "name": "SEO Suite MySQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "project-exists",
+              "leftValue": "={{ $json.project_id }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "d0e2e207-3c6d-457e-b1af-ea23da78144d",
+      "name": "IF - Project Exists",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        -2416,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": false,\n  \"error\": \"Project not found\",\n  \"message\": \"Proje bulunamadi: {{ $('Code - Validate Input').first().json.projectId }}\"\n}",
+        "options": {
+          "responseCode": 404
+        }
+      },
+      "id": "30332e82-c986-4b74-9716-a383884e9cb5",
+      "name": "Respond - Not Found",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        -2208,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=SELECT setting_key, setting_value FROM system_settings WHERE setting_key IN ('default_ai_model', 'default_ai_temperature')",
+        "options": {}
+      },
+      "id": "d2d9ad0d-7e92-4d1f-abcd-3bb219bd4e63",
+      "name": "MySQL - Get System Settings",
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.4,
+      "position": [
+        -2208,
+        208
+      ],
+      "credentials": {
+        "mySql": {
+          "id": "LYQGH6Sr5DJDmTWl",
+          "name": "SEO Suite MySQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=SELECT prompt_text FROM system_prompts WHERE slug = 'opportunity-scorer' AND is_active = 1 LIMIT 1",
+        "options": {}
+      },
+      "id": "47558840-d34c-4a14-89f2-200e4cac8056",
+      "name": "MySQL - Get System Prompt",
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.4,
+      "position": [
+        -1984,
+        208
+      ],
+      "credentials": {
+        "mySql": {
+          "id": "LYQGH6Sr5DJDmTWl",
+          "name": "SEO Suite MySQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=SELECT \n  kr.id,\n  kr.keyword,\n  kr.keyword_type,\n  kr.search_volume,\n  kr.keyword_difficulty,\n  kr.cpc,\n  kr.competition,\n  kr.search_intent,\n  kr.trend_direction,\n  kr.opportunity_score as current_score\nFROM keyword_results kr\nWHERE kr.project_id = {{ $('MySQL - Get Project').first().json.project_id }}\nORDER BY kr.search_volume DESC\nLIMIT 100",
+        "options": {}
+      },
+      "id": "fb9f0e67-a628-4c0c-b3d3-27612e60066c",
+      "name": "MySQL - Get Keywords",
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.4,
+      "position": [
+        -1760,
+        208
+      ],
+      "credentials": {
+        "mySql": {
+          "id": "LYQGH6Sr5DJDmTWl",
+          "name": "SEO Suite MySQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=(SELECT \n  cd.competitor_domain,\n  cd.competitor_url,\n  cd.title,\n  cd.domain_rating,\n  cd.serp_position,\n  cd.word_count,\n  cd.backlinks_count\nFROM competitor_data cd\nWHERE cd.project_id = {{ $('MySQL - Get Project').first().json.project_id }}\nAND cd.word_count > 0\nORDER BY cd.serp_position ASC\nLIMIT 10)\nUNION ALL\n(SELECT NULL, NULL, NULL, NULL, NULL, NULL, NULL FROM dual\nWHERE NOT EXISTS (\n  SELECT 1 FROM competitor_data \n  WHERE project_id = {{ $('MySQL - Get Project').first().json.project_id }} AND word_count > 0\n))",
+        "options": {}
+      },
+      "id": "c0d46591-d986-4219-95b8-3ed65d4fc2c7",
+      "name": "MySQL - Get Competitors",
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.4,
+      "position": [
+        -1536,
+        208
+      ],
+      "credentials": {
+        "mySql": {
+          "id": "LYQGH6Sr5DJDmTWl",
+          "name": "SEO Suite MySQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=(SELECT \n  sf.has_featured_snippet,\n  sf.featured_snippet_type,\n  sf.has_paa,\n  sf.paa_count,\n  sf.has_video_results,\n  sf.has_knowledge_panel,\n  sf.zero_click_risk\nFROM serp_features sf\nWHERE sf.project_id = {{ $('MySQL - Get Project').first().json.project_id }}\nLIMIT 1)\nUNION ALL\n(SELECT 0, NULL, 0, 0, 0, 0, NULL FROM dual\nWHERE NOT EXISTS (\n  SELECT 1 FROM serp_features \n  WHERE project_id = {{ $('MySQL - Get Project').first().json.project_id }}\n))",
+        "options": {}
+      },
+      "id": "7d4e7c64-e3ff-430e-a748-ee10abf63d25",
+      "name": "MySQL - Get SERP Features",
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.4,
+      "position": [
+        -1328,
+        208
+      ],
+      "credentials": {
+        "mySql": {
+          "id": "LYQGH6Sr5DJDmTWl",
+          "name": "SEO Suite MySQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Prepare AI prompt - COMPACT CSV FORMAT: ID|Keyword|Vol|KD|CPC\nconst project = $('MySQL - Get Project').first().json;\nconst keywordItems = $('MySQL - Get Keywords').all();\nconst keywords = keywordItems.map(i => i.json).filter(k => k.id);\n\n// System Settings\nconst settingsItems = $('MySQL - Get System Settings').all();\nconst systemSettings = {};\nsettingsItems.forEach(item => {\n  if (item.json.setting_key) systemSettings[item.json.setting_key] = item.json.setting_value;\n});\n\n// System Prompt\nconst promptData = $('MySQL - Get System Prompt').first().json;\nconst systemPromptTemplate = promptData?.prompt_text || '';\n\nif (keywords.length === 0) {\n  return [{ json: { skip: true, project_id: project.project_id, message: 'Skorlanacak keyword bulunamadi' } }];\n}\n\n// COMPACT CSV format: ID|Keyword|Vol|KD|CPC\nconst keywordCsv = keywords.map(kw => {\n  const vol = kw.search_volume || 0;\n  const kd = kw.keyword_difficulty !== null ? kw.keyword_difficulty : '';\n  const cpc = kw.cpc || 0;\n  return `${kw.id}|${kw.keyword}|${vol}|${kd}|${cpc}`;\n}).join('\\n');\n\n// Replace template variables\nlet finalPrompt = systemPromptTemplate\n  .replace(/\\{\\{main_keyword\\}\\}/g, project.main_keyword || '')\n  .replace(/\\{\\{target_country\\}\\}/g, project.target_country || 'TR')\n  .replace(/\\{\\{keyword_csv\\}\\}/g, keywordCsv);\n\n// Fallback prompt if empty\nif (!finalPrompt || finalPrompt.trim() === '') {\n  finalPrompt = `SEO keyword firsat skorlama. Skoru 0-100 arasi hesapla.\\nPROJE: ${project.main_keyword} | ${project.target_country}\\nKEYWORDS (ID|Keyword|Vol|KD|CPC):\\n${keywordCsv}\\nCIKTI (sadece CSV, baslik yok):\\nID,Score,Priority,LHF`;\n}\n\n// Model selection\nconst clientModel = project.client_ai_model;\nconst systemDefaultModel = systemSettings.default_ai_model || 'gemini-2.0-flash';\nconst primaryModel = clientModel || systemDefaultModel;\nlet fallbackModel = null;\nif (clientModel && systemDefaultModel && clientModel !== systemDefaultModel) fallbackModel = systemDefaultModel;\nconst temperature = parseFloat(systemSettings.default_ai_temperature) || 0.7;\n\nreturn [{\n  json: {\n    project_id: project.project_id,\n    client_id: project.client_id,\n    main_keyword: project.main_keyword,\n    prompt: finalPrompt,\n    keyword_count: keywords.length,\n    keywords: keywords,\n    primaryModel: primaryModel,\n    fallbackModel: fallbackModel,\n    temperature: temperature\n  }\n}];"
+      },
+      "id": "edbd5305-22ce-4b07-8a91-a940fc08b1d1",
+      "name": "Code - Prepare AI Prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1104,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "has-keywords",
+              "leftValue": "={{ $json.skip }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "notEquals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "52958461-a597-4efe-9439-34480aa2049d",
+      "name": "IF - Has Keywords",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        -880,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// AI Analysis - COMPACT CSV OUTPUT + TOKEN TRACKING\nconst data = $input.first().json;\nconst prompt = data.prompt;\nconst primaryModel = data.primaryModel;\nconst fallbackModel = data.fallbackModel;\nconst temperature = data.temperature;\nconst keywords = data.keywords || [];\n\nconst GEMINI_API_KEY = $env.GEMINI_API_KEY || '';\nconst OPENAI_API_KEY = $env.OPENAI_API_KEY || '';\n\nlet result = null;\nlet aiSource = 'none';\nlet tokenUsage = { input: 0, output: 0, model: '', provider: 'none' };\n\n// Call AI Model with token tracking\nasync function callModel(model, promptText) {\n  const startTime = Date.now();\n  try {\n    if (model.includes('gemini') && GEMINI_API_KEY) {\n      const response = await this.helpers.httpRequest({\n        method: 'POST',\n        url: `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`,\n        headers: { 'Content-Type': 'application/json' },\n        body: { contents: [{ parts: [{ text: promptText }] }], generationConfig: { temperature: temperature, maxOutputTokens: 4096 } },\n        timeout: 90000\n      });\n      const elapsed = Date.now() - startTime;\n      if (response.candidates?.[0]?.content?.parts?.[0]?.text) {\n        const usage = response.usageMetadata || {};\n        return { success: true, content: response.candidates[0].content.parts[0].text, source: 'gemini', tokens: { input: usage.promptTokenCount || 0, output: usage.candidatesTokenCount || 0 }, model: model, elapsed: elapsed };\n      }\n    } else if ((model.includes('gpt') || model.includes('openai')) && OPENAI_API_KEY) {\n      const response = await this.helpers.httpRequest({\n        method: 'POST',\n        url: 'https://api.openai.com/v1/chat/completions',\n        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${OPENAI_API_KEY}` },\n        body: { model: 'gpt-4o-mini', messages: [{ role: 'user', content: promptText }], temperature: temperature, max_tokens: 4096 },\n        timeout: 90000\n      });\n      const elapsed = Date.now() - startTime;\n      if (response.choices?.[0]?.message?.content) {\n        const usage = response.usage || {};\n        return { success: true, content: response.choices[0].message.content, source: 'openai', tokens: { input: usage.prompt_tokens || 0, output: usage.completion_tokens || 0 }, model: 'gpt-4o-mini', elapsed: elapsed };\n      }\n    }\n  } catch (e) { console.log(`Model ${model} failed:`, e.message); }\n  return { success: false, elapsed: Date.now() - startTime };\n}\n\n// Parse CSV response\nfunction parseCSVResponse(content, keywordList) {\n  const csvContent = content.replace(/```[a-z]*\\n?/g, '').replace(/```/g, '').trim();\n  const lines = csvContent.split('\\n').filter(l => l.trim() && !l.toLowerCase().startsWith('id'));\n  const scoredKeywords = [];\n  for (const line of lines) {\n    const parts = line.split(/[,|]/).map(p => p.trim());\n    if (parts.length >= 4) {\n      const kwId = parseInt(parts[0]);\n      const origKw = keywordList.find(k => k.id === kwId);\n      if (origKw) {\n        scoredKeywords.push({ keyword_id: kwId, keyword: origKw.keyword, opportunity_score: parseInt(parts[1]) || 50, priority: (parts[2] || 'medium').toLowerCase(), low_hanging_fruit: parts[3] === '1' || parts[3].toLowerCase() === 'true' });\n      }\n    }\n  }\n  if (scoredKeywords.length === 0) return null;\n  scoredKeywords.sort((a, b) => b.opportunity_score - a.opportunity_score);\n  return { analysis_summary: `${scoredKeywords.length} keyword analiz edildi.`, scored_keywords: scoredKeywords, top_opportunities: scoredKeywords.slice(0, 5).map(k => k.keyword) };\n}\n\n// Mock Scoring\nfunction getMockScoring(keywordList) {\n  const scoredKeywords = keywordList.map(kw => {\n    const vol = kw.search_volume || 0; const kd = kw.keyword_difficulty !== null ? kw.keyword_difficulty : 50;\n    let score = 50 + (vol >= 1000 ? 15 : vol >= 100 ? 8 : 0) + (kd <= 30 ? 20 : kd <= 50 ? 10 : 0);\n    return { keyword_id: kw.id, keyword: kw.keyword, opportunity_score: Math.min(score, 100), priority: score >= 70 ? 'high' : score >= 50 ? 'medium' : 'low', low_hanging_fruit: vol >= 100 && kd <= 30 };\n  });\n  scoredKeywords.sort((a, b) => b.opportunity_score - a.opportunity_score);\n  return { analysis_summary: `[MOCK] ${keywordList.length} keyword skorlandi.`, scored_keywords: scoredKeywords, top_opportunities: scoredKeywords.slice(0, 5).map(k => k.keyword) };\n}\n\nlet responseTime = 0;\n\n// 1. Try Primary Model\nif (primaryModel) {\n  const r = await callModel.call(this, primaryModel, prompt);\n  responseTime = r.elapsed || 0;\n  if (r.success) {\n    result = parseCSVResponse(r.content, keywords);\n    if (result) { aiSource = r.source; tokenUsage = { input: r.tokens?.input || 0, output: r.tokens?.output || 0, model: r.model, provider: r.source }; }\n  }\n}\n\n// 2. Try Fallback\nif (!result && fallbackModel) {\n  const r = await callModel.call(this, fallbackModel, prompt);\n  responseTime = r.elapsed || 0;\n  if (r.success) {\n    result = parseCSVResponse(r.content, keywords);\n    if (result) { aiSource = r.source + '-fallback'; tokenUsage = { input: r.tokens?.input || 0, output: r.tokens?.output || 0, model: r.model, provider: r.source }; }\n  }\n}\n\n// 3. Mock\nif (!result) { result = getMockScoring(keywords); aiSource = 'mock'; }\n\nreturn [{ json: { project_id: data.project_id, client_id: data.client_id, ai_response: result, ai_source: aiSource, keyword_count: keywords.length, token_usage: tokenUsage, response_time_ms: responseTime } }];"
+      },
+      "id": "ac7f4b39-8eb0-4df0-995e-ea7f670203c2",
+      "name": "Code - AI Analysis",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -656,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $input.first().json;\nreturn {\n  success: true,\n  message: data.message || 'Skorlanacak keyword bulunamadi',\n  project_id: data.project_id,\n  stats: { total_keywords: 0 }\n};"
+      },
+      "id": "0aeeeaf2-eecd-4e1b-959d-d2f4d10b8b58",
+      "name": "Code - No Keywords",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -656,
+        352
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "id": "789653a8-9c5b-47cf-b1a5-12e6b985686a",
+      "name": "Respond - No Keywords",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        -448,
+        352
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=INSERT INTO api_usage_tracking (client_id, tool_name, project_id, workflow_name, api_provider, model_name, tokens_input, tokens_output, requests_count, response_time_ms, was_successful) VALUES ({{ $json.client_id || 0 }}, 'tool1', {{ $json.project_id || 0 }}, 'WF-107-opportunity-scorer', '{{ $json.token_usage?.provider === 'gemini' ? 'google' : $json.token_usage?.provider === 'openai' ? 'openai' : 'other' }}', '{{ $json.token_usage?.model || '' }}', {{ $json.token_usage?.input || 0 }}, {{ $json.token_usage?.output || 0 }}, 1, {{ $json.response_time_ms || 0 }}, {{ $json.ai_source !== 'mock' ? 1 : 0 }})",
+        "options": {}
+      },
+      "id": "4a418536-e128-433f-b3c1-b3aecabe1c96",
+      "name": "MySQL - Log Token Usage",
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.4,
+      "position": [
+        -544,
+        112
+      ],
+      "credentials": {
+        "mySql": {
+          "id": "LYQGH6Sr5DJDmTWl",
+          "name": "SEO Suite MySQL"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Skorlari tek tek update icin ayir\nconst data = $('Code - AI Analysis').first().json;\nconst aiResponse = data.ai_response || {};\nconst scoredKeywords = aiResponse.scored_keywords || [];\n\nif (scoredKeywords.length === 0) {\n  return [{ json: { skip: true, project_id: data.project_id, ai_source: data.ai_source, ai_response: aiResponse } }];\n}\n\nreturn scoredKeywords.map(kw => ({\n  json: {\n    keyword_id: kw.keyword_id,\n    opportunity_score: kw.opportunity_score,\n    priority: kw.priority,\n    low_hanging_fruit: kw.low_hanging_fruit ? 1 : 0,\n    project_id: data.project_id,\n    ai_source: data.ai_source,\n    ai_response: aiResponse\n  }\n}));"
+      },
+      "id": "dd0ce3ba-a8e5-4cb9-b2ad-6411fc62b5ae",
+      "name": "Code - Split for Update",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -336,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "has-scores",
+              "leftValue": "={{ $json.skip }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "notEquals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "bc9a4c89-263f-4c3d-86af-d0399e5dbe94",
+      "name": "IF - Has Scores",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        -224,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=UPDATE keyword_results \nSET opportunity_score = {{ $json.opportunity_score }}\nWHERE id = {{ $json.keyword_id }}",
+        "options": {}
+      },
+      "id": "34dae41a-a699-459e-926c-029d38ec471e",
+      "name": "MySQL - Update Score",
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.4,
+      "position": [
+        0,
+        0
+      ],
+      "credentials": {
+        "mySql": {
+          "id": "LYQGH6Sr5DJDmTWl",
+          "name": "SEO Suite MySQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=UPDATE keyword_projects \nSET status = 'scores_calculated'\nWHERE id = {{ $('Code - Split for Update').first().json.project_id }}",
+        "options": {}
+      },
+      "id": "37e89a47-ce9e-4f63-a828-8561d0733003",
+      "name": "MySQL - Update Project Status",
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.4,
+      "position": [
+        224,
+        112
+      ],
+      "credentials": {
+        "mySql": {
+          "id": "LYQGH6Sr5DJDmTWl",
+          "name": "SEO Suite MySQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Response hazirla\nconst firstItem = $('Code - Split for Update').first().json;\nconst aiResponse = firstItem.ai_response || {};\nconst allItems = $('Code - Split for Update').all();\nconst totalUpdated = allItems.filter(i => !i.json.skip).length;\nconst scoredKeywords = aiResponse.scored_keywords || [];\n\n// Stats hesapla\nconst highPriority = scoredKeywords.filter(k => k.priority === 'high').length;\nconst mediumPriority = scoredKeywords.filter(k => k.priority === 'medium').length;\nconst lowPriority = scoredKeywords.filter(k => k.priority === 'low').length;\nconst lowHangingFruits = scoredKeywords.filter(k => k.low_hanging_fruit).length;\nconst avgScore = scoredKeywords.length > 0 \n  ? Math.round(scoredKeywords.reduce((sum, k) => sum + k.opportunity_score, 0) / scoredKeywords.length)\n  : 0;\n\nreturn {\n  success: true,\n  message: aiResponse.analysis_summary || `Firsat skorlari hesaplandi. ${totalUpdated} keyword guncellendi.`,\n  project_id: firstItem.project_id,\n  ai_source: firstItem.ai_source,\n  stats: {\n    total_keywords: totalUpdated,\n    high_priority: highPriority,\n    medium_priority: mediumPriority,\n    low_priority: lowPriority,\n    low_hanging_fruits: lowHangingFruits,\n    average_score: avgScore\n  },\n  top_opportunities: aiResponse.top_opportunities || [],\n  warnings: aiResponse.warnings || [],\n  next_step: 'WF-108 Keyword Clusterer ile kumeleme yapilabilir'\n};"
+      },
+      "id": "7f27a984-f2d2-408f-b4f0-45ab17950126",
+      "name": "Code - Prepare Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        448,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "id": "bb4a6cec-d478-4d9d-98a7-2f5735eb2568",
+      "name": "Respond - Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        672,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $input.first().json;\nconst aiResponse = data.ai_response || {};\n\nreturn {\n  success: true,\n  message: 'Skorlama tamamlandi ancak guncellenecek keyword bulunamadi',\n  project_id: data.project_id,\n  ai_source: data.ai_source,\n  analysis_summary: aiResponse.analysis_summary || '',\n  warnings: aiResponse.warnings || []\n};"
+      },
+      "id": "773195d7-0fce-4e57-8318-7a514165c17d",
+      "name": "Code - No Scores",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        0,
+        256
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "id": "865947c5-a4b1-4e2d-a2d9-b28cf2da2219",
+      "name": "Respond - No Scores",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        224,
+        256
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Code - Validate Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code - Validate Input": {
+      "main": [
+        [
+          {
+            "node": "IF - Valid Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF - Valid Input": {
+      "main": [
+        [
+          {
+            "node": "MySQL - Get Project",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond - Validation Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MySQL - Get Project": {
+      "main": [
+        [
+          {
+            "node": "IF - Project Exists",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF - Project Exists": {
+      "main": [
+        [
+          {
+            "node": "MySQL - Get System Settings",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond - Not Found",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MySQL - Get System Settings": {
+      "main": [
+        [
+          {
+            "node": "MySQL - Get System Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MySQL - Get System Prompt": {
+      "main": [
+        [
+          {
+            "node": "MySQL - Get Keywords",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MySQL - Get Keywords": {
+      "main": [
+        [
+          {
+            "node": "MySQL - Get Competitors",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MySQL - Get Competitors": {
+      "main": [
+        [
+          {
+            "node": "MySQL - Get SERP Features",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MySQL - Get SERP Features": {
+      "main": [
+        [
+          {
+            "node": "Code - Prepare AI Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code - Prepare AI Prompt": {
+      "main": [
+        [
+          {
+            "node": "IF - Has Keywords",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF - Has Keywords": {
+      "main": [
+        [
+          {
+            "node": "Code - AI Analysis",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Code - No Keywords",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code - AI Analysis": {
+      "main": [
+        [
+          {
+            "node": "MySQL - Log Token Usage",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MySQL - Log Token Usage": {
+      "main": [
+        [
+          {
+            "node": "Code - Split for Update",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code - No Keywords": {
+      "main": [
+        [
+          {
+            "node": "Respond - No Keywords",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code - Split for Update": {
+      "main": [
+        [
+          {
+            "node": "IF - Has Scores",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF - Has Scores": {
+      "main": [
+        [
+          {
+            "node": "MySQL - Update Score",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Code - No Scores",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MySQL - Update Score": {
+      "main": [
+        [
+          {
+            "node": "MySQL - Update Project Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MySQL - Update Project Status": {
+      "main": [
+        [
+          {
+            "node": "Code - Prepare Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code - Prepare Response": {
+      "main": [
+        [
+          {
+            "node": "Respond - Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code - No Scores": {
+      "main": [
+        [
+          {
+            "node": "Respond - No Scores",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "217562b9-4cb6-4d0d-a5e9-732b45d98c7b",
+  "meta": {
+    "instanceId": "b468285422c3ac1dfe43a49affb64495474f15ffdd0b5464abf91e9f69526166"
+  },
+  "id": "IOh5DxneLcIwi7zC",
+  "tags": []
+}

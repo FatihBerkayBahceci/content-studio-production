@@ -1,0 +1,657 @@
+{
+  "name": "WF-105: SERP Feature Detector",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "tool1-serp-features/:projectId/detect",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "613fd707-a42e-4f7b-a97b-1ab0424c64b5",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -1536,
+        208
+      ],
+      "webhookId": "tool1-serp-features"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const projectId = $json.params?.projectId;\n\nif (!projectId) {\n  return { json: { isValid: false, error: 'projectId parametresi zorunludur', errorCode: 400 } };\n}\n\nconst parsedId = parseInt(projectId);\nif (isNaN(parsedId) || parsedId <= 0) {\n  return { json: { isValid: false, error: 'projectId gecerli bir pozitif sayi olmalidir', errorCode: 400 } };\n}\n\nreturn { json: { isValid: true, projectId: parsedId } };"
+      },
+      "id": "a4c42427-1d9f-426c-8760-c1d537a2f92c",
+      "name": "Code - Validate Input",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1328,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "is-valid",
+              "leftValue": "={{ $json.isValid }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "fbb377bf-51f9-4789-a7c0-82215682db9b",
+      "name": "IF - Valid Input",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        -1104,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": false,\n  \"error\": \"Validation failed\",\n  \"message\": \"{{ $json.error }}\"\n}",
+        "options": {
+          "responseCode": "={{ $json.errorCode }}"
+        }
+      },
+      "id": "5df127d9-1e1e-4fdf-883f-ca15be7ca421",
+      "name": "Respond - Validation Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        -880,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=SELECT kp.id as project_id, kp.main_keyword, kp.target_country, kp.target_language, kp.client_id, COALESCE(cc.enable_ahrefs_api, 0) as enable_ahrefs_api FROM keyword_projects kp LEFT JOIN client_configurations cc ON kp.client_id = cc.client_id WHERE kp.id = {{ $json.projectId }} LIMIT 1",
+        "options": {}
+      },
+      "id": "80d442ce-07ce-4a7d-9b0f-ac649f3ea282",
+      "name": "MySQL - Get Project",
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.4,
+      "position": [
+        -880,
+        208
+      ],
+      "credentials": {
+        "mySql": {
+          "id": "LYQGH6Sr5DJDmTWl",
+          "name": "SEO Suite MySQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const result = $input.first().json;\nconst validatedData = $('Code - Validate Input').first().json;\n\nif (!result.project_id) {\n  return [{ json: { projectExists: false, projectId: validatedData.projectId } }];\n}\n\nlet apiSource = 'serper';\nif (result.enable_ahrefs_api === 1) {\n  apiSource = 'ahrefs';\n}\n\nreturn [{ json: { projectExists: true, projectId: result.project_id, mainKeyword: result.main_keyword, targetCountry: result.target_country || 'tr', targetLanguage: result.target_language || 'tr', apiSource: apiSource } }];"
+      },
+      "id": "a99fb130-f0cc-4308-83d6-97b3774ccf16",
+      "name": "Code - Check Project",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -656,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "project-exists",
+              "leftValue": "={{ $json.projectExists }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "95ff88f6-b568-46c5-8b58-85a841604586",
+      "name": "IF - Project Exists",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        -448,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": false,\n  \"error\": \"Project not found\",\n  \"message\": \"Proje bulunamadi: {{ $json.projectId }}\"\n}",
+        "options": {
+          "responseCode": 404
+        }
+      },
+      "id": "c53a7cf1-e8ef-4060-b189-a146bcb624d3",
+      "name": "Respond - Not Found",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        -224,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.apiSource }}",
+                    "rightValue": "ahrefs",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.apiSource }}",
+                    "rightValue": "serper",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "3440f949-f354-4bff-9e9c-a8225e3f79a5",
+      "name": "Switch - API Source",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [
+        -224,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://api.ahrefs.com/v3/serp-overview/serp-features",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "target",
+              "value": "={{ $json.mainKeyword }}"
+            },
+            {
+              "name": "country",
+              "value": "={{ $json.targetCountry }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "3a9bc703-f54a-4a5a-827c-ee55b60f237c",
+      "name": "HTTP - Ahrefs SERP",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        0,
+        0
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "cJriPdlzxhSpC5n2",
+          "name": "Serper API"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://google.serper.dev/search",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"q\": \"{{ $json.mainKeyword }}\",\n  \"gl\": \"{{ $json.targetCountry || 'tr' }}\",\n  \"hl\": \"{{ $json.targetLanguage || 'tr' }}\",\n  \"num\": 10\n}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "01a35304-5730-4c5b-8809-73ac484721e2",
+      "name": "HTTP - Serper SERP",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        0,
+        208
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "cJriPdlzxhSpC5n2",
+          "name": "Serper API"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\nconst projectData = $('Code - Check Project').first().json;\nconst projectId = projectData.projectId;\n\nlet serpData = {\n  project_id: projectId,\n  has_featured_snippet: false,\n  featured_snippet_type: 'none',\n  featured_snippet_content: null,\n  featured_snippet_url: null,\n  has_paa: false,\n  paa_count: 0,\n  has_video_results: false,\n  has_image_pack: false,\n  has_local_pack: false,\n  has_knowledge_panel: false,\n  has_shopping_results: false,\n  has_news_results: false,\n  organic_results_count: 10,\n  ads_count: 0,\n  zero_click_risk: 'low',\n  paa_questions: [],\n  source: 'ahrefs'\n};\n\nif (!input || input.error) {\n  return [{ json: { ...serpData, source: 'ahrefs_failed' } }];\n}\n\nconst serp = input.serp || input;\nserpData.has_featured_snippet = !!serp.featured_snippet;\nif (serp.featured_snippet) {\n  serpData.featured_snippet_type = serp.featured_snippet.type || 'paragraph';\n  serpData.featured_snippet_content = serp.featured_snippet.content || null;\n  serpData.featured_snippet_url = serp.featured_snippet.url || null;\n}\n\nserpData.has_paa = Array.isArray(serp.people_also_ask) && serp.people_also_ask.length > 0;\nserpData.paa_count = serp.people_also_ask?.length || 0;\nserpData.has_video_results = Array.isArray(serp.video_results) && serp.video_results.length > 0;\nserpData.has_image_pack = !!serp.image_pack;\nserpData.has_local_pack = !!serp.local_pack;\nserpData.has_knowledge_panel = !!serp.knowledge_panel;\nserpData.organic_results_count = serp.organic?.length || 10;\nserpData.ads_count = serp.ads?.length || 0;\n\nlet riskScore = 0;\nif (serpData.has_featured_snippet) riskScore += 2;\nif (serpData.has_knowledge_panel) riskScore += 2;\nif (serpData.paa_count > 3) riskScore += 1;\nserpData.zero_click_risk = riskScore >= 4 ? 'high' : riskScore >= 2 ? 'medium' : 'low';\n\nserpData.paa_questions = (serp.people_also_ask || []).map((paa, idx) => ({\n  question: paa.question || paa,\n  answer_snippet: paa.snippet || null,\n  source_url: paa.url || null,\n  source_domain: paa.domain || null,\n  position: idx + 1\n}));\n\nreturn [{ json: serpData }];"
+      },
+      "id": "e20ffd06-6cb8-44a3-92f5-79081c7436db",
+      "name": "Code - Transform Ahrefs",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\nconst projectData = $('Code - Check Project').first().json;\nconst projectId = projectData.projectId;\nconst keyword = projectData.mainKeyword;\n\nlet serpData = {\n  project_id: projectId,\n  has_featured_snippet: false,\n  featured_snippet_type: 'none',\n  featured_snippet_content: null,\n  featured_snippet_url: null,\n  has_paa: false,\n  paa_count: 0,\n  has_video_results: false,\n  has_image_pack: false,\n  has_local_pack: false,\n  has_knowledge_panel: false,\n  has_shopping_results: false,\n  has_news_results: false,\n  organic_results_count: 10,\n  ads_count: 0,\n  zero_click_risk: 'low',\n  paa_questions: [],\n  source: 'serper'\n};\n\nif (!input || input.error) {\n  serpData.source = 'serper_failed';\n  return [{ json: serpData }];\n}\n\n// Parse Serper response\nif (input.answerBox) {\n  serpData.has_featured_snippet = true;\n  serpData.featured_snippet_type = input.answerBox.snippetType || 'paragraph';\n  serpData.featured_snippet_content = input.answerBox.snippet || input.answerBox.answer || null;\n  serpData.featured_snippet_url = input.answerBox.link || null;\n}\n\nif (input.peopleAlsoAsk && input.peopleAlsoAsk.length > 0) {\n  serpData.has_paa = true;\n  serpData.paa_count = input.peopleAlsoAsk.length;\n  serpData.paa_questions = input.peopleAlsoAsk.map((paa, idx) => ({\n    question: paa.question,\n    answer_snippet: paa.snippet || null,\n    source_url: paa.link || null,\n    source_domain: paa.link ? paa.link.match(/https?:\\/\\/([^\\/]+)/)?.[1] : null,\n    position: idx + 1\n  }));\n}\n\nserpData.has_video_results = !!(input.videos && input.videos.length > 0);\nserpData.has_image_pack = !!(input.images && input.images.length > 0);\nserpData.has_local_pack = !!(input.places && input.places.length > 0);\nserpData.has_knowledge_panel = !!input.knowledgeGraph;\nserpData.has_shopping_results = !!(input.shopping && input.shopping.length > 0);\nserpData.has_news_results = !!(input.news && input.news.length > 0);\nserpData.organic_results_count = input.organic?.length || 10;\nserpData.ads_count = input.ads?.length || 0;\n\nlet riskScore = 0;\nif (serpData.has_featured_snippet) riskScore += 2;\nif (serpData.has_knowledge_panel) riskScore += 2;\nif (serpData.paa_count > 3) riskScore += 1;\nif (serpData.ads_count > 2) riskScore += 1;\nserpData.zero_click_risk = riskScore >= 4 ? 'high' : riskScore >= 2 ? 'medium' : 'low';\n\nreturn [{ json: serpData }];"
+      },
+      "id": "6f56a3bf-99b3-43e4-995f-394321e4739b",
+      "name": "Code - Transform Serper",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=INSERT INTO serp_features (project_id, has_featured_snippet, featured_snippet_type, featured_snippet_content, featured_snippet_url, has_paa, paa_count, has_video_results, has_image_pack, has_local_pack, has_knowledge_panel, has_shopping_results, has_news_results, organic_results_count, ads_count, zero_click_risk) VALUES ({{ $json.project_id }}, {{ $json.has_featured_snippet ? 1 : 0 }}, '{{ $json.featured_snippet_type }}', {{ $json.featured_snippet_content ? \"'\" + $json.featured_snippet_content.replace(/'/g, \"''\").substring(0, 500) + \"'\" : 'NULL' }}, {{ $json.featured_snippet_url ? \"'\" + $json.featured_snippet_url + \"'\" : 'NULL' }}, {{ $json.has_paa ? 1 : 0 }}, {{ $json.paa_count }}, {{ $json.has_video_results ? 1 : 0 }}, {{ $json.has_image_pack ? 1 : 0 }}, {{ $json.has_local_pack ? 1 : 0 }}, {{ $json.has_knowledge_panel ? 1 : 0 }}, {{ $json.has_shopping_results ? 1 : 0 }}, {{ $json.has_news_results ? 1 : 0 }}, {{ $json.organic_results_count }}, {{ $json.ads_count }}, '{{ $json.zero_click_risk }}') ON DUPLICATE KEY UPDATE has_featured_snippet = VALUES(has_featured_snippet), featured_snippet_type = VALUES(featured_snippet_type), featured_snippet_content = VALUES(featured_snippet_content), featured_snippet_url = VALUES(featured_snippet_url), has_paa = VALUES(has_paa), paa_count = VALUES(paa_count), has_video_results = VALUES(has_video_results), has_image_pack = VALUES(has_image_pack), has_local_pack = VALUES(has_local_pack), has_knowledge_panel = VALUES(has_knowledge_panel), has_shopping_results = VALUES(has_shopping_results), has_news_results = VALUES(has_news_results), organic_results_count = VALUES(organic_results_count), ads_count = VALUES(ads_count), zero_click_risk = VALUES(zero_click_risk), analyzed_at = NOW()",
+        "options": {}
+      },
+      "id": "77769a0c-63a0-4b8e-82c4-61a4bc8a6f9c",
+      "name": "MySQL - Save SERP Features",
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.4,
+      "position": [
+        448,
+        112
+      ],
+      "credentials": {
+        "mySql": {
+          "id": "LYQGH6Sr5DJDmTWl",
+          "name": "SEO Suite MySQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const serpData = $('Code - Transform Serper').all()[0]?.json || $('Code - Transform Ahrefs').all()[0]?.json;\nif (!serpData) {\n  return [{ json: { skip_paa: true, paa_count: 0 } }];\n}\n\nconst projectId = serpData.project_id;\nconst paaQuestions = serpData.paa_questions || [];\n\nif (paaQuestions.length === 0) {\n  return [{ json: { project_id: projectId, skip_paa: true, paa_count: 0 } }];\n}\n\nreturn paaQuestions.map((paa, idx) => ({\n  json: {\n    project_id: projectId,\n    question: (paa.question || '').replace(/'/g, \"''\").substring(0, 500),\n    answer_snippet: paa.answer_snippet ? paa.answer_snippet.replace(/'/g, \"''\").substring(0, 1000) : null,\n    source_url: paa.source_url || null,\n    source_domain: paa.source_domain || null,\n    position: paa.position || idx + 1,\n    is_recommended_as_h2: idx < 2 ? 1 : 0,\n    is_recommended_as_h3: idx >= 2 ? 1 : 0,\n    relevance_score: (100 - (idx * 10)).toFixed(2)\n  }\n}));"
+      },
+      "id": "9d710897-bf7a-479b-9071-962430f955a2",
+      "name": "Code - Split PAA",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        672,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "has-paa",
+              "leftValue": "={{ $json.skip_paa }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "notEquals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "94c3b66c-554b-4218-b41e-b2d350a11b41",
+      "name": "IF - Has PAA",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        880,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=INSERT INTO paa_data (project_id, question, answer_snippet, source_url, source_domain, position, is_recommended_as_h2, is_recommended_as_h3, relevance_score) VALUES ({{ $json.project_id }}, '{{ $json.question }}', {{ $json.answer_snippet ? \"'\" + $json.answer_snippet + \"'\" : 'NULL' }}, {{ $json.source_url ? \"'\" + $json.source_url + \"'\" : 'NULL' }}, {{ $json.source_domain ? \"'\" + $json.source_domain + \"'\" : 'NULL' }}, {{ $json.position }}, {{ $json.is_recommended_as_h2 }}, {{ $json.is_recommended_as_h3 }}, {{ $json.relevance_score }}) ON DUPLICATE KEY UPDATE answer_snippet = VALUES(answer_snippet), source_url = VALUES(source_url), source_domain = VALUES(source_domain)",
+        "options": {}
+      },
+      "id": "9b2fe1f2-5434-4c69-a36e-4728a89edac1",
+      "name": "MySQL - Save PAA",
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.4,
+      "position": [
+        1104,
+        0
+      ],
+      "credentials": {
+        "mySql": {
+          "id": "LYQGH6Sr5DJDmTWl",
+          "name": "SEO Suite MySQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const serpData = $('Code - Transform Serper').all()[0]?.json || $('Code - Transform Ahrefs').all()[0]?.json || {};\nconst paaCount = serpData.paa_questions?.length || 0;\n\nconst warnings = [];\nif (!serpData.has_paa) warnings.push('Bu arama icin PAA (People Also Ask) bulunamadi');\nif (!serpData.has_featured_snippet) warnings.push('Bu arama icin Featured Snippet bulunamadi');\nif (!serpData.has_knowledge_panel) warnings.push('Bu arama icin Knowledge Panel bulunamadi');\n\nreturn [{\n  json: {\n    success: true,\n    message: warnings.length > 0 ? 'SERP analizi tamamlandi (bazi ozellikler bulunamadi)' : 'SERP features detected successfully',\n    project_id: serpData.project_id,\n    serp_features: {\n      has_featured_snippet: serpData.has_featured_snippet || false,\n      featured_snippet_type: serpData.featured_snippet_type || 'none',\n      has_paa: serpData.has_paa || false,\n      paa_count: serpData.paa_count || 0,\n      has_video_results: serpData.has_video_results || false,\n      has_image_pack: serpData.has_image_pack || false,\n      has_local_pack: serpData.has_local_pack || false,\n      has_knowledge_panel: serpData.has_knowledge_panel || false,\n      has_shopping_results: serpData.has_shopping_results || false,\n      has_news_results: serpData.has_news_results || false,\n      zero_click_risk: serpData.zero_click_risk || 'low'\n    },\n    paa_questions_saved: paaCount,\n    warnings: warnings,\n    source: serpData.source || 'unknown'\n  }\n}];"
+      },
+      "id": "08ebe666-2b43-4d62-8266-17355b7a6ffb",
+      "name": "Code - Prepare Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1328,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "id": "3581b486-c3f7-4ad4-af49-135d4ca818ee",
+      "name": "Respond - Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1552,
+        112
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Code - Validate Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code - Validate Input": {
+      "main": [
+        [
+          {
+            "node": "IF - Valid Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF - Valid Input": {
+      "main": [
+        [
+          {
+            "node": "MySQL - Get Project",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond - Validation Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MySQL - Get Project": {
+      "main": [
+        [
+          {
+            "node": "Code - Check Project",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code - Check Project": {
+      "main": [
+        [
+          {
+            "node": "IF - Project Exists",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF - Project Exists": {
+      "main": [
+        [
+          {
+            "node": "Switch - API Source",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond - Not Found",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch - API Source": {
+      "main": [
+        [
+          {
+            "node": "HTTP - Ahrefs SERP",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "HTTP - Serper SERP",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP - Ahrefs SERP": {
+      "main": [
+        [
+          {
+            "node": "Code - Transform Ahrefs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP - Serper SERP": {
+      "main": [
+        [
+          {
+            "node": "Code - Transform Serper",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code - Transform Ahrefs": {
+      "main": [
+        [
+          {
+            "node": "MySQL - Save SERP Features",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code - Transform Serper": {
+      "main": [
+        [
+          {
+            "node": "MySQL - Save SERP Features",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MySQL - Save SERP Features": {
+      "main": [
+        [
+          {
+            "node": "Code - Split PAA",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code - Split PAA": {
+      "main": [
+        [
+          {
+            "node": "IF - Has PAA",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF - Has PAA": {
+      "main": [
+        [
+          {
+            "node": "MySQL - Save PAA",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Code - Prepare Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MySQL - Save PAA": {
+      "main": [
+        [
+          {
+            "node": "Code - Prepare Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code - Prepare Response": {
+      "main": [
+        [
+          {
+            "node": "Respond - Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "9b50e2cc-3af8-4446-a2ed-f54c46e965b5",
+  "meta": {
+    "instanceId": "b468285422c3ac1dfe43a49affb64495474f15ffdd0b5464abf91e9f69526166"
+  },
+  "id": "LPpDgnR4e4fwP1kx",
+  "tags": [
+    {
+      "updatedAt": "2025-12-10T13:07:57.042Z",
+      "createdAt": "2025-12-10T13:07:57.042Z",
+      "id": "U3rvT53H4fecxr38",
+      "name": "Tool1-KeywordResearch"
+    }
+  ]
+}

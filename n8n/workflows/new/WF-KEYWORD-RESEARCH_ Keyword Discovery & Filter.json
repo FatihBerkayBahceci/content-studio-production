@@ -1,0 +1,815 @@
+{
+  "name": "WF-KEYWORD-RESEARCH: Keyword Discovery & Filter",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "keyword-research",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "6f1cf2f9-8ef5-4603-ab4f-b4f96e384230",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -1536,
+        -16
+      ],
+      "webhookId": "keyword-research"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===========================================\n// INPUT VALIDATION\n// ===========================================\nconst body = $json.body || {};\nconst keyword = body.keyword || body.main_keyword;\nconst projectId = body.project_id;\nconst clientId = body.client_id;\nconst country = (body.country || 'TR').toUpperCase();\nconst language = body.language || 'tr';\n\nif (!keyword || keyword.trim().length < 2) {\n  return [{ json: { \n    isValid: false, \n    error: 'keyword parametresi zorunludur (min 2 karakter)', \n    errorCode: 400 \n  }}];\n}\n\nconst locationCodes = {\n  'TR': 2792, 'US': 2840, 'GB': 2826, 'DE': 2276, 'FR': 2250\n};\n\nreturn [{ json: { \n  isValid: true, \n  keyword: keyword.trim().toLowerCase(),\n  projectId: projectId ? parseInt(projectId) : null,\n  clientId: clientId ? parseInt(clientId) : null,\n  country: country,\n  language: language,\n  locationCode: locationCodes[country] || 2792\n}}];"
+      },
+      "id": "bb4391e5-412f-458a-b96e-6109b9cad293",
+      "name": "Validate Input",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1312,
+        -16
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "valid",
+              "leftValue": "={{ $json.isValid }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "a8432c67-d8d0-4c1e-9f0f-0142221bccbf",
+      "name": "IF Valid",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        -1088,
+        -16
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \"success\": false, \"error\": \"{{ $json.error }}\" }",
+        "options": {
+          "responseCode": "={{ $json.errorCode }}"
+        }
+      },
+      "id": "ca5da651-fdf6-4834-98e0-1d9be3320c77",
+      "name": "Respond Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        -864,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=SELECT \n  COALESCE(cc.enable_ai_analysis, 1) as enable_ai_analysis,\n  cc.ai_model_preference,\n  cc.ai_temperature\nFROM client_configurations cc\nWHERE cc.client_id = {{ $json.clientId || 0 }}\nUNION ALL\nSELECT 1, 'gemini-2.0-flash', 0.7\nFROM dual\nWHERE NOT EXISTS (SELECT 1 FROM client_configurations WHERE client_id = {{ $json.clientId || 0 }})\nLIMIT 1",
+        "options": {}
+      },
+      "id": "74c961c6-4cc6-475e-87e5-55726c7029fe",
+      "name": "Get Client Config",
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.4,
+      "position": [
+        -864,
+        -16
+      ],
+      "credentials": {
+        "mySql": {
+          "id": "LYQGH6Sr5DJDmTWl",
+          "name": "SEO Suite MySQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===========================================\n// PREPARE CONFIG FOR API CALLS\n// ===========================================\nconst input = $('Validate Input').first().json;\nconst config = $input.first().json;\n\nreturn [{ json: {\n  ...input,\n  enableAiAnalysis: config.enable_ai_analysis == 1,\n  aiModel: config.ai_model_preference || 'gemini-2.0-flash',\n  aiTemperature: parseFloat(config.ai_temperature) || 0.7\n}}];"
+      },
+      "id": "d09e7afa-313c-4af7-a8ac-e35361015780",
+      "name": "Prepare Config",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -656,
+        -16
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=http://suggestqueries.google.com/complete/search?client=firefox&q={{ encodeURIComponent($json.keyword) }}&hl={{ $json.language }}&gl={{ $json.country.toLowerCase() }}",
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "id": "132c5dd6-a344-416f-88f6-151659ad5caa",
+      "name": "Google Suggestions",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -432,
+        -16
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.dataforseo.com/v3/keywords_data/google_ads/keywords_for_keywords/live",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Basic b2t0YXlAc2VvYXJ0LmNvbTo0ODk2ZGRhYzQ2OWUyZjIw"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "=[{\n  \"keywords\": [\"{{ $('Prepare Config').first().json.keyword }}\"],\n  \"location_code\": {{ $('Prepare Config').first().json.locationCode }},\n  \"language_code\": \"{{ $('Prepare Config').first().json.language }}\",\n  \"include_seed_keyword\": true,\n  \"sort_by\": \"search_volume\"\n}]",
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "id": "074c1060-dff1-4191-bb6d-319f37ce5cbf",
+      "name": "DataForSEO Keywords",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -208,
+        -16
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===========================================\n// MERGE ALL KEYWORD SOURCES + TURKISH NORMALIZATION\n// ===========================================\nconst config = $('Prepare Config').first().json;\nconst mainKeyword = config.keyword;\n\n// Turkish character normalization for comparison\nfunction normalizeForComparison(str) {\n  return str.toLowerCase()\n    .replace(/ı/g, 'i').replace(/İ/g, 'i')\n    .replace(/ş/g, 's').replace(/Ş/g, 's')\n    .replace(/ö/g, 'o').replace(/Ö/g, 'o')\n    .replace(/ü/g, 'u').replace(/Ü/g, 'u')\n    .replace(/ç/g, 'c').replace(/Ç/g, 'c')\n    .replace(/ğ/g, 'g').replace(/Ğ/g, 'g')\n    .replace(/[^a-z0-9\\s]/g, '')\n    .replace(/\\s+/g, ' ')\n    .trim();\n}\n\n// Check if keyword has proper Turkish characters\nfunction hasTurkishChars(str) {\n  return /[ıİşŞöÖüÜçÇğĞ]/.test(str);\n}\n\n// Parse Google Suggestions\nlet suggestions = [];\ntry {\n  const sugResponse = $('Google Suggestions').first().json;\n  if (Array.isArray(sugResponse) && Array.isArray(sugResponse[1])) {\n    suggestions = sugResponse[1].map(s => ({\n      keyword: String(s).toLowerCase(),\n      search_volume: null,\n      cpc: null,\n      competition: null,\n      source: 'google_suggest'\n    }));\n  }\n} catch (e) { console.log('Suggestions parse error:', e.message); }\n\n// Parse DataForSEO\nlet dataforseoKeywords = [];\ntry {\n  const dfsResponse = $('DataForSEO Keywords').first().json;\n  if (dfsResponse?.tasks?.[0]?.result && Array.isArray(dfsResponse.tasks[0].result)) {\n    dataforseoKeywords = dfsResponse.tasks[0].result.map(kw => ({\n      keyword: (kw.keyword || '').toLowerCase(),\n      search_volume: kw.search_volume || 0,\n      cpc: kw.cpc || 0,\n      competition: kw.competition || null,\n      competition_index: kw.competition_index || 0,\n      source: 'dataforseo'\n    })).filter(kw => kw.keyword);\n  }\n} catch (e) { console.log('DataForSEO parse error:', e.message); }\n\n// Merge and dedupe with Turkish normalization\nconst allKeywords = [...dataforseoKeywords, ...suggestions];\nconst seen = new Map();\n\nallKeywords.forEach(kw => {\n  if (!kw.keyword || kw.keyword.length < 2) return;\n  \n  const normalizedKey = normalizeForComparison(kw.keyword);\n  if (!normalizedKey || normalizedKey.length < 2) return;\n  \n  if (!seen.has(normalizedKey)) {\n    seen.set(normalizedKey, kw);\n  } else {\n    const existing = seen.get(normalizedKey);\n    const existingHasTurkish = hasTurkishChars(existing.keyword);\n    const newHasTurkish = hasTurkishChars(kw.keyword);\n    \n    if (newHasTurkish && !existingHasTurkish) {\n      kw.search_volume = kw.search_volume || existing.search_volume;\n      kw.cpc = kw.cpc || existing.cpc;\n      kw.competition = kw.competition || existing.competition;\n      kw.source = existing.source + ',' + kw.source;\n      seen.set(normalizedKey, kw);\n    } else {\n      if (kw.search_volume && !existing.search_volume) {\n        existing.search_volume = kw.search_volume;\n        existing.cpc = kw.cpc;\n        existing.competition = kw.competition;\n      }\n      if (kw.source && !existing.source.includes(kw.source)) {\n        existing.source += ',' + kw.source;\n      }\n    }\n  }\n});\n\nconst uniqueKeywords = Array.from(seen.values());\n\nconst mainNormalized = normalizeForComparison(mainKeyword);\nif (!seen.has(mainNormalized)) {\n  uniqueKeywords.unshift({\n    keyword: mainKeyword,\n    search_volume: null,\n    cpc: null,\n    competition: null,\n    source: 'seed'\n  });\n}\n\nreturn [{\n  json: {\n    mainKeyword: mainKeyword,\n    projectId: config.projectId,\n    clientId: config.clientId,\n    country: config.country,\n    language: config.language,\n    enableAiAnalysis: config.enableAiAnalysis,\n    aiModel: config.aiModel,\n    aiTemperature: config.aiTemperature,\n    keywords: uniqueKeywords,\n    stats: {\n      total_raw: allKeywords.length,\n      after_dedup: uniqueKeywords.length,\n      from_google_suggest: suggestions.length,\n      from_dataforseo: dataforseoKeywords.length\n    }\n  }\n}];"
+      },
+      "id": "0c82f371-710d-46c4-be22-240b720d5254",
+      "name": "Merge Keywords",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        16,
+        -16
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===========================================\n// PREPARE FINAL SELECTION PROMPT\n// Select top 25-30 keywords for content strategy\n// ===========================================\nconst data = $input.first().json;\nconst keywords = data.keywords || [];\nconst mainKeyword = data.mainKeyword;\n\nif (keywords.length <= 30) {\n  // Already small enough, skip final selection\n  return [{ json: { ...data, skipFinalSelection: true, selected_keywords: keywords } }];\n}\n\n// Sort by search volume and take top 100 for AI to evaluate\nconst sortedKeywords = [...keywords].sort((a, b) => (b.search_volume || 0) - (a.search_volume || 0)).slice(0, 100);\n\nconst keywordList = sortedKeywords.map((kw, i) => {\n  const vol = kw.search_volume || 0;\n  const cpc = kw.cpc ? kw.cpc.toFixed(2) : '0';\n  const comp = kw.competition || '-';\n  return `${i+1}. ${kw.keyword} | Vol: ${vol} | CPC: ${cpc} | Comp: ${comp}`;\n}).join('\\n');\n\nconst prompt = `Sen bir SEO uzmanisin. Asagidaki keyword listesinden icerik stratejisi icin EN ONEMLI 25-30 tanesini sec.\n\nAna Keyword: ${mainKeyword}\nUlke: ${data.country}\n\nSecim Kriterleri:\n1. Ana keyword ile DOGRUDAN ilgili olmali\n2. Farkli arama niyetlerini (informational, commercial, transactional) kapsamali\n3. Farkli icerik turleri icin uygun olmali (pillar, cluster, landing)\n4. Benzer/tekrar eden keywordleri ELEME - sadece en iyisini sec\n5. Cok genel veya cok spesifik olanlari eleme\n6. Search volume ve rekabet dengesine bak\n\nKEYWORD LISTESI:\n${keywordList}\n\nSadece sectigin keywordlerin NUMARALARINI ver, virgul ile ayir.\nOrnek: 1, 3, 5, 7, 12, 15, 18, 22, 25, 28\n\nSECILEN NUMARALAR:`;\n\nreturn [{\n  json: {\n    ...data,\n    skipFinalSelection: false,\n    finalSelectionPrompt: prompt,\n    sortedKeywords: sortedKeywords\n  }\n}];"
+      },
+      "id": "1b45e2e5-b57b-49e5-b0ad-fe7e43f4fdec",
+      "name": "Prepare Final Selection",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        240,
+        -16
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "need-selection",
+              "leftValue": "={{ $json.skipFinalSelection }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "notEquals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "49b5b444-a153-4d4e-b2e8-9289fd0e7883",
+      "name": "IF Need Selection",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        464,
+        -16
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpQueryAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"contents\": [{\n    \"parts\": [{\n      \"text\": {{ JSON.stringify($json.finalSelectionPrompt) }}\n    }]\n  }],\n  \"generationConfig\": {\n    \"temperature\": 0.3,\n    \"maxOutputTokens\": 1024\n  }\n}",
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "id": "edea26ca-7c5d-4c23-8110-12857c14ebc7",
+      "name": "Gemini Final Selection",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        672,
+        -112
+      ],
+      "credentials": {
+        "httpQueryAuth": {
+          "id": "2b11sjFpHTaAnC0N",
+          "name": "Gemini API"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===========================================\n// PARSE FINAL SELECTION RESPONSE\n// ===========================================\nconst prevData = $('Prepare Final Selection').first().json;\nconst geminiResponse = $input.first().json;\nconst sortedKeywords = prevData.sortedKeywords || [];\n\nlet selectedKeywords = [];\n\ntry {\n  const text = geminiResponse?.candidates?.[0]?.content?.parts?.[0]?.text || '';\n  // Extract numbers from response\n  const numbers = text.match(/\\d+/g) || [];\n  const selectedIndices = numbers.map(n => parseInt(n)).filter(n => n >= 1 && n <= sortedKeywords.length);\n  \n  // Get unique indices\n  const uniqueIndices = [...new Set(selectedIndices)];\n  \n  // Map to keywords\n  selectedKeywords = uniqueIndices.map(idx => sortedKeywords[idx - 1]).filter(Boolean);\n  \n  // If AI returned too few, take top by volume\n  if (selectedKeywords.length < 15) {\n    selectedKeywords = sortedKeywords.slice(0, 30);\n  }\n} catch (e) {\n  console.log('Final selection parse error:', e.message);\n  selectedKeywords = sortedKeywords.slice(0, 30);\n}\n\nreturn [{\n  json: {\n    mainKeyword: prevData.mainKeyword,\n    projectId: prevData.projectId,\n    clientId: prevData.clientId,\n    country: prevData.country,\n    language: prevData.language,\n    enableAiAnalysis: prevData.enableAiAnalysis,\n    aiModel: prevData.aiModel,\n    aiTemperature: prevData.aiTemperature,\n    keywords: selectedKeywords,\n    stats: {\n      ...prevData.stats,\n      after_final_selection: selectedKeywords.length\n    }\n  }\n}];"
+      },
+      "id": "5230f264-2a61-49d3-8e2f-3a5fcd99688a",
+      "name": "Parse Final Selection",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        896,
+        -112
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===========================================\n// SKIP FINAL SELECTION - Already few keywords\n// ===========================================\nconst data = $input.first().json;\n\nreturn [{\n  json: {\n    mainKeyword: data.mainKeyword,\n    projectId: data.projectId,\n    clientId: data.clientId,\n    country: data.country,\n    language: data.language,\n    enableAiAnalysis: data.enableAiAnalysis,\n    aiModel: data.aiModel,\n    aiTemperature: data.aiTemperature,\n    keywords: data.selected_keywords || data.keywords,\n    stats: {\n      ...data.stats,\n      after_final_selection: (data.selected_keywords || data.keywords || []).length\n    }\n  }\n}];"
+      },
+      "id": "930d996d-d54c-401e-a312-e4747bbcfeb6",
+      "name": "Skip Final Selection",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        672,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===========================================\n// PREPARE AI ENRICHMENT PROMPT\n// ===========================================\nlet data = null;\ntry { data = $('Parse Final Selection').first().json; } catch(e) {}\nif (!data) { try { data = $('Skip Final Selection').first().json; } catch(e) {} }\nif (!data) { data = $input.first().json; }\n\nconst keywords = data.keywords || [];\n\nif (keywords.length === 0) {\n  return [{ json: { skip: true, message: 'No keywords to enrich' } }];\n}\n\nif (!data.enableAiAnalysis) {\n  return [{ json: { skipAi: true, ...data } }];\n}\n\nconst keywordCsv = keywords.map((kw, i) => {\n  const vol = kw.search_volume || 0;\n  const cpc = kw.cpc ? kw.cpc.toFixed(2) : '0';\n  return `${i+1}|${kw.keyword}|${vol}|${cpc}`;\n}).join('\\n');\n\nconst prompt = `Sen bir SEO uzmanisin. Her keyword icin intent, cluster, priority ve content_type belirle.\n\nAna Keyword: ${data.mainKeyword}\nUlke: ${data.country}\n\nKEYWORDS:\nNo|Keyword|Volume|CPC\n${keywordCsv}\n\nHer satir icin:\nNo|intent|cluster|priority|content_type\n\nintent: informational, commercial, transactional, navigational\npriority: high, medium, low\ncontent_type: pillar, cluster, landing, comparison, guide\n\nCIKTI:`;\n\nreturn [{\n  json: {\n    ...data,\n    skip: false,\n    skipAi: false,\n    enrichPrompt: prompt\n  }\n}];"
+      },
+      "id": "ec494616-d122-4a98-a966-dfad681f5598",
+      "name": "Prepare Enrich Prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        -16
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "not-skip",
+              "leftValue": "={{ $json.skip }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "notEquals"
+              }
+            },
+            {
+              "id": "not-skip-ai",
+              "leftValue": "={{ $json.skipAi }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "notEquals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "56d69ed0-ce91-4497-ad96-162b805a9a23",
+      "name": "IF Run Enrich",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1344,
+        -16
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpQueryAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"contents\": [{\n    \"parts\": [{\n      \"text\": {{ JSON.stringify($json.enrichPrompt) }}\n    }]\n  }],\n  \"generationConfig\": {\n    \"temperature\": {{ $json.aiTemperature || 0.3 }},\n    \"maxOutputTokens\": 2048\n  }\n}",
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "id": "0cb7472b-6a24-431c-a137-6ef87cadbbf4",
+      "name": "Gemini Enrich",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1552,
+        -112
+      ],
+      "credentials": {
+        "httpQueryAuth": {
+          "id": "2b11sjFpHTaAnC0N",
+          "name": "Gemini API"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===========================================\n// PARSE ENRICHMENT RESPONSE\n// ===========================================\nconst prevData = $('Prepare Enrich Prompt').first().json;\nconst geminiResponse = $input.first().json;\nconst keywords = prevData.keywords || [];\n\nconst enrichedKeywords = keywords.map((kw, idx) => ({\n  ...kw,\n  index: idx + 1,\n  intent: null,\n  cluster: null,\n  priority: 'medium',\n  content_type: 'cluster'\n}));\n\ntry {\n  const text = geminiResponse?.candidates?.[0]?.content?.parts?.[0]?.text || '';\n  const lines = text.split('\\n').filter(l => /^\\d+\\|/.test(l.trim()));\n  \n  for (const line of lines) {\n    const parts = line.split('|').map(p => p.trim());\n    if (parts.length >= 2) {\n      const no = parseInt(parts[0]);\n      const kw = enrichedKeywords.find(k => k.index === no);\n      if (kw) {\n        kw.intent = parts[1] && parts[1] !== '-' ? parts[1].toLowerCase() : null;\n        kw.cluster = parts[2] && parts[2] !== '-' ? parts[2] : null;\n        kw.priority = parts[3] && parts[3] !== '-' ? parts[3].toLowerCase() : 'medium';\n        kw.content_type = parts[4] && parts[4] !== '-' ? parts[4].toLowerCase() : 'cluster';\n      }\n    }\n  }\n} catch (e) { console.log('Enrich parse error:', e.message); }\n\nconst clusters = {};\nenrichedKeywords.forEach(kw => {\n  const c = kw.cluster || 'Genel';\n  if (!clusters[c]) clusters[c] = [];\n  clusters[c].push(kw.keyword);\n});\n\nreturn [{\n  json: {\n    mainKeyword: prevData.mainKeyword,\n    projectId: prevData.projectId,\n    clientId: prevData.clientId,\n    stats: prevData.stats,\n    approved_keywords: enrichedKeywords,\n    clusters: clusters,\n    ai_used: true\n  }\n}];"
+      },
+      "id": "1fefdea3-29e7-4092-a95d-7db328b9ca51",
+      "name": "Parse Enrich",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1776,
+        -112
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===========================================\n// SKIP ENRICHMENT - Use keywords as-is\n// ===========================================\nconst data = $input.first().json;\nconst keywords = data.keywords || [];\n\nconst approvedKeywords = keywords.map((kw, idx) => ({\n  ...kw,\n  index: idx + 1,\n  intent: null,\n  cluster: null,\n  priority: 'medium',\n  content_type: 'cluster'\n}));\n\nreturn [{\n  json: {\n    mainKeyword: data.mainKeyword,\n    projectId: data.projectId,\n    clientId: data.clientId,\n    stats: data.stats,\n    approved_keywords: approvedKeywords,\n    clusters: {},\n    ai_used: false\n  }\n}];"
+      },
+      "id": "6c3d412e-5c67-4219-8a28-9283cdb6ae51",
+      "name": "Skip Enrich",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1552,
+        144
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "has-project",
+              "leftValue": "={{ $json.projectId }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "exists"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "2a6e1dc5-26b9-4f9a-a0dd-f112deb1df74",
+      "name": "IF Save to DB",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        2000,
+        -16
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===========================================\n// PREPARE FOR DB INSERT\n// ===========================================\nlet data = null;\ntry { data = $('Parse Enrich').first().json; } catch(e) {}\nif (!data) { try { data = $('Skip Enrich').first().json; } catch(e) {} }\nif (!data) { data = $input.first().json; }\n\nconst projectId = data.projectId;\nconst approvedKeywords = data.approved_keywords || [];\n\nif (approvedKeywords.length === 0) {\n  return [{ json: { skip: true } }];\n}\n\nreturn approvedKeywords.map((kw, idx) => ({\n  json: {\n    project_id: projectId,\n    keyword: kw.keyword,\n    keyword_type: kw.source?.includes('suggest') ? 'google_suggest' : 'related',\n    search_volume: kw.search_volume || null,\n    cpc: kw.cpc || null,\n    competition: kw.competition || null,\n    search_intent: kw.intent || null,\n    keyword_cluster: kw.cluster || null,\n    content_priority: kw.priority || 'medium',\n    page_type: kw.content_type || null,\n    source: kw.source || 'dataforseo'\n  }\n}));"
+      },
+      "id": "910de01d-1e13-4f96-a11a-89bd2bd30f79",
+      "name": "Split for DB",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2224,
+        -112
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=INSERT INTO keyword_results \n  (project_id, keyword, keyword_type, search_volume, cpc, competition, search_intent, keyword_cluster, content_priority, page_type, source)\nVALUES \n  ({{ $json.project_id }}, '{{ $json.keyword.replace(/'/g, \"''\") }}', '{{ $json.keyword_type }}', {{ $json.search_volume || 'NULL' }}, {{ $json.cpc || 'NULL' }}, {{ $json.competition ? \"'\" + $json.competition + \"'\" : 'NULL' }}, {{ $json.search_intent ? \"'\" + $json.search_intent + \"'\" : 'NULL' }}, {{ $json.keyword_cluster ? \"'\" + $json.keyword_cluster.replace(/'/g, \"''\") + \"'\" : 'NULL' }}, '{{ $json.content_priority || 'medium' }}', {{ $json.page_type ? \"'\" + $json.page_type + \"'\" : 'NULL' }}, '{{ $json.source }}')\nON DUPLICATE KEY UPDATE\n  search_volume = COALESCE(VALUES(search_volume), search_volume),\n  cpc = COALESCE(VALUES(cpc), cpc),\n  search_intent = COALESCE(VALUES(search_intent), search_intent),\n  keyword_cluster = COALESCE(VALUES(keyword_cluster), keyword_cluster),\n  content_priority = COALESCE(VALUES(content_priority), content_priority),\n  page_type = COALESCE(VALUES(page_type), page_type)",
+        "options": {}
+      },
+      "id": "60361652-7549-448c-ab36-2c7708105f47",
+      "name": "Save to DB",
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.4,
+      "position": [
+        2432,
+        -112
+      ],
+      "credentials": {
+        "mySql": {
+          "id": "LYQGH6Sr5DJDmTWl",
+          "name": "SEO Suite MySQL"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===========================================\n// PREPARE FINAL RESPONSE\n// ===========================================\nlet data = null;\ntry { data = $('Parse Enrich').first().json; } catch(e) {}\nif (!data) { try { data = $('Skip Enrich').first().json; } catch(e) {} }\n\nif (!data) {\n  return [{ json: { success: false, error: 'Could not retrieve data' } }];\n}\n\nconst approvedKeywords = data.approved_keywords || [];\nconst savedCount = $input.all().length;\n\nreturn [{\n  json: {\n    success: true,\n    message: `Keyword arastirmasi tamamlandi. ${approvedKeywords.length} keyword secildi, ${savedCount} DB'ye kaydedildi.`,\n    main_keyword: data.mainKeyword,\n    project_id: data.projectId,\n    stats: data.stats,\n    keywords: approvedKeywords.map(kw => ({\n      keyword: kw.keyword,\n      search_volume: kw.search_volume,\n      cpc: kw.cpc,\n      competition: kw.competition,\n      intent: kw.intent,\n      cluster: kw.cluster,\n      priority: kw.priority,\n      content_type: kw.content_type,\n      source: kw.source\n    })),\n    clusters: data.clusters || {},\n    saved_to_db: savedCount,\n    ai_used: data.ai_used\n  }\n}];"
+      },
+      "id": "605104eb-8033-4739-b97f-1bcf63102013",
+      "name": "Response (DB)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2656,
+        -112
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===========================================\n// PREPARE RESPONSE (NO DB SAVE)\n// ===========================================\nlet data = null;\ntry { data = $('Parse Enrich').first().json; } catch(e) {}\nif (!data) { try { data = $('Skip Enrich').first().json; } catch(e) {} }\nif (!data) { data = $input.first().json; }\n\nconst approvedKeywords = data.approved_keywords || [];\n\nreturn [{\n  json: {\n    success: true,\n    message: `Keyword arastirmasi tamamlandi. ${approvedKeywords.length} keyword secildi.`,\n    main_keyword: data.mainKeyword,\n    project_id: null,\n    stats: data.stats,\n    keywords: approvedKeywords.map(kw => ({\n      keyword: kw.keyword,\n      search_volume: kw.search_volume,\n      cpc: kw.cpc,\n      competition: kw.competition,\n      intent: kw.intent,\n      cluster: kw.cluster,\n      priority: kw.priority,\n      content_type: kw.content_type,\n      source: kw.source\n    })),\n    clusters: data.clusters || {},\n    saved_to_db: 0,\n    ai_used: data.ai_used\n  }\n}];"
+      },
+      "id": "b77394f5-d077-414e-ab6e-08548e40c304",
+      "name": "Response (No DB)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2224,
+        144
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "id": "2c5022ed-5602-488e-b2fc-31e6a8e15d0f",
+      "name": "Respond Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        2880,
+        -16
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \"success\": true, \"message\": \"Keyword bulunamadi\", \"keywords\": [], \"stats\": {} }",
+        "options": {}
+      },
+      "id": "b0234c89-4d6d-4a20-a971-0bc5ea8ac687",
+      "name": "Respond Empty",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1552,
+        288
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Validate Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Input": {
+      "main": [
+        [
+          {
+            "node": "IF Valid",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Valid": {
+      "main": [
+        [
+          {
+            "node": "Get Client Config",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Client Config": {
+      "main": [
+        [
+          {
+            "node": "Prepare Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Config": {
+      "main": [
+        [
+          {
+            "node": "Google Suggestions",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Suggestions": {
+      "main": [
+        [
+          {
+            "node": "DataForSEO Keywords",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DataForSEO Keywords": {
+      "main": [
+        [
+          {
+            "node": "Merge Keywords",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Keywords": {
+      "main": [
+        [
+          {
+            "node": "Prepare Final Selection",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Final Selection": {
+      "main": [
+        [
+          {
+            "node": "IF Need Selection",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Need Selection": {
+      "main": [
+        [
+          {
+            "node": "Gemini Final Selection",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Skip Final Selection",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini Final Selection": {
+      "main": [
+        [
+          {
+            "node": "Parse Final Selection",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Final Selection": {
+      "main": [
+        [
+          {
+            "node": "Prepare Enrich Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Skip Final Selection": {
+      "main": [
+        [
+          {
+            "node": "Prepare Enrich Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Enrich Prompt": {
+      "main": [
+        [
+          {
+            "node": "IF Run Enrich",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Run Enrich": {
+      "main": [
+        [
+          {
+            "node": "Gemini Enrich",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Skip Enrich",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini Enrich": {
+      "main": [
+        [
+          {
+            "node": "Parse Enrich",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Enrich": {
+      "main": [
+        [
+          {
+            "node": "IF Save to DB",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Skip Enrich": {
+      "main": [
+        [
+          {
+            "node": "IF Save to DB",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Save to DB": {
+      "main": [
+        [
+          {
+            "node": "Split for DB",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Response (No DB)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split for DB": {
+      "main": [
+        [
+          {
+            "node": "Save to DB",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save to DB": {
+      "main": [
+        [
+          {
+            "node": "Response (DB)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Response (DB)": {
+      "main": [
+        [
+          {
+            "node": "Respond Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Response (No DB)": {
+      "main": [
+        [
+          {
+            "node": "Respond Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "4693cf1f-d9b8-41c4-87fc-cf6efcd01829",
+  "meta": {
+    "instanceId": "b468285422c3ac1dfe43a49affb64495474f15ffdd0b5464abf91e9f69526166"
+  },
+  "id": "pcICIqvo2zbLQzSV",
+  "tags": [
+    {
+      "updatedAt": "2025-12-10T13:07:57.042Z",
+      "createdAt": "2025-12-10T13:07:57.042Z",
+      "id": "U3rvT53H4fecxr38",
+      "name": "Tool1-KeywordResearch"
+    }
+  ]
+}

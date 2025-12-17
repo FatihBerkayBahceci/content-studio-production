@@ -1,0 +1,875 @@
+{
+  "name": "WF-001 Clients CRUD Operations",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "clients/list",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "1c34cf60-b0db-4bf3-bc36-504826d92d4a",
+      "name": "Webhook - List Clients",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        608,
+        336
+      ],
+      "webhookId": "clients-list"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT id, uuid, name, slug, domain, industry, default_language, default_country, is_active, created_at FROM clients WHERE deleted_at IS NULL ORDER BY name ASC",
+        "options": {}
+      },
+      "id": "cc69ac3f-6e4e-48f9-913b-6f3da2d8f736",
+      "name": "MySQL - List Clients",
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.4,
+      "position": [
+        832,
+        336
+      ],
+      "credentials": {
+        "mySql": {
+          "id": "LYQGH6Sr5DJDmTWl",
+          "name": "SEO Suite MySQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": true,\n  \"data\": {{ JSON.stringify($input.all().map(i => i.json)) }}\n}",
+        "options": {}
+      },
+      "id": "4fd6e2a1-58f4-4165-824d-ca6f1bd98fdf",
+      "name": "Respond - List",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1056,
+        336
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "clients/create",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "9bff5c14-a221-42f9-abf8-0bbd6d560313",
+      "name": "Webhook - Create Client",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        608,
+        544
+      ],
+      "webhookId": "clients-create"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=INSERT INTO clients (uuid, name, slug, domain, industry, default_language, default_country) VALUES (UUID(), {{ JSON.stringify($json.body.name || '') }}, {{ JSON.stringify($json.body.slug || '') }}, {{ JSON.stringify($json.body.domain || '') }}, {{ JSON.stringify($json.body.industry || '') }}, {{ JSON.stringify($json.body.default_language || 'tr') }}, {{ JSON.stringify($json.body.default_country || 'TR') }})",
+        "options": {}
+      },
+      "id": "ca00f81f-30f8-40d8-86e1-58edcfb57e9c",
+      "name": "MySQL - Create Client",
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.4,
+      "position": [
+        832,
+        544
+      ],
+      "credentials": {
+        "mySql": {
+          "id": "LYQGH6Sr5DJDmTWl",
+          "name": "SEO Suite MySQL"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM clients WHERE id = LAST_INSERT_ID()",
+        "options": {}
+      },
+      "id": "02cb805b-c825-4227-910a-c564af2010ab",
+      "name": "MySQL - Get Created",
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.4,
+      "position": [
+        1056,
+        480
+      ],
+      "credentials": {
+        "mySql": {
+          "id": "LYQGH6Sr5DJDmTWl",
+          "name": "SEO Suite MySQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=INSERT INTO client_configurations (client_id) VALUES ({{ $json.id }})",
+        "options": {}
+      },
+      "id": "f9872a65-deb7-4da4-be7e-f35bbbe64ddd",
+      "name": "MySQL - Create Config",
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.4,
+      "position": [
+        1280,
+        480
+      ],
+      "credentials": {
+        "mySql": {
+          "id": "LYQGH6Sr5DJDmTWl",
+          "name": "SEO Suite MySQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": true,\n  \"data\": {{ JSON.stringify($json) }},\n  \"message\": \"Müşteri başarıyla oluşturuldu\"\n}",
+        "options": {}
+      },
+      "id": "b0e0cf96-e431-49d1-be96-e4973772c319",
+      "name": "Respond - Create Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1488,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": false,\n  \"error\": {{ $json.message && $json.message.includes('Duplicate') ? '\"Bu slug zaten kullanımda\"' : JSON.stringify($json.message || 'Müşteri oluşturulamadı') }}\n}",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "id": "a3591a77-5dd5-4097-b25a-774fa7be7093",
+      "name": "Respond - Create Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1056,
+        624
+      ]
+    },
+    {
+      "parameters": {
+        "path": "clients-get/clients/:id",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "bcbdb2d4-3a9a-4e46-b1ba-ce80d3860945",
+      "name": "Webhook - Get Client",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        608,
+        736
+      ],
+      "webhookId": "clients-get"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=SELECT c.id, c.uuid, c.name, c.slug, c.domain, c.industry, c.default_language, c.default_country, c.is_active, c.created_at, c.updated_at, cc.system_prompt_id, cc.tone_of_voice, cc.writing_style, cc.target_audience, cc.brand_keywords, cc.forbidden_words, cc.competitor_domains, cc.keyword_density_min, cc.keyword_density_max, cc.internal_links_per_1000_words, cc.ai_model_preference, cc.ai_temperature, cc.enable_ai_analysis, cc.competitor_count, cc.cache_duration_days, cc.enable_ahrefs_api FROM clients c LEFT JOIN client_configurations cc ON c.id = cc.client_id WHERE (c.id = {{ parseInt($json.params.id) || 0 }} OR c.uuid = '{{ $json.params.id }}') AND c.deleted_at IS NULL LIMIT 1",
+        "options": {}
+      },
+      "id": "df26d455-51e0-4703-9ec7-c283fc1acb2d",
+      "name": "MySQL - Get Client",
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.4,
+      "position": [
+        832,
+        736
+      ],
+      "credentials": {
+        "mySql": {
+          "id": "LYQGH6Sr5DJDmTWl",
+          "name": "SEO Suite MySQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const item = $json;\nif (item.id) {\n  try { item.brand_keywords = item.brand_keywords ? JSON.parse(item.brand_keywords) : []; } catch { item.brand_keywords = []; }\n  try { item.forbidden_words = item.forbidden_words ? JSON.parse(item.forbidden_words) : []; } catch { item.forbidden_words = []; }\n  try { item.competitor_domains = item.competitor_domains ? JSON.parse(item.competitor_domains) : []; } catch { item.competitor_domains = []; }\n}\nreturn { json: item };"
+      },
+      "id": "db5f01ae-9bc4-4df9-99fb-33b74f547430",
+      "name": "Code - Parse JSON",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1056,
+        736
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": {{ $json.id ? true : false }},\n  \"data\": {{ $json.id ? JSON.stringify($json) : 'null' }},\n  \"error\": {{ $json.id ? 'null' : '\"Müşteri bulunamadı\"' }}\n}",
+        "options": {}
+      },
+      "id": "337c5b6a-edc9-4cae-8fe5-eafcfa97874a",
+      "name": "Respond - Get",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1280,
+        736
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "PUT",
+        "path": "clients-update/clients/:id/update",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "dbc5ee43-0bde-483f-a8bb-ebc173ac7a97",
+      "name": "Webhook - Update Client",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        608,
+        944
+      ],
+      "webhookId": "clients-update"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const body = $json.body || {};\nconst clientId = parseInt($json.params.id);\nif (!clientId) return { json: { error: 'Invalid client ID', clientId: 0 } };\n\nconst clientFields = ['name', 'slug', 'domain', 'industry', 'default_language', 'default_country', 'is_active'];\nconst clientUpdates = [];\nfor (const field of clientFields) {\n  if (body[field] !== undefined) {\n    const value = body[field];\n    if (typeof value === 'boolean') clientUpdates.push(`${field} = ${value ? 1 : 0}`);\n    else if (typeof value === 'number') clientUpdates.push(`${field} = ${value}`);\n    else clientUpdates.push(`${field} = ${JSON.stringify(value)}`);\n  }\n}\n\nconst configFields = ['system_prompt_id', 'tone_of_voice', 'writing_style', 'target_audience', 'brand_keywords', 'forbidden_words', 'competitor_domains', 'keyword_density_min', 'keyword_density_max', 'internal_links_per_1000_words', 'ai_model_preference', 'ai_temperature', 'enable_ai_analysis', 'competitor_count', 'cache_duration_days', 'enable_ahrefs_api'];\nconst configUpdates = [];\nfor (const field of configFields) {\n  if (body[field] !== undefined) {\n    const value = body[field];\n    if (value === null) configUpdates.push(`${field} = NULL`);\n    else if (Array.isArray(value)) configUpdates.push(`${field} = ${JSON.stringify(JSON.stringify(value))}`);\n    else if (typeof value === 'boolean') configUpdates.push(`${field} = ${value ? 1 : 0}`);\n    else if (typeof value === 'number') configUpdates.push(`${field} = ${value}`);\n    else configUpdates.push(`${field} = ${JSON.stringify(value)}`);\n  }\n}\n\nlet clientQuery = '';\nif (clientUpdates.length > 0) {\n  clientUpdates.push('updated_at = NOW()');\n  clientQuery = `UPDATE clients SET ${clientUpdates.join(', ')} WHERE id = ${clientId} AND deleted_at IS NULL`;\n}\n\nlet configQuery = '';\nif (configUpdates.length > 0) {\n  configUpdates.push('updated_at = NOW()');\n  configQuery = `UPDATE client_configurations SET ${configUpdates.join(', ')} WHERE client_id = ${clientId}`;\n}\n\nreturn { json: { clientId, clientQuery, configQuery, hasClientUpdates: clientUpdates.length > 0, hasConfigUpdates: configUpdates.length > 0 } };"
+      },
+      "id": "6a6adc46-32a6-410d-87ce-6148026c84eb",
+      "name": "Code - Build Update",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        832,
+        944
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "c1",
+              "leftValue": "={{ $json.hasClientUpdates }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "aeaea396-5701-41db-b603-c0bb0883c6de",
+      "name": "IF - Has Client Updates",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1056,
+        944
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "={{ $json.clientQuery }}",
+        "options": {}
+      },
+      "id": "c5be16db-7945-4fa7-9a08-79f6ef388186",
+      "name": "MySQL - Update Client",
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.4,
+      "position": [
+        1280,
+        880
+      ],
+      "credentials": {
+        "mySql": {
+          "id": "LYQGH6Sr5DJDmTWl",
+          "name": "SEO Suite MySQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "return { json: $('Code - Build Update').item.json };"
+      },
+      "id": "58dbd6e5-9391-49ad-9f51-571bf8275a7f",
+      "name": "Code - Merge Client",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1488,
+        880
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "return { json: $('Code - Build Update').item.json };"
+      },
+      "id": "0eb038f3-5470-4a61-af17-02478fd5245a",
+      "name": "Code - Skip Client",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1280,
+        1008
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "passThrough"
+      },
+      "id": "9f6f459e-4bd9-4ae3-be77-f77690bec96f",
+      "name": "Merge After Client",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        1712,
+        944
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "c2",
+              "leftValue": "={{ $json.hasConfigUpdates }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "f7f2019b-ea47-4443-928c-d2d832ad6a0e",
+      "name": "IF - Has Config Updates",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1936,
+        944
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "={{ $json.configQuery }}",
+        "options": {}
+      },
+      "id": "472d7673-85cf-4580-b42a-ac573a33324d",
+      "name": "MySQL - Update Config",
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.4,
+      "position": [
+        2160,
+        880
+      ],
+      "credentials": {
+        "mySql": {
+          "id": "LYQGH6Sr5DJDmTWl",
+          "name": "SEO Suite MySQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "return { json: { clientId: $('Code - Build Update').item.json.clientId } };"
+      },
+      "id": "7ed984f3-e610-4785-b237-e1dd03532053",
+      "name": "Code - Merge Config",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2368,
+        880
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "return { json: { clientId: $('Code - Build Update').item.json.clientId } };"
+      },
+      "id": "768f5c21-43e9-4aca-8014-3a008f5e9138",
+      "name": "Code - Skip Config",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2160,
+        1008
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "passThrough"
+      },
+      "id": "d3fed382-8077-4c48-8841-6febd1fd0b71",
+      "name": "Merge After Config",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        2592,
+        944
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=SELECT c.id, c.uuid, c.name, c.slug, c.domain, c.industry, c.default_language, c.default_country, c.is_active, c.created_at, c.updated_at, cc.system_prompt_id, cc.tone_of_voice, cc.writing_style, cc.target_audience, cc.brand_keywords, cc.forbidden_words, cc.competitor_domains, cc.keyword_density_min, cc.keyword_density_max, cc.internal_links_per_1000_words, cc.ai_model_preference, cc.ai_temperature, cc.enable_ai_analysis, cc.competitor_count, cc.cache_duration_days, cc.enable_ahrefs_api FROM clients c LEFT JOIN client_configurations cc ON c.id = cc.client_id WHERE c.id = {{ $json.clientId }} AND c.deleted_at IS NULL LIMIT 1",
+        "options": {}
+      },
+      "id": "f0a770e2-acbe-4e31-aef3-0be64acec1b4",
+      "name": "MySQL - Get Updated",
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.4,
+      "position": [
+        2816,
+        944
+      ],
+      "credentials": {
+        "mySql": {
+          "id": "LYQGH6Sr5DJDmTWl",
+          "name": "SEO Suite MySQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const item = $json;\nif (item.id) {\n  try { item.brand_keywords = item.brand_keywords ? JSON.parse(item.brand_keywords) : []; } catch { item.brand_keywords = []; }\n  try { item.forbidden_words = item.forbidden_words ? JSON.parse(item.forbidden_words) : []; } catch { item.forbidden_words = []; }\n  try { item.competitor_domains = item.competitor_domains ? JSON.parse(item.competitor_domains) : []; } catch { item.competitor_domains = []; }\n}\nreturn { json: item };"
+      },
+      "id": "39a6338c-825f-4e50-a878-0a334357662d",
+      "name": "Code - Parse Updated",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3040,
+        944
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": {{ $json.id ? true : false }},\n  \"data\": {{ $json.id ? JSON.stringify($json) : 'null' }},\n  \"message\": {{ $json.id ? '\"Müşteri başarıyla güncellendi\"' : '\"Müşteri bulunamadı\"' }}\n}",
+        "options": {}
+      },
+      "id": "2a14bc44-fe62-47a6-bf66-bdc2c031bc82",
+      "name": "Respond - Update",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        3248,
+        944
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "DELETE",
+        "path": "clients-delete/clients/:id",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "2714f73b-f145-4295-afe7-b9771fc5b94d",
+      "name": "Webhook - Delete Client",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        608,
+        1136
+      ],
+      "webhookId": "clients-delete"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=UPDATE clients SET deleted_at = NOW(), is_active = 0 WHERE id = {{ parseInt($json.params.id) || 0 }} AND deleted_at IS NULL",
+        "options": {}
+      },
+      "id": "b54c9f6c-0d14-4b53-9c1c-19aa8bde71a3",
+      "name": "MySQL - Delete Client",
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.4,
+      "position": [
+        832,
+        1136
+      ],
+      "credentials": {
+        "mySql": {
+          "id": "LYQGH6Sr5DJDmTWl",
+          "name": "SEO Suite MySQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": true,\n  \"message\": \"Müşteri başarıyla silindi\"\n}",
+        "options": {}
+      },
+      "id": "ca06c142-0cf2-4a39-9d21-7cea98ecbd71",
+      "name": "Respond - Delete",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1056,
+        1136
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook - List Clients": {
+      "main": [
+        [
+          {
+            "node": "MySQL - List Clients",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MySQL - List Clients": {
+      "main": [
+        [
+          {
+            "node": "Respond - List",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook - Create Client": {
+      "main": [
+        [
+          {
+            "node": "MySQL - Create Client",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MySQL - Create Client": {
+      "main": [
+        [
+          {
+            "node": "MySQL - Get Created",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond - Create Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MySQL - Get Created": {
+      "main": [
+        [
+          {
+            "node": "MySQL - Create Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MySQL - Create Config": {
+      "main": [
+        [
+          {
+            "node": "Respond - Create Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook - Get Client": {
+      "main": [
+        [
+          {
+            "node": "MySQL - Get Client",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MySQL - Get Client": {
+      "main": [
+        [
+          {
+            "node": "Code - Parse JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code - Parse JSON": {
+      "main": [
+        [
+          {
+            "node": "Respond - Get",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook - Update Client": {
+      "main": [
+        [
+          {
+            "node": "Code - Build Update",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code - Build Update": {
+      "main": [
+        [
+          {
+            "node": "IF - Has Client Updates",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF - Has Client Updates": {
+      "main": [
+        [
+          {
+            "node": "MySQL - Update Client",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Code - Skip Client",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MySQL - Update Client": {
+      "main": [
+        [
+          {
+            "node": "Code - Merge Client",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code - Merge Client": {
+      "main": [
+        [
+          {
+            "node": "Merge After Client",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code - Skip Client": {
+      "main": [
+        [
+          {
+            "node": "Merge After Client",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge After Client": {
+      "main": [
+        [
+          {
+            "node": "IF - Has Config Updates",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF - Has Config Updates": {
+      "main": [
+        [
+          {
+            "node": "MySQL - Update Config",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Code - Skip Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MySQL - Update Config": {
+      "main": [
+        [
+          {
+            "node": "Code - Merge Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code - Merge Config": {
+      "main": [
+        [
+          {
+            "node": "Merge After Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code - Skip Config": {
+      "main": [
+        [
+          {
+            "node": "Merge After Config",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge After Config": {
+      "main": [
+        [
+          {
+            "node": "MySQL - Get Updated",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MySQL - Get Updated": {
+      "main": [
+        [
+          {
+            "node": "Code - Parse Updated",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code - Parse Updated": {
+      "main": [
+        [
+          {
+            "node": "Respond - Update",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook - Delete Client": {
+      "main": [
+        [
+          {
+            "node": "MySQL - Delete Client",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MySQL - Delete Client": {
+      "main": [
+        [
+          {
+            "node": "Respond - Delete",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "337d8168-b724-4826-9bb7-a1b1850261ca",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "b468285422c3ac1dfe43a49affb64495474f15ffdd0b5464abf91e9f69526166"
+  },
+  "id": "lgupIy7Ch6OxCsOM",
+  "tags": [
+    {
+      "updatedAt": "2025-12-12T14:06:42.956Z",
+      "createdAt": "2025-12-12T14:06:42.956Z",
+      "id": "IseZsvUTlAMvYFXM",
+      "name": "Shared-Core"
+    }
+  ]
+}

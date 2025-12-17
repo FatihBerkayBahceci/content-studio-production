@@ -1,0 +1,543 @@
+{
+  "name": "WF-110: Report Exporter",
+  "nodes": [
+    {
+      "parameters": {
+        "path": ":projectId/export",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "921cff66-cf12-4261-a5b7-eafe4fa12660",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -2416,
+        112
+      ],
+      "webhookId": "tool1-report-exporter"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Input validation\nconst projectId = $json.params?.projectId;\nconst format = $json.query?.format || 'json'; // json, csv, html\n\nif (!projectId) {\n  return {\n    json: {\n      isValid: false,\n      error: 'projectId parametresi zorunludur',\n      errorCode: 400\n    }\n  };\n}\n\nconst parsedId = parseInt(projectId);\nif (isNaN(parsedId) || parsedId <= 0) {\n  return {\n    json: {\n      isValid: false,\n      error: 'projectId gecerli bir pozitif sayi olmalidir',\n      errorCode: 400\n    }\n  };\n}\n\nconst validFormats = ['json', 'csv', 'html'];\nif (!validFormats.includes(format)) {\n  return {\n    json: {\n      isValid: false,\n      error: 'Gecersiz format. Gecerli degerler: json, csv, html',\n      errorCode: 400\n    }\n  };\n}\n\nreturn {\n  json: {\n    isValid: true,\n    projectId: parsedId,\n    format: format\n  }\n};"
+      },
+      "id": "e881d912-4796-45a2-a736-c537acd3c2ae",
+      "name": "Code - Validate Input",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2208,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "is-valid",
+              "leftValue": "={{ $json.isValid }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "0ef3b804-059c-425d-a519-f202408c60da",
+      "name": "IF - Valid Input",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        -1984,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": false,\n  \"error\": \"Validation failed\",\n  \"message\": \"{{ $json.error }}\"\n}",
+        "options": {
+          "responseCode": "={{ $json.errorCode }}"
+        }
+      },
+      "id": "7536b8b3-927d-45f5-b17f-8f672b2a4896",
+      "name": "Respond - Validation Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        -1760,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=SELECT \n  kp.*,\n  c.name as client_name,\n  c.domain as client_domain,\n  c.industry as client_industry\nFROM keyword_projects kp\nLEFT JOIN clients c ON kp.client_id = c.id\nWHERE kp.id = {{ $json.projectId }}\nLIMIT 1",
+        "options": {}
+      },
+      "id": "6d1668a5-cf57-4328-a584-4164d253747f",
+      "name": "MySQL - Get Project",
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.4,
+      "position": [
+        -1760,
+        112
+      ],
+      "credentials": {
+        "mySql": {
+          "id": "LYQGH6Sr5DJDmTWl",
+          "name": "SEO Suite MySQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "project-exists",
+              "leftValue": "={{ $json.id }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "27ec5e0d-4ff4-4bc0-a081-be7ad3cac396",
+      "name": "IF - Project Exists",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        -1536,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": false,\n  \"error\": \"Project not found\",\n  \"message\": \"Proje bulunamadi: {{ $('Code - Validate Input').first().json.projectId }}\"\n}",
+        "options": {
+          "responseCode": 404
+        }
+      },
+      "id": "b8b40471-0e9c-4907-88a1-7eaecf1cef4f",
+      "name": "Respond - Not Found",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        -1328,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=SELECT 0 as id, '' as keyword, '' as keyword_type, 0 as search_volume, 0 as keyword_difficulty, 0 as cpc, '' as search_intent, '' as keyword_cluster, '' as parent_topic, 0 as opportunity_score, '' as page_type, '' as content_format, '' as content_priority, 0 as recommended_word_count, '' as source, NULL as created_at UNION ALL SELECT id, keyword, keyword_type, search_volume, keyword_difficulty, cpc, search_intent, keyword_cluster, parent_topic, opportunity_score, page_type, content_format, content_priority, recommended_word_count, source, created_at FROM keyword_results WHERE project_id = {{ $('MySQL - Get Project').first().json.id }} LIMIT 201",
+        "options": {}
+      },
+      "id": "6a247a1c-911a-48b9-b419-d96c44e8239d",
+      "name": "MySQL - Get Keywords",
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.4,
+      "position": [
+        -1328,
+        112
+      ],
+      "credentials": {
+        "mySql": {
+          "id": "LYQGH6Sr5DJDmTWl",
+          "name": "SEO Suite MySQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=SELECT 0 as id, '' as competitor_url, '' as competitor_domain, 0 as serp_position, '' as title, '' as meta_description, 0 as word_count, 0 as h1_count, 0 as h2_count, 0 as h3_count, 0 as domain_rating, 0 as backlinks_count, NULL as analyzed_at UNION ALL SELECT id, competitor_url, competitor_domain, serp_position, title, meta_description, word_count, h1_count, h2_count, h3_count, domain_rating, backlinks_count, analyzed_at FROM competitor_data WHERE project_id = {{ $('MySQL - Get Project').first().json.id }} LIMIT 51",
+        "options": {}
+      },
+      "id": "3700dfb0-4a82-4a02-bafc-80cae39641ef",
+      "name": "MySQL - Get Competitors",
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.4,
+      "position": [
+        -1104,
+        112
+      ],
+      "credentials": {
+        "mySql": {
+          "id": "LYQGH6Sr5DJDmTWl",
+          "name": "SEO Suite MySQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=SELECT has_featured_snippet, featured_snippet_type, has_paa, paa_count, has_video_results, has_image_pack, has_local_pack, has_knowledge_panel, zero_click_risk, analyzed_at FROM serp_features WHERE project_id = {{ $('MySQL - Get Project').first().json.id }} UNION ALL SELECT 0, NULL, 0, 0, 0, 0, 0, 0, NULL, NULL LIMIT 1",
+        "options": {}
+      },
+      "id": "cce8b0d2-a73c-4614-85df-3fb342bb9d54",
+      "name": "MySQL - Get SERP Features",
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.4,
+      "position": [
+        -880,
+        112
+      ],
+      "credentials": {
+        "mySql": {
+          "id": "LYQGH6Sr5DJDmTWl",
+          "name": "SEO Suite MySQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=SELECT 0 as id, '' as question, '' as answer_snippet, '' as source_url, '' as source_domain, 0 as position UNION ALL SELECT id, question, answer_snippet, source_url, source_domain, position FROM paa_data WHERE project_id = {{ $('MySQL - Get Project').first().json.id }} LIMIT 51",
+        "options": {}
+      },
+      "id": "7c56dd5e-ad87-4286-8633-ef87fffe56dd",
+      "name": "MySQL - Get PAA",
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.4,
+      "position": [
+        -656,
+        112
+      ],
+      "credentials": {
+        "mySql": {
+          "id": "LYQGH6Sr5DJDmTWl",
+          "name": "SEO Suite MySQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Tum verileri topla ve rapor olustur\nconst validatedData = $('Code - Validate Input').first().json;\nconst format = validatedData.format;\nconst project = $('MySQL - Get Project').first().json;\n\n// Keywords - de-duplicate by id (n8n may duplicate rows per input item)\nconst keywordItems = $('MySQL - Get Keywords').all();\nconst seenKeywordIds = new Set();\nconst keywords = keywordItems.map(i => i.json).filter(k => {\n  if (!k.id || seenKeywordIds.has(k.id)) return false;\n  seenKeywordIds.add(k.id);\n  return true;\n});\n\n// Competitors - de-duplicate by id (n8n duplicates per input item)\nconst competitorItems = $('MySQL - Get Competitors').all();\nconst seenCompetitorIds = new Set();\nconst competitors = competitorItems.map(i => i.json).filter(c => {\n  if (!c.id || seenCompetitorIds.has(c.id)) return false;\n  seenCompetitorIds.add(c.id);\n  return true;\n});\n\n// SERP Features - take first valid result\nconst serpItems = $('MySQL - Get SERP Features').all();\nconst serpFeatures = serpItems.find(i => i.json.has_featured_snippet !== undefined)?.json || null;\n\n// PAA - de-duplicate by id\nconst paaItems = $('MySQL - Get PAA').all();\nconst seenPaaIds = new Set();\nconst paaData = paaItems.map(i => i.json).filter(p => {\n  if (!p.id || seenPaaIds.has(p.id)) return false;\n  seenPaaIds.add(p.id);\n  return true;\n});\n\n// Filter competitors with valid word count\nconst competitorsWithWordCount = competitors.filter(c => c.word_count && c.word_count > 0);\n\n// ============ STATISTICS ============\nconst stats = {\n  total_keywords: keywords.length,\n  avg_volume: keywords.length > 0 ? Math.round(keywords.reduce((sum, k) => sum + (k.search_volume || 0), 0) / keywords.length) : 0,\n  avg_difficulty: keywords.length > 0 ? Math.round(keywords.reduce((sum, k) => sum + (k.keyword_difficulty || 0), 0) / keywords.length) : 0,\n  avg_opportunity_score: keywords.length > 0 ? Math.round(keywords.reduce((sum, k) => sum + (parseFloat(k.opportunity_score) || 0), 0) / keywords.length) : 0,\n  total_competitors: competitors.length,\n  avg_competitor_word_count: competitorsWithWordCount.length > 0 ? Math.round(competitorsWithWordCount.reduce((sum, c) => sum + c.word_count, 0) / competitorsWithWordCount.length) : 0,\n  total_paa_questions: paaData.length\n};\n\n// Priority breakdown\nconst priorityBreakdown = {\n  high: keywords.filter(k => k.content_priority === 'high').length,\n  medium: keywords.filter(k => k.content_priority === 'medium').length,\n  low: keywords.filter(k => k.content_priority === 'low').length\n};\n\n// Intent distribution\nconst intentGroups = {};\nkeywords.forEach(k => {\n  const intent = k.search_intent || 'unknown';\n  intentGroups[intent] = (intentGroups[intent] || 0) + 1;\n});\n\n// Content format distribution\nconst formatGroups = {};\nkeywords.forEach(k => {\n  const fmt = k.content_format || 'unassigned';\n  formatGroups[fmt] = (formatGroups[fmt] || 0) + 1;\n});\n\n// Cluster groups\nconst clusters = {};\nkeywords.forEach(k => {\n  const cluster = k.keyword_cluster || 'Unclustered';\n  if (!clusters[cluster]) clusters[cluster] = [];\n  clusters[cluster].push(k.keyword);\n});\n\n// ============ CONTENT PLAN ============\n// Pillar ve Cluster sayfaları\nconst pillarPages = keywords.filter(k => k.page_type === 'pillar');\nconst clusterPages = keywords.filter(k => k.page_type === 'cluster');\n\n// Toplam kelime hedefi\nconst totalWordTarget = keywords.reduce((sum, k) => sum + (k.recommended_word_count || 0), 0);\n\n// Öncelikli içerik listesi\nconst highPriorityContent = keywords.filter(k => k.content_priority === 'high').sort((a, b) => (parseFloat(b.opportunity_score) || 0) - (parseFloat(a.opportunity_score) || 0));\nconst mediumPriorityContent = keywords.filter(k => k.content_priority === 'medium').sort((a, b) => (parseFloat(b.opportunity_score) || 0) - (parseFloat(a.opportunity_score) || 0));\nconst lowPriorityContent = keywords.filter(k => k.content_priority === 'low').sort((a, b) => (parseFloat(b.opportunity_score) || 0) - (parseFloat(a.opportunity_score) || 0));\n\n// Pillar-Cluster haritası\nconst pillarClusterMap = {};\npillarPages.forEach(pillar => {\n  const pillarKeyword = pillar.keyword;\n  pillarClusterMap[pillarKeyword] = {\n    pillar: pillar,\n    clusters: clusterPages.filter(c => c.parent_topic === pillarKeyword || c.keyword_cluster === pillar.keyword_cluster)\n  };\n});\n\n// Content Plan Summary\nconst contentPlan = {\n  total_content_pieces: keywords.filter(k => k.page_type).length,\n  pillar_pages: pillarPages.length,\n  cluster_pages: clusterPages.length,\n  total_word_target: totalWordTarget,\n  estimated_articles: {\n    high_priority: highPriorityContent.length,\n    medium_priority: mediumPriorityContent.length,\n    low_priority: lowPriorityContent.length\n  },\n  content_by_format: formatGroups,\n  pillar_cluster_map: pillarClusterMap\n};\n\n// ============ CSV GENERATION ============\n// Keywords CSV\nconst keywordsCsvHeader = 'ID,Keyword,Type,Volume,Difficulty,CPC,Intent,Cluster,Opportunity Score,Page Type,Content Format,Priority,Word Count';\nconst keywordsCsvRows = keywords.map(k => \n  `${k.id},\"${(k.keyword || '').replace(/\"/g, '\"\"')}\",\"${k.keyword_type || ''}\",${k.search_volume || 0},${k.keyword_difficulty || 0},${k.cpc || 0},\"${k.search_intent || ''}\",\"${(k.keyword_cluster || '').replace(/\"/g, '\"\"')}\",${k.opportunity_score || 0},\"${k.page_type || ''}\",\"${k.content_format || ''}\",\"${k.content_priority || ''}\",${k.recommended_word_count || 0}`\n);\nconst keywordsCsv = keywordsCsvHeader + '\\n' + keywordsCsvRows.join('\\n');\n\n// Competitors CSV\nconst competitorsCsvHeader = 'ID,URL,Domain,Position,Title,Word Count,H1,H2,H3,DR,Backlinks';\nconst competitorsCsvRows = competitors.map(c => \n  `${c.id},\"${c.competitor_url || ''}\",\"${c.competitor_domain || ''}\",${c.serp_position || 0},\"${(c.title || '').replace(/\"/g, '\"\"')}\",${c.word_count || 0},${c.h1_count || 0},${c.h2_count || 0},${c.h3_count || 0},${c.domain_rating || 0},${c.backlinks_count || 0}`\n);\nconst competitorsCsv = competitorsCsvHeader + '\\n' + competitorsCsvRows.join('\\n');\n\n// PAA CSV\nconst paaCsvHeader = 'ID,Question,Answer,Source URL,Source Domain,Position';\nconst paaCsvRows = paaData.map(p => \n  `${p.id},\"${(p.question || '').replace(/\"/g, '\"\"')}\",\"${(p.answer_snippet || '').replace(/\"/g, '\"\"')}\",\"${p.source_url || ''}\",\"${p.source_domain || ''}\",${p.position || 0}`\n);\nconst paaCsv = paaCsvHeader + '\\n' + paaCsvRows.join('\\n');\n\n// Summary CSV\nconst summaryCsv = `Metric,Value\nProject Name,\"${project.project_name}\"\nMain Keyword,\"${project.main_keyword}\"\nClient,\"${project.client_name || 'N/A'}\"\nStatus,\"${project.status}\"\nTotal Keywords,${stats.total_keywords}\nAverage Volume,${stats.avg_volume}\nAverage Difficulty,${stats.avg_difficulty}\nAverage Opportunity Score,${stats.avg_opportunity_score}\nHigh Priority Keywords,${priorityBreakdown.high}\nMedium Priority Keywords,${priorityBreakdown.medium}\nLow Priority Keywords,${priorityBreakdown.low}\nTotal Competitors,${stats.total_competitors}\nAvg Competitor Word Count,${stats.avg_competitor_word_count}\nTotal PAA Questions,${stats.total_paa_questions}\nGenerated At,\"${new Date().toISOString()}\"`;\n\n// ============ HTML REPORT (for PDF) ============\nconst topKeywords = keywords.slice(0, 20);\nconst topKeywordsHtml = topKeywords.map(k => \n  `<tr><td>${k.keyword}</td><td>${k.search_volume || 0}</td><td>${k.keyword_difficulty || 0}</td><td>${k.opportunity_score || 0}</td><td>${k.content_priority || '-'}</td><td>${k.content_format || '-'}</td></tr>`\n).join('');\n\nconst competitorsHtml = competitors.slice(0, 10).map(c => \n  `<tr><td>${c.competitor_domain || ''}</td><td>${c.serp_position || ''}</td><td>${c.word_count || 0}</td><td>${c.domain_rating || 0}</td><td>${c.backlinks_count || 0}</td></tr>`\n).join('');\n\nconst paaHtml = paaData.slice(0, 10).map(p => \n  `<tr><td>${p.question || ''}</td><td>${(p.answer_snippet || '').substring(0, 100)}...</td></tr>`\n).join('');\n\n// ============ MODERN HTML REPORT ============\n// Calculate percentages for charts\nconst totalWithPriority = priorityBreakdown.high + priorityBreakdown.medium + priorityBreakdown.low;\nconst highPct = totalWithPriority > 0 ? Math.round((priorityBreakdown.high / totalWithPriority) * 100) : 0;\nconst mediumPct = totalWithPriority > 0 ? Math.round((priorityBreakdown.medium / totalWithPriority) * 100) : 0;\nconst lowPct = totalWithPriority > 0 ? Math.round((priorityBreakdown.low / totalWithPriority) * 100) : 0;\n\n// Intent percentages\nconst intentEntries = Object.entries(intentGroups).sort((a, b) => b[1] - a[1]);\nconst maxIntent = intentEntries.length > 0 ? intentEntries[0][1] : 1;\n\n// Format percentages\nconst formatEntries = Object.entries(formatGroups).filter(([k]) => k !== 'unassigned').sort((a, b) => b[1] - a[1]);\nconst maxFormat = formatEntries.length > 0 ? formatEntries[0][1] : 1;\n\n// Top keywords for table\nconst topKwList = keywords.slice(0, 25);\n\n// High priority content\nconst highPrioList = highPriorityContent.slice(0, 10);\nconst medPrioList = mediumPriorityContent.slice(0, 5);\n\n// Pillar-cluster structure\nconst pillarEntries = Object.entries(pillarClusterMap);\n\n// Competitor stats\nconst topCompetitors = competitors.slice(0, 10);\nconst avgWordCount = stats.avg_competitor_word_count;\nconst maxWordCount = competitorsWithWordCount.length > 0 ? Math.max(...competitorsWithWordCount.map(c => c.word_count)) : 0;\nconst minWordCount = competitorsWithWordCount.length > 0 ? Math.min(...competitorsWithWordCount.map(c => c.word_count)) : 0;\n\nconst htmlReport = `<!DOCTYPE html>\n<html lang=\"tr\">\n<head>\n  <meta charset=\"UTF-8\">\n  <title>${project.project_name} - SEO Raporu</title>\n  <style>\n    *{margin:0;padding:0;box-sizing:border-box}\n    body{font-family:system-ui,sans-serif;font-size:14px;color:#333;padding:40px;max-width:1100px;margin:0 auto;background:#fff}\n    h1{font-size:24px;color:#1a1a2e;margin-bottom:8px}\n    h2{font-size:16px;color:#16213e;margin:32px 0 16px;padding-bottom:8px;border-bottom:2px solid #e94560}\n    .meta{color:#666;font-size:13px;margin-bottom:32px}\n    .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px}\n    .box{background:#f8f9fa;border-radius:8px;padding:20px;text-align:center}\n    .box .num{font-size:28px;font-weight:700;color:#e94560}\n    .box .lbl{font-size:11px;color:#666;text-transform:uppercase;margin-top:4px}\n    table{width:100%;border-collapse:collapse;margin-bottom:24px}\n    th{background:#1a1a2e;color:#fff;padding:12px;text-align:left;font-size:12px;text-transform:uppercase}\n    td{padding:10px 12px;border-bottom:1px solid #eee}\n    tr:hover{background:#f8f9fa}\n    .tag{display:inline-block;padding:3px 8px;border-radius:4px;font-size:11px;font-weight:600}\n    .tag-high{background:#d4edda;color:#155724}\n    .tag-med{background:#fff3cd;color:#856404}\n    .tag-low{background:#f8d7da;color:#721c24}\n    .tag-info{background:#e7f1ff;color:#004085}\n    .two-col{display:grid;grid-template-columns:1fr 1fr;gap:24px}\n    .bar{display:flex;align-items:center;margin-bottom:8px}\n    .bar-label{width:100px;font-size:12px;color:#666}\n    .bar-track{flex:1;height:20px;background:#eee;border-radius:4px;overflow:hidden}\n    .bar-fill{height:100%;background:linear-gradient(90deg,#e94560,#1a1a2e);border-radius:4px}\n    .bar-val{width:40px;text-align:right;font-size:12px;font-weight:600}\n    .footer{margin-top:40px;padding-top:20px;border-top:1px solid #eee;text-align:center;color:#999;font-size:12px}\n    @media print{body{padding:20px}h2{break-before:auto}}\n  </style>\n</head>\n<body>\n  <h1>${project.project_name}</h1>\n  <div class=\"meta\">Ana Keyword: <strong>${project.main_keyword}</strong> | Musteri: ${project.client_name || '-'} | ${new Date().toLocaleDateString('tr-TR')}</div>\n  \n  <div class=\"grid\">\n    <div class=\"box\"><div class=\"num\">${stats.total_keywords}</div><div class=\"lbl\">Keyword</div></div>\n    <div class=\"box\"><div class=\"num\">${contentPlan.pillar_pages}</div><div class=\"lbl\">Pillar</div></div>\n    <div class=\"box\"><div class=\"num\">${contentPlan.cluster_pages}</div><div class=\"lbl\">Cluster</div></div>\n    <div class=\"box\"><div class=\"num\">${Math.round(totalWordTarget/1000)}K</div><div class=\"lbl\">Kelime Hedef</div></div>\n  </div>\n\n  <div class=\"two-col\">\n    <div>\n      <h2>Oncelik Dagilimi</h2>\n      <div class=\"bar\"><div class=\"bar-label\">Yuksek</div><div class=\"bar-track\"><div class=\"bar-fill\" style=\"width:${highPct}%\"></div></div><div class=\"bar-val\">${priorityBreakdown.high}</div></div>\n      <div class=\"bar\"><div class=\"bar-label\">Orta</div><div class=\"bar-track\"><div class=\"bar-fill\" style=\"width:${mediumPct}%;background:#f59e0b\"></div></div><div class=\"bar-val\">${priorityBreakdown.medium}</div></div>\n      <div class=\"bar\"><div class=\"bar-label\">Dusuk</div><div class=\"bar-track\"><div class=\"bar-fill\" style=\"width:${lowPct}%;background:#94a3b8\"></div></div><div class=\"bar-val\">${priorityBreakdown.low}</div></div>\n    </div>\n    <div>\n      <h2>Intent Dagilimi</h2>\n      ${intentEntries.slice(0,4).map(([i,c])=>`<div class=\"bar\"><div class=\"bar-label\">${i}</div><div class=\"bar-track\"><div class=\"bar-fill\" style=\"width:${Math.round(c/maxIntent*100)}%\"></div></div><div class=\"bar-val\">${c}</div></div>`).join('')}\n    </div>\n  </div>\n\n  <h2>Oncelikli Icerikler</h2>\n  <table>\n    <tr><th>#</th><th>Keyword</th><th>Format</th><th>Kelime</th><th>Firsat</th><th>Oncelik</th></tr>\n    ${highPrioList.concat(medPrioList).slice(0,12).map((k,i)=>`<tr><td>${i+1}</td><td><strong>${k.keyword}</strong></td><td>${k.content_format||'-'}</td><td>${k.recommended_word_count||'-'}</td><td>${k.opportunity_score||0}</td><td><span class=\"tag ${k.content_priority==='high'?'tag-high':'tag-med'}\">${k.content_priority||'-'}</span></td></tr>`).join('')}\n  </table>\n\n  ${pillarEntries.length>0?`<h2>Pillar-Cluster Yapisi</h2>\n  <table>\n    <tr><th>Pillar</th><th>Cluster Sayisi</th><th>Cluster Keywordler</th></tr>\n    ${pillarEntries.slice(0,5).map(([kw,d])=>`<tr><td><strong>${kw}</strong></td><td>${d.clusters.length}</td><td>${d.clusters.slice(0,4).map(c=>c.keyword).join(', ')}${d.clusters.length>4?' ...':''}</td></tr>`).join('')}\n  </table>`:''}\n\n  ${topCompetitors.length>0?`<h2>Rakip Analizi</h2>\n  <div class=\"grid\" style=\"grid-template-columns:repeat(3,1fr);margin-bottom:16px\">\n    <div class=\"box\"><div class=\"num\">${avgWordCount}</div><div class=\"lbl\">Ort. Kelime</div></div>\n    <div class=\"box\"><div class=\"num\">${maxWordCount}</div><div class=\"lbl\">Max</div></div>\n    <div class=\"box\"><div class=\"num\">${minWordCount}</div><div class=\"lbl\">Min</div></div>\n  </div>\n  <table>\n    <tr><th>Sira</th><th>Domain</th><th>Kelime</th><th>DR</th></tr>\n    ${topCompetitors.slice(0,5).map(c=>`<tr><td><span class=\"tag tag-info\">#${c.serp_position||'-'}</span></td><td>${c.competitor_domain||'-'}</td><td>${c.word_count||0}</td><td>${c.domain_rating||0}</td></tr>`).join('')}\n  </table>`:''}\n\n  <h2>Keyword Listesi</h2>\n  <table>\n    <tr><th>Keyword</th><th>Intent</th><th>Firsat</th><th>Oncelik</th><th>Format</th></tr>\n    ${topKwList.slice(0,20).map(k=>`<tr><td>${k.keyword}</td><td>${k.search_intent||'-'}</td><td><strong>${k.opportunity_score||0}</strong></td><td><span class=\"tag ${k.content_priority==='high'?'tag-high':k.content_priority==='medium'?'tag-med':'tag-low'}\">${k.content_priority||'-'}</span></td><td>${k.content_format||'-'}</td></tr>`).join('')}\n  </table>\n\n  <div class=\"footer\">SEOART Content Studio | ${new Date().toLocaleString('tr-TR')}</div>\n</body>\n</html>`;\n\n// ============ RETURN BASED ON FORMAT ============\nreturn [{\n  json: {\n    format: format,\n    project: {\n      id: project.id,\n      name: project.project_name,\n      main_keyword: project.main_keyword,\n      client_name: project.client_name,\n      client_domain: project.client_domain,\n      status: project.status,\n      target_country: project.target_country,\n      target_language: project.target_language\n    },\n    statistics: stats,\n    priority_breakdown: priorityBreakdown,\n    intent_distribution: intentGroups,\n    content_format_distribution: formatGroups,\n    clusters: clusters,\n    content_plan: contentPlan,\n    serp_features: serpFeatures,\n    csv_exports: {\n      summary: summaryCsv,\n      keywords: keywordsCsv,\n      competitors: competitorsCsv,\n      paa: paaCsv\n    },\n    html_report: htmlReport,\n    raw_data: {\n      keywords: keywords,\n      competitors: competitors,\n      paa_questions: paaData\n    },\n    generated_at: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "b57ee885-88fe-41b7-9615-27bdd3d17769",
+      "name": "Code - Prepare Report",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -448,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "is-html",
+              "leftValue": "={{ $json.format }}",
+              "rightValue": "html",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "ad89f679-69b9-4a4d-b51e-657a9e205f90",
+      "name": "IF - HTML Format",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        -224,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ $json.html_report }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "text/html; charset=utf-8"
+              }
+            ]
+          }
+        }
+      },
+      "id": "abe99c24-6cf2-4feb-9908-33ae9a92bbc6",
+      "name": "Respond - HTML",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "is-csv",
+              "leftValue": "={{ $json.format }}",
+              "rightValue": "csv",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "ae19b036-02f7-415b-8aa2-3813935dceec",
+      "name": "IF - CSV Format",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        0,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": true,\n  \"format\": \"csv\",\n  \"project\": {{ JSON.stringify($json.project) }},\n  \"files\": {\n    \"summary.csv\": {{ JSON.stringify($json.csv_exports.summary) }},\n    \"keywords.csv\": {{ JSON.stringify($json.csv_exports.keywords) }},\n    \"competitors.csv\": {{ JSON.stringify($json.csv_exports.competitors) }},\n    \"paa.csv\": {{ JSON.stringify($json.csv_exports.paa) }}\n  },\n  \"generated_at\": \"{{ $json.generated_at }}\"\n}",
+        "options": {}
+      },
+      "id": "c4325dc8-7aa2-463f-8b17-a2feb4879966",
+      "name": "Respond - CSV",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        224,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": true,\n  \"format\": \"json\",\n  \"project\": {{ JSON.stringify($json.project) }},\n  \"statistics\": {{ JSON.stringify($json.statistics) }},\n  \"priority_breakdown\": {{ JSON.stringify($json.priority_breakdown) }},\n  \"intent_distribution\": {{ JSON.stringify($json.intent_distribution) }},\n  \"content_format_distribution\": {{ JSON.stringify($json.content_format_distribution) }},\n  \"clusters\": {{ JSON.stringify($json.clusters) }},\n  \"content_plan\": {{ JSON.stringify($json.content_plan) }},\n  \"serp_features\": {{ JSON.stringify($json.serp_features) }},\n  \"raw_data\": {{ JSON.stringify($json.raw_data) }},\n  \"csv_exports\": {{ JSON.stringify($json.csv_exports) }},\n  \"html_report\": {{ JSON.stringify($json.html_report) }},\n  \"generated_at\": \"{{ $json.generated_at }}\"\n}",
+        "options": {}
+      },
+      "id": "16823ac1-fc6a-4d24-8509-662641e2daa4",
+      "name": "Respond - JSON",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        224,
+        304
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Code - Validate Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code - Validate Input": {
+      "main": [
+        [
+          {
+            "node": "IF - Valid Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF - Valid Input": {
+      "main": [
+        [
+          {
+            "node": "MySQL - Get Project",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond - Validation Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MySQL - Get Project": {
+      "main": [
+        [
+          {
+            "node": "IF - Project Exists",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF - Project Exists": {
+      "main": [
+        [
+          {
+            "node": "MySQL - Get Keywords",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond - Not Found",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MySQL - Get Keywords": {
+      "main": [
+        [
+          {
+            "node": "MySQL - Get Competitors",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MySQL - Get Competitors": {
+      "main": [
+        [
+          {
+            "node": "MySQL - Get SERP Features",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MySQL - Get SERP Features": {
+      "main": [
+        [
+          {
+            "node": "MySQL - Get PAA",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MySQL - Get PAA": {
+      "main": [
+        [
+          {
+            "node": "Code - Prepare Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code - Prepare Report": {
+      "main": [
+        [
+          {
+            "node": "IF - HTML Format",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF - HTML Format": {
+      "main": [
+        [
+          {
+            "node": "Respond - HTML",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "IF - CSV Format",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF - CSV Format": {
+      "main": [
+        [
+          {
+            "node": "Respond - CSV",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond - JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "6888618e-0d56-46cb-9ae7-517435fcf2df",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "b468285422c3ac1dfe43a49affb64495474f15ffdd0b5464abf91e9f69526166"
+  },
+  "id": "rnbjNRfQHdRpFF4o",
+  "tags": []
+}

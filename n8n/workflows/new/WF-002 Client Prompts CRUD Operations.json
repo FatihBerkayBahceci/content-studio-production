@@ -1,0 +1,970 @@
+{
+  "name": "WF-002 Client Prompts CRUD Operations",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "client-prompts/list/:clientId",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "abf1d736-3344-492b-ad25-5b2168f7cae9",
+      "name": "Webhook - List Prompts",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "client-prompts-list"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=SELECT id, client_id, prompt_name, prompt_text, is_active, sort_order, created_at, updated_at FROM client_prompts WHERE client_id = {{ parseInt($json.params.clientId) || 0 }} ORDER BY sort_order ASC, created_at DESC",
+        "options": {}
+      },
+      "id": "eed113de-0759-4e61-b971-b88a0c48b39e",
+      "name": "MySQL - List Prompts",
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.4,
+      "position": [
+        224,
+        0
+      ],
+      "credentials": {
+        "mySql": {
+          "id": "LYQGH6Sr5DJDmTWl",
+          "name": "SEO Suite MySQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": true,\n  \"data\": {{ JSON.stringify($input.all().map(i => ({ ...i.json, is_active: i.json.is_active === 1 || i.json.is_active === true }))) }}\n}",
+        "options": {}
+      },
+      "id": "137456c2-a8bb-47be-91cd-9cedeb8e3291",
+      "name": "Respond - List Prompts",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        448,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "client-prompts/create",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "27f73c59-ece1-4628-b195-782ca3e37078",
+      "name": "Webhook - Create Prompt",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        208
+      ],
+      "webhookId": "client-prompts-create"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Check max prompts and prepare insert\nconst body = $json.body || {};\nconst clientId = parseInt(body.client_id);\nconst promptName = body.prompt_name || '';\nconst promptText = body.prompt_text || '';\nconst isActive = body.is_active ? 1 : 0;\n\nif (!clientId || !promptName || !promptText) {\n  return { json: { error: 'Missing required fields', valid: false } };\n}\n\nreturn {\n  json: {\n    clientId,\n    promptName,\n    promptText,\n    isActive,\n    valid: true\n  }\n};"
+      },
+      "id": "3676ee46-a33e-4d7a-8d23-4719630942c2",
+      "name": "Code - Validate Create",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "condition-valid",
+              "leftValue": "={{ $json.valid }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "e2a4224c-e81d-4d8a-a148-c4434de0d376",
+      "name": "IF - Valid Create",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        448,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=SELECT COUNT(*) as count FROM client_prompts WHERE client_id = {{ $json.clientId }}",
+        "options": {}
+      },
+      "id": "7c29c93f-ac8e-4153-9047-dab2c65eadfb",
+      "name": "MySQL - Check Count",
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.4,
+      "position": [
+        672,
+        144
+      ],
+      "credentials": {
+        "mySql": {
+          "id": "LYQGH6Sr5DJDmTWl",
+          "name": "SEO Suite MySQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Check if under limit and pass data\nconst count = $json.count || 0;\nconst MAX_PROMPTS = 10;\nconst prevData = $('Code - Validate Create').item.json;\n\nif (count >= MAX_PROMPTS) {\n  return { json: { error: `Maximum ${MAX_PROMPTS} prompts allowed`, canCreate: false } };\n}\n\nreturn {\n  json: {\n    ...prevData,\n    canCreate: true\n  }\n};"
+      },
+      "id": "90dd276d-1a51-4b36-83a2-67cdd4fa5991",
+      "name": "Code - Check Limit",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        144
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "condition-can-create",
+              "leftValue": "={{ $json.canCreate }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "4ff6165b-dde9-44f6-a7da-cb0532a20bf6",
+      "name": "IF - Can Create",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1104,
+        144
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=INSERT INTO client_prompts (client_id, prompt_name, prompt_text, is_active, sort_order) VALUES ({{ $json.clientId }}, {{ JSON.stringify($json.promptName) }}, {{ JSON.stringify($json.promptText) }}, {{ $json.isActive }}, (SELECT COALESCE(MAX(sort_order), 0) + 1 FROM client_prompts cp WHERE cp.client_id = {{ $json.clientId }}))",
+        "options": {}
+      },
+      "id": "d890fb48-acc4-4eba-a192-e4243b556e35",
+      "name": "MySQL - Create Prompt",
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.4,
+      "position": [
+        1328,
+        80
+      ],
+      "credentials": {
+        "mySql": {
+          "id": "LYQGH6Sr5DJDmTWl",
+          "name": "SEO Suite MySQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM client_prompts WHERE id = LAST_INSERT_ID()",
+        "options": {}
+      },
+      "id": "d1f77abd-51ff-404a-9d77-f46ed9f27e8b",
+      "name": "MySQL - Get Created Prompt",
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.4,
+      "position": [
+        1552,
+        80
+      ],
+      "credentials": {
+        "mySql": {
+          "id": "LYQGH6Sr5DJDmTWl",
+          "name": "SEO Suite MySQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": true,\n  \"data\": {{ JSON.stringify({ ...$json, is_active: $json.is_active === 1 }) }},\n  \"message\": \"Prompt created successfully\"\n}",
+        "options": {}
+      },
+      "id": "c3614a58-7efb-438f-8883-5d29e29c4077",
+      "name": "Respond - Create Prompt",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1760,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": false,\n  \"error\": {{ JSON.stringify($json.error || 'Cannot create prompt') }}\n}",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "id": "dfb57ad9-94d4-46bc-b671-a9e3d564ad49",
+      "name": "Respond - Create Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1328,
+        224
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": false,\n  \"error\": {{ JSON.stringify($json.error || 'Invalid request') }}\n}",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "id": "8b9f24fc-488f-43aa-930a-f44a5c081886",
+      "name": "Respond - Invalid Create",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        672,
+        272
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "PUT",
+        "path": "client-prompts/update/:id",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "b72c36ea-cd0f-48f3-ac3a-e0ab9baf785a",
+      "name": "Webhook - Update Prompt",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        400
+      ],
+      "webhookId": "client-prompts-update"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Build update query\nconst body = $json.body || {};\nconst promptId = parseInt($json.params.id);\n\nif (!promptId) {\n  return { json: { error: 'Invalid prompt ID', valid: false } };\n}\n\nconst updates = [];\nif (body.prompt_name !== undefined) {\n  updates.push(`prompt_name = ${JSON.stringify(body.prompt_name)}`);\n}\nif (body.prompt_text !== undefined) {\n  updates.push(`prompt_text = ${JSON.stringify(body.prompt_text)}`);\n}\nif (body.sort_order !== undefined) {\n  updates.push(`sort_order = ${parseInt(body.sort_order)}`);\n}\n\nif (updates.length === 0) {\n  return { json: { error: 'No fields to update', valid: false } };\n}\n\nupdates.push('updated_at = NOW()');\n\nreturn {\n  json: {\n    promptId,\n    query: `UPDATE client_prompts SET ${updates.join(', ')} WHERE id = ${promptId}`,\n    valid: true\n  }\n};"
+      },
+      "id": "00abbd4f-c805-47c1-ab34-f955cf65501c",
+      "name": "Code - Build Update Prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "condition-valid-update",
+              "leftValue": "={{ $json.valid }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "c301f2cf-59ed-47b5-bf53-5eaca256abf6",
+      "name": "IF - Valid Update",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        448,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "={{ $json.query }}",
+        "options": {}
+      },
+      "id": "c678adc8-b7e2-49cc-a678-65e51cfb6c3c",
+      "name": "MySQL - Update Prompt",
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.4,
+      "position": [
+        672,
+        352
+      ],
+      "credentials": {
+        "mySql": {
+          "id": "LYQGH6Sr5DJDmTWl",
+          "name": "SEO Suite MySQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=SELECT * FROM client_prompts WHERE id = {{ $('Code - Build Update Prompt').item.json.promptId }}",
+        "options": {}
+      },
+      "id": "80d7a947-4639-4891-94ce-269e21655234",
+      "name": "MySQL - Get Updated Prompt",
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.4,
+      "position": [
+        880,
+        352
+      ],
+      "credentials": {
+        "mySql": {
+          "id": "LYQGH6Sr5DJDmTWl",
+          "name": "SEO Suite MySQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": {{ $json.id ? true : false }},\n  \"data\": {{ $json.id ? JSON.stringify({ ...$json, is_active: $json.is_active === 1 }) : 'null' }},\n  \"message\": {{ $json.id ? '\"Prompt updated successfully\"' : '\"Prompt not found\"' }}\n}",
+        "options": {}
+      },
+      "id": "043ec19b-b460-49f5-8c97-3a1b1e7e2051",
+      "name": "Respond - Update Prompt",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1104,
+        352
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": false,\n  \"error\": {{ JSON.stringify($json.error || 'Invalid request') }}\n}",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "id": "bca8f2dd-31d4-4ef1-a4d5-942dadd753ec",
+      "name": "Respond - Invalid Update",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        672,
+        464
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "DELETE",
+        "path": "client-prompts/delete/:id",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "be9d134e-3940-428a-88ec-5e488f3ee561",
+      "name": "Webhook - Delete Prompt",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        608
+      ],
+      "webhookId": "client-prompts-delete"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=DELETE FROM client_prompts WHERE id = {{ parseInt($json.params.id) || 0 }}",
+        "options": {}
+      },
+      "id": "99f174c4-4244-4885-8b82-50e8f5a45b44",
+      "name": "MySQL - Delete Prompt",
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.4,
+      "position": [
+        224,
+        608
+      ],
+      "credentials": {
+        "mySql": {
+          "id": "LYQGH6Sr5DJDmTWl",
+          "name": "SEO Suite MySQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": true,\n  \"message\": \"Prompt deleted successfully\"\n}",
+        "options": {}
+      },
+      "id": "47a5a1fd-de3b-4b4d-bdfb-d0e0fd699882",
+      "name": "Respond - Delete Prompt",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        448,
+        608
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "PUT",
+        "path": "client-prompts/set-active/:id",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "fb64da85-9e8f-4918-bf84-f132421f650e",
+      "name": "Webhook - Set Active",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        800
+      ],
+      "webhookId": "client-prompts-set-active"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Get prompt ID and client ID\nconst promptId = parseInt($json.params.id);\nconst clientId = parseInt($json.body?.client_id);\n\nif (!promptId || !clientId) {\n  return { json: { error: 'Invalid prompt or client ID', valid: false } };\n}\n\nreturn {\n  json: {\n    promptId,\n    clientId,\n    valid: true\n  }\n};"
+      },
+      "id": "ab471784-1e42-4f61-ac7f-ff71f7d638e4",
+      "name": "Code - Validate Set Active",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        800
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "condition-valid-set-active",
+              "leftValue": "={{ $json.valid }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "7c0b82ed-f59c-437c-b3b0-ada353196cc4",
+      "name": "IF - Valid Set Active",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        448,
+        800
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=UPDATE client_prompts SET is_active = 0 WHERE client_id = {{ $json.clientId }}",
+        "options": {}
+      },
+      "id": "5e781d5b-0173-4294-a426-8012f640f30e",
+      "name": "MySQL - Deactivate All",
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.4,
+      "position": [
+        672,
+        752
+      ],
+      "credentials": {
+        "mySql": {
+          "id": "LYQGH6Sr5DJDmTWl",
+          "name": "SEO Suite MySQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=UPDATE client_prompts SET is_active = 1, updated_at = NOW() WHERE id = {{ $('Code - Validate Set Active').item.json.promptId }}",
+        "options": {}
+      },
+      "id": "ffe8e5e1-d8a2-42ec-b251-e473ac6af246",
+      "name": "MySQL - Activate One",
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.4,
+      "position": [
+        880,
+        752
+      ],
+      "credentials": {
+        "mySql": {
+          "id": "LYQGH6Sr5DJDmTWl",
+          "name": "SEO Suite MySQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": true,\n  \"message\": \"Active prompt updated successfully\"\n}",
+        "options": {}
+      },
+      "id": "20b919b9-ea64-4a9f-82ef-cbba29f37461",
+      "name": "Respond - Set Active",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1104,
+        752
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": false,\n  \"error\": {{ JSON.stringify($json.error || 'Invalid request') }}\n}",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "id": "c5b43128-906d-4ae2-8c0b-e5a9679059fb",
+      "name": "Respond - Invalid Set Active",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        672,
+        864
+      ]
+    },
+    {
+      "parameters": {
+        "path": "client-prompts/active/:clientId",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "4d857df5-2fd1-4015-bd3b-85a59d912c0c",
+      "name": "Webhook - Get Active Prompt",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        1008
+      ],
+      "webhookId": "client-prompts-get-active"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=SELECT id, client_id, prompt_name, prompt_text, is_active, sort_order, created_at, updated_at FROM client_prompts WHERE client_id = {{ parseInt($json.params.clientId) || 0 }} AND is_active = 1 LIMIT 1",
+        "options": {}
+      },
+      "id": "9403fa44-430b-417c-80a5-7875f35ae68c",
+      "name": "MySQL - Get Active Prompt",
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.4,
+      "position": [
+        224,
+        1008
+      ],
+      "credentials": {
+        "mySql": {
+          "id": "LYQGH6Sr5DJDmTWl",
+          "name": "SEO Suite MySQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": {{ $json.id ? true : false }},\n  \"data\": {{ $json.id ? JSON.stringify({ ...$json, is_active: true }) : 'null' }},\n  \"message\": {{ $json.id ? '\"Active prompt found\"' : '\"No active prompt found\"' }}\n}",
+        "options": {}
+      },
+      "id": "2fe8390a-db90-47ca-a7b7-5f506dc46ecd",
+      "name": "Respond - Get Active",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        448,
+        1008
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook - List Prompts": {
+      "main": [
+        [
+          {
+            "node": "MySQL - List Prompts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MySQL - List Prompts": {
+      "main": [
+        [
+          {
+            "node": "Respond - List Prompts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook - Create Prompt": {
+      "main": [
+        [
+          {
+            "node": "Code - Validate Create",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code - Validate Create": {
+      "main": [
+        [
+          {
+            "node": "IF - Valid Create",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF - Valid Create": {
+      "main": [
+        [
+          {
+            "node": "MySQL - Check Count",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond - Invalid Create",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MySQL - Check Count": {
+      "main": [
+        [
+          {
+            "node": "Code - Check Limit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code - Check Limit": {
+      "main": [
+        [
+          {
+            "node": "IF - Can Create",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF - Can Create": {
+      "main": [
+        [
+          {
+            "node": "MySQL - Create Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond - Create Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MySQL - Create Prompt": {
+      "main": [
+        [
+          {
+            "node": "MySQL - Get Created Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MySQL - Get Created Prompt": {
+      "main": [
+        [
+          {
+            "node": "Respond - Create Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook - Update Prompt": {
+      "main": [
+        [
+          {
+            "node": "Code - Build Update Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code - Build Update Prompt": {
+      "main": [
+        [
+          {
+            "node": "IF - Valid Update",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF - Valid Update": {
+      "main": [
+        [
+          {
+            "node": "MySQL - Update Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond - Invalid Update",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MySQL - Update Prompt": {
+      "main": [
+        [
+          {
+            "node": "MySQL - Get Updated Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MySQL - Get Updated Prompt": {
+      "main": [
+        [
+          {
+            "node": "Respond - Update Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook - Delete Prompt": {
+      "main": [
+        [
+          {
+            "node": "MySQL - Delete Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MySQL - Delete Prompt": {
+      "main": [
+        [
+          {
+            "node": "Respond - Delete Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook - Set Active": {
+      "main": [
+        [
+          {
+            "node": "Code - Validate Set Active",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code - Validate Set Active": {
+      "main": [
+        [
+          {
+            "node": "IF - Valid Set Active",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF - Valid Set Active": {
+      "main": [
+        [
+          {
+            "node": "MySQL - Deactivate All",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond - Invalid Set Active",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MySQL - Deactivate All": {
+      "main": [
+        [
+          {
+            "node": "MySQL - Activate One",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MySQL - Activate One": {
+      "main": [
+        [
+          {
+            "node": "Respond - Set Active",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook - Get Active Prompt": {
+      "main": [
+        [
+          {
+            "node": "MySQL - Get Active Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MySQL - Get Active Prompt": {
+      "main": [
+        [
+          {
+            "node": "Respond - Get Active",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "37f20f7e-ffca-437f-a3f7-aac42b5902f9",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "b468285422c3ac1dfe43a49affb64495474f15ffdd0b5464abf91e9f69526166"
+  },
+  "id": "4qcHvQKD7q0dF0Fv",
+  "tags": [
+    {
+      "updatedAt": "2025-12-12T14:06:42.956Z",
+      "createdAt": "2025-12-12T14:06:42.956Z",
+      "id": "IseZsvUTlAMvYFXM",
+      "name": "Shared-Core"
+    }
+  ]
+}

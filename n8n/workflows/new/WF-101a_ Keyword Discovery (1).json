@@ -1,0 +1,805 @@
+{
+  "name": "WF-101a: Keyword Discovery",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "keyword-discovery",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "ab23d38f-75e1-46a0-ac21-232dc01a21af",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -2864,
+        208
+      ],
+      "webhookId": "tool1-keyword-discovery"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Input Validation\nconst body = $json.body || {};\nconst projectId = body.project_id;\n\nif (!projectId) {\n  return [{ json: { isValid: false, error: 'project_id is required in request body', errorCode: 400 } }];\n}\n\nconst parsedId = parseInt(projectId);\nif (isNaN(parsedId) || parsedId <= 0) {\n  return [{ json: { isValid: false, error: 'project_id must be a positive integer', errorCode: 400 } }];\n}\n\nreturn [{ json: { isValid: true, projectId: parsedId } }];"
+      },
+      "id": "6eb07c08-d310-47a9-9414-707f8bdf1109",
+      "name": "Validate Input",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2640,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "valid",
+              "leftValue": "={{ $json.isValid }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "efb040c1-5e64-452f-aa46-e0e8d8f317d1",
+      "name": "IF Valid",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        -2416,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \"success\": false, \"error\": \"{{ $json.error }}\" }",
+        "options": {
+          "responseCode": "={{ $json.errorCode }}"
+        }
+      },
+      "id": "1609e520-a06a-435d-8db7-8b0a0df69ecf",
+      "name": "Respond Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        -2208,
+        352
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT \n  (SELECT id FROM keyword_projects WHERE id = {{ $json.projectId }}) as project_id,\n  (SELECT client_id FROM keyword_projects WHERE id = {{ $json.projectId }}) as client_id,\n  (SELECT main_keyword FROM keyword_projects WHERE id = {{ $json.projectId }}) as main_keyword,\n  (SELECT scenario_type FROM keyword_projects WHERE id = {{ $json.projectId }}) as scenario_type,\n  (SELECT target_country FROM keyword_projects WHERE id = {{ $json.projectId }}) as target_country,\n  (SELECT target_language FROM keyword_projects WHERE id = {{ $json.projectId }}) as target_language,\n  (SELECT c.name FROM keyword_projects kp JOIN clients c ON c.id = kp.client_id WHERE kp.id = {{ $json.projectId }}) as client_name,\n  (SELECT c.domain FROM keyword_projects kp JOIN clients c ON c.id = kp.client_id WHERE kp.id = {{ $json.projectId }}) as client_domain,\n  COALESCE((SELECT cc.enable_google_suggest FROM keyword_projects kp LEFT JOIN client_configurations cc ON cc.client_id = kp.client_id WHERE kp.id = {{ $json.projectId }}), 1) as enable_google_suggest,\n  COALESCE((SELECT cc.enable_google_trends FROM keyword_projects kp LEFT JOIN client_configurations cc ON cc.client_id = kp.client_id WHERE kp.id = {{ $json.projectId }}), 1) as enable_google_trends,\n  COALESCE((SELECT cc.enable_ahrefs_api FROM keyword_projects kp LEFT JOIN client_configurations cc ON cc.client_id = kp.client_id WHERE kp.id = {{ $json.projectId }}), 0) as enable_ahrefs_api,\n  COALESCE((SELECT cc.enable_ai_analysis FROM keyword_projects kp LEFT JOIN client_configurations cc ON cc.client_id = kp.client_id WHERE kp.id = {{ $json.projectId }}), 1) as enable_ai_analysis,\n  (SELECT cc.ai_model_preference FROM keyword_projects kp LEFT JOIN client_configurations cc ON cc.client_id = kp.client_id WHERE kp.id = {{ $json.projectId }}) as client_ai_model,\n  (SELECT cc.ai_temperature FROM keyword_projects kp LEFT JOIN client_configurations cc ON cc.client_id = kp.client_id WHERE kp.id = {{ $json.projectId }}) as client_ai_temperature,\n  (SELECT setting_value FROM system_settings WHERE setting_key = 'default_ai_model') as default_ai_model,\n  (SELECT setting_value FROM system_settings WHERE setting_key = 'default_ai_temperature') as default_ai_temp,\n  (SELECT prompt_text FROM system_prompts WHERE slug = 'keyword-discovery' AND is_active = 1 LIMIT 1) as system_prompt",
+        "options": {}
+      },
+      "id": "f1bb8dcc-3ab3-4915-a5f7-687342ece578",
+      "name": "Get Project",
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.4,
+      "position": [
+        -2208,
+        208
+      ],
+      "credentials": {
+        "mySql": {
+          "id": "LYQGH6Sr5DJDmTWl",
+          "name": "SEO Suite MySQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Resolve Config\nconst items = $input.all();\nif (items.length === 0 || !items[0].json.project_id) {\n  return [{ json: { project_exists: false } }];\n}\n\nconst d = items[0].json;\nconst aiModel = d.client_ai_model || d.default_ai_model || 'gemini-2.0-flash';\nconst aiTemp = d.client_ai_temperature ?? (d.default_ai_temp ? parseFloat(d.default_ai_temp) : 0.7);\n\nlet aiProvider = 'google';\nif (aiModel.includes('gpt')) aiProvider = 'openai';\nelse if (aiModel.includes('claude')) aiProvider = 'anthropic';\n\n// Build AI prompt from system_prompt template\nlet aiPrompt = d.system_prompt || 'Ana keyword: {{main_keyword}} için 15-25 anahtar kelime öner. Sadece virgülle ayırarak listele.';\naiPrompt = aiPrompt\n  .replace(/\\{\\{main_keyword\\}\\}/g, d.main_keyword || '')\n  .replace(/\\{\\{target_country\\}\\}/g, (d.target_country || 'TR').toUpperCase())\n  .replace(/\\{\\{target_language\\}\\}/g, d.target_language || 'Türkçe');\n\nreturn [{\n  json: {\n    project_exists: true,\n    project_id: d.project_id,\n    client_id: d.client_id,\n    client_name: d.client_name,\n    main_keyword: d.main_keyword,\n    scenario_type: d.scenario_type,\n    target_country: (d.target_country || 'TR').toLowerCase(),\n    target_language: d.target_language || 'tr',\n    // Data source flags\n    enable_google_suggest: d.enable_google_suggest == 1,\n    enable_google_trends: d.enable_google_trends == 1,\n    enable_ahrefs_api: d.enable_ahrefs_api == 1,\n    enable_ai_analysis: d.enable_ai_analysis == 1,\n    // AI Config\n    ai_model: aiModel,\n    ai_temperature: aiTemp,\n    ai_provider: aiProvider,\n    ai_prompt: aiPrompt\n  }\n}];"
+      },
+      "id": "8450aec8-8ee6-4eba-be7c-5d51d702e452",
+      "name": "Resolve Config",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1984,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "exists",
+              "leftValue": "={{ $json.project_exists }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "985ed74d-5e2a-4123-b706-8a590ddc3083",
+      "name": "IF Exists",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        -1760,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{ \"success\": false, \"error\": \"Project not found\" }",
+        "options": {
+          "responseCode": 404
+        }
+      },
+      "id": "fcec5911-dd82-4355-9c63-7baa8928b909",
+      "name": "Respond 404",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        -1536,
+        352
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.scenario_type }}",
+                    "rightValue": "seed_keyword",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "seed_keyword"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.scenario_type }}",
+                    "rightValue": "topic_based",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "topic_based"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "ab28df39-4922-4c51-b33e-15a8438fc007",
+      "name": "Switch Scenario",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [
+        -1536,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Seed Keyword: Doğrudan ana keyword'ü kullan\nconst config = $json;\nreturn [{\n  json: {\n    ...config,\n    search_keywords: [config.main_keyword],\n    keyword_source: 'seed_keyword'\n  }\n}];"
+      },
+      "id": "2c55c9fd-a44e-4633-9115-361223f092da",
+      "name": "Prepare Seed",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1328,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpQueryAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"contents\": [{\n    \"parts\": [{\n      \"text\": {{ JSON.stringify($json.ai_prompt) }}\n    }]\n  }],\n  \"generationConfig\": { \"temperature\": {{ $json.ai_temperature }}, \"maxOutputTokens\": 500 }\n}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "1456c22a-4bb9-4e8d-a1da-dfd173ae0632",
+      "name": "AI Extract Keywords",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -1328,
+        304
+      ],
+      "credentials": {
+        "httpQueryAuth": {
+          "id": "2b11sjFpHTaAnC0N",
+          "name": "Gemini API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse Gemini response\nconst config = $('Resolve Config').first().json;\nconst response = $input.first().json;\n\nlet keywords = [];\ntry {\n  const text = response.candidates[0].content.parts[0].text;\n  keywords = text.split(/[,\\n]/).map(k => k.trim().toLowerCase()).filter(k => k.length > 2 && k.length < 80);\n} catch (e) {\n  keywords = [config.main_keyword.toLowerCase()];\n}\n\n// Main keyword'ü de ekle\nif (!keywords.includes(config.main_keyword.toLowerCase())) {\n  keywords.unshift(config.main_keyword.toLowerCase());\n}\n\nreturn [{\n  json: {\n    ...config,\n    search_keywords: keywords.slice(0, 15),\n    keyword_source: 'topic_based'\n  }\n}];"
+      },
+      "id": "ca5e3840-8e53-4636-a930-a631322fd154",
+      "name": "Parse AI Keywords",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1104,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Config'i sakla ve keyword'leri ayrı item'lara böl\nconst config = $json;\nconst keywords = config.search_keywords || [config.main_keyword];\n\n// Max 5 keyword için item oluştur\nreturn keywords.slice(0, 5).map(kw => ({\n  json: {\n    config: config,\n    search_keyword: kw,\n    suggest_url: `http://suggestqueries.google.com/complete/search?client=firefox&q=${encodeURIComponent(kw)}&hl=${config.target_language || 'tr'}&gl=${config.target_country || 'tr'}`\n  }\n}));"
+      },
+      "id": "7084852c-1708-46ad-a5d2-af20602a551f",
+      "name": "Split Keywords",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -768,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.suggest_url }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          },
+          "timeout": 10000
+        }
+      },
+      "id": "90704d66-9c2b-463b-b404-b30b91f4bc32",
+      "name": "HTTP Google Suggest",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -544,
+        112
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Tüm suggest sonuçlarını birleştir\nconst items = $input.all();\nconst splitItems = $('Split Keywords').all();\nlet config = splitItems[0]?.json?.config || null;\nconst allSuggestions = [];\n\nfor (let i = 0; i < items.length; i++) {\n  const item = items[i];\n  const splitItem = splitItems[i];\n  const parentKeyword = splitItem?.json?.search_keyword || '';\n  \n  // HTTP Response - handle both JSON and text formats\n  let suggestions = [];\n  try {\n    let responseData = item.json.data || item.json;\n    \n    // If it's a string, parse as JSON\n    if (typeof responseData === 'string') {\n      responseData = JSON.parse(responseData);\n    }\n    \n    // Google Suggest format: [query, [suggestions], [], {}]\n    if (Array.isArray(responseData) && Array.isArray(responseData[1])) {\n      suggestions = responseData[1];\n    }\n  } catch (e) {\n    // Parse error, skip\n    console.log('Parse error for suggestion:', e.message);\n  }\n  \n  suggestions.forEach(suggestion => {\n    // Ensure proper string handling\n    const cleanSuggestion = String(suggestion).trim();\n    if (cleanSuggestion && cleanSuggestion !== parentKeyword && config) {\n      allSuggestions.push({\n        project_id: config.project_id,\n        keyword: cleanSuggestion,\n        keyword_type: 'google_suggest',\n        search_volume: null,\n        keyword_difficulty: null,\n        cpc: null,\n        search_intent: null,\n        trend_direction: 'stable',\n        parent_topic: parentKeyword,\n        source: 'google_suggest'\n      });\n    }\n  });\n}\n\nreturn [{ json: { ...config, google_suggest_keywords: allSuggestions } }];"
+      },
+      "id": "ff7d81bb-e461-4f29-8754-d8d27b7e8d76",
+      "name": "Merge Suggest",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -320,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ============================================\n// Google Trends Data (Ücretsiz)\n// Related queries ve rising topics\n// ============================================\n\nconst config = $json;\nconst mainKeyword = config.main_keyword;\nconst country = config.target_country || 'TR';\n\n// Google Trends embed API'den related queries çek\nconst trendKeywords = [];\n\ntry {\n  // Trends Explore URL'den related topics çekilebilir\n  // Not: Gerçek implementasyonda SerpAPI veya unofficial trends API kullanılabilir\n  \n  // Şimdilik trend-based keyword pattern'ler oluştur\n  const trendPatterns = [\n    `${mainKeyword} 2024`,\n    `${mainKeyword} 2025`,\n    `en iyi ${mainKeyword}`,\n    `${mainKeyword} önerileri`,\n    `${mainKeyword} karşılaştırma`,\n    `${mainKeyword} yorumları`,\n    `${mainKeyword} fiyat`,\n    `ucuz ${mainKeyword}`,\n    `${mainKeyword} nasıl`,\n    `${mainKeyword} nedir`\n  ];\n  \n  trendPatterns.forEach(kw => {\n    trendKeywords.push({\n      project_id: config.project_id,\n      keyword: kw.toLowerCase(),\n      keyword_type: 'trend_based',\n      search_volume: null,\n      keyword_difficulty: null,\n      cpc: null,\n      search_intent: kw.includes('fiyat') || kw.includes('ucuz') ? 'commercial' : 'informational',\n      trend_direction: 'up',\n      parent_topic: mainKeyword,\n      source: 'google_trends'\n    });\n  });\n} catch (e) {\n  // Skip on error\n}\n\nreturn [{ json: { ...config, google_trends_keywords: trendKeywords } }];"
+      },
+      "id": "86faf6c1-b640-48dc-b963-ca3dbb01d08e",
+      "name": "Google Trends",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -448,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "ahrefs",
+              "leftValue": "={{ $json.enable_ahrefs_api }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "ad9d5668-efc4-4d6f-9f49-da71050c6ecc",
+      "name": "IF Ahrefs Enabled",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        -224,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.ahrefs.com/v3/keywords-explorer/keyword-ideas",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"country\": \"{{ $json.target_country }}\",\n  \"keywords\": {{ JSON.stringify($json.search_keywords.slice(0, 3)) }},\n  \"mode\": \"phrase_match\",\n  \"limit\": 50\n}",
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "id": "11528797-e5e1-4667-b481-8e9d013d6e47",
+      "name": "Ahrefs Keywords",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        0,
+        0
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "cJriPdlzxhSpC5n2",
+          "name": "Serper API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse Ahrefs response\nconst config = $('IF Ahrefs Enabled').first().json;\nconst ahrefsData = $input.first().json;\nconst keywords = ahrefsData.keywords || [];\n\nconst ahrefsKeywords = keywords.map(kw => ({\n  project_id: config.project_id,\n  keyword: kw.keyword || '',\n  keyword_type: 'ahrefs',\n  search_volume: kw.volume || null,\n  keyword_difficulty: kw.keyword_difficulty || kw.difficulty || null,\n  cpc: kw.cpc || null,\n  search_intent: null,\n  trend_direction: 'stable',\n  parent_topic: config.main_keyword,\n  source: 'ahrefs'\n}));\n\nreturn [{ json: { ...config, ahrefs_keywords: ahrefsKeywords } }];"
+      },
+      "id": "704bfd82-8d26-4bd0-8ce7-adbf3b4cc586",
+      "name": "Parse Ahrefs",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Ahrefs disabled - boş array döndür\nconst config = $json;\nreturn [{ json: { ...config, ahrefs_keywords: [] } }];"
+      },
+      "id": "75fe5b1d-6ecc-435c-b73b-0082402b1609",
+      "name": "No Ahrefs",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        0,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ============================================\n// Tüm keyword'leri birleştir ve tekilleştir\n// ============================================\n\nconst items = $input.all();\nconst config = items[0].json;\n\n// Tüm kaynaklardan keyword'leri topla\nconst allKeywords = [];\n\n// 1. Primary keyword ekle\nallKeywords.push({\n  project_id: config.project_id,\n  keyword: config.main_keyword.toLowerCase(),\n  keyword_type: 'primary',\n  search_volume: null,\n  keyword_difficulty: null,\n  cpc: null,\n  search_intent: null,\n  trend_direction: 'stable',\n  parent_topic: null,\n  source: 'manual'\n});\n\n// 2. Google Suggest keywords\nif (config.google_suggest_keywords) {\n  allKeywords.push(...config.google_suggest_keywords);\n}\n\n// 3. Google Trends keywords\nif (config.google_trends_keywords) {\n  allKeywords.push(...config.google_trends_keywords);\n}\n\n// 4. Ahrefs keywords\nif (config.ahrefs_keywords) {\n  allKeywords.push(...config.ahrefs_keywords);\n}\n\n// Tekilleştir (keyword bazında)\nconst seen = new Set();\nconst uniqueKeywords = allKeywords.filter(kw => {\n  const key = kw.keyword.toLowerCase().trim();\n  if (seen.has(key) || key.length < 2) return false;\n  seen.add(key);\n  return true;\n});\n\n// Her keyword için ayrı item döndür\nreturn uniqueKeywords.map(kw => ({ json: kw }));"
+      },
+      "id": "133e6542-c928-42a4-966c-d799ce8c5f29",
+      "name": "Merge & Dedupe",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        448,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO keyword_results \n  (project_id, keyword, keyword_type, search_volume, keyword_difficulty, cpc, search_intent, trend_direction, parent_topic, source)\nVALUES \n  ({{ $json.project_id }}, '{{ $json.keyword.replace(/'/g, \"''\") }}', '{{ $json.keyword_type }}', {{ $json.search_volume || 'NULL' }}, {{ $json.keyword_difficulty || 'NULL' }}, {{ $json.cpc || 'NULL' }}, {{ $json.search_intent ? \"'\" + $json.search_intent + \"'\" : 'NULL' }}, '{{ $json.trend_direction }}', {{ $json.parent_topic ? \"'\" + $json.parent_topic.replace(/'/g, \"''\") + \"'\" : 'NULL' }}, '{{ $json.source }}')\nON DUPLICATE KEY UPDATE\n  search_volume = COALESCE(VALUES(search_volume), search_volume),\n  keyword_difficulty = COALESCE(VALUES(keyword_difficulty), keyword_difficulty),\n  source = CONCAT_WS(',', source, VALUES(source))",
+        "options": {}
+      },
+      "id": "7f387f18-e08c-4de7-b61d-070569cebb97",
+      "name": "Save Keywords",
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.4,
+      "position": [
+        672,
+        160
+      ],
+      "credentials": {
+        "mySql": {
+          "id": "LYQGH6Sr5DJDmTWl",
+          "name": "SEO Suite MySQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE keyword_projects SET\n  total_keywords_found = (SELECT COUNT(*) FROM keyword_results WHERE project_id = {{ $('Resolve Config').first().json.project_id }}),\n  status = 'keywords_discovered',\n  api_source = 'multi_source'\nWHERE id = {{ $('Resolve Config').first().json.project_id }}",
+        "options": {}
+      },
+      "id": "0c51ec4f-b0aa-41d2-9034-e3649f4db3a1",
+      "name": "Update Project",
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.4,
+      "position": [
+        880,
+        160
+      ],
+      "credentials": {
+        "mySql": {
+          "id": "LYQGH6Sr5DJDmTWl",
+          "name": "SEO Suite MySQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const config = $('Resolve Config').first().json;\nconst mergeDedupeItems = $('Merge & Dedupe').all();\n\n// Kaynak sayılarını hesapla\nconst sources = {};\nmergeDedupeItems.forEach(item => {\n  const src = item.json.source || 'unknown';\n  sources[src] = (sources[src] || 0) + 1;\n});\n\nreturn {\n  json: {\n    success: true,\n    data: {\n      project_id: config.project_id,\n      client_name: config.client_name,\n      main_keyword: config.main_keyword,\n      scenario_type: config.scenario_type,\n      keywords_found: mergeDedupeItems.length,\n      sources_used: {\n        google_suggest: config.enable_google_suggest,\n        google_trends: config.enable_google_trends,\n        ahrefs: config.enable_ahrefs_api\n      },\n      keywords_by_source: sources,\n      ai_config: {\n        model: config.ai_model,\n        provider: config.ai_provider\n      }\n    },\n    next_step: 'WF-101b: Keyword Filter'\n  }\n};"
+      },
+      "id": "1ce7ad16-c69e-423d-b3cb-13a05d0bed0e",
+      "name": "Prepare Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1104,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "id": "2a70c76d-87a6-4e6c-920f-c4d289ea0466",
+      "name": "Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1328,
+        160
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Validate Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Input": {
+      "main": [
+        [
+          {
+            "node": "IF Valid",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Valid": {
+      "main": [
+        [
+          {
+            "node": "Get Project",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Project": {
+      "main": [
+        [
+          {
+            "node": "Resolve Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Resolve Config": {
+      "main": [
+        [
+          {
+            "node": "IF Exists",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Exists": {
+      "main": [
+        [
+          {
+            "node": "Switch Scenario",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond 404",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch Scenario": {
+      "main": [
+        [
+          {
+            "node": "Prepare Seed",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "AI Extract Keywords",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Seed": {
+      "main": [
+        [
+          {
+            "node": "Split Keywords",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Extract Keywords": {
+      "main": [
+        [
+          {
+            "node": "Parse AI Keywords",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse AI Keywords": {
+      "main": [
+        [
+          {
+            "node": "Split Keywords",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Keywords": {
+      "main": [
+        [
+          {
+            "node": "HTTP Google Suggest",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Google Suggest": {
+      "main": [
+        [
+          {
+            "node": "Merge Suggest",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Suggest": {
+      "main": [
+        [
+          {
+            "node": "Google Trends",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Trends": {
+      "main": [
+        [
+          {
+            "node": "IF Ahrefs Enabled",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Ahrefs Enabled": {
+      "main": [
+        [
+          {
+            "node": "Ahrefs Keywords",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No Ahrefs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ahrefs Keywords": {
+      "main": [
+        [
+          {
+            "node": "Parse Ahrefs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Ahrefs": {
+      "main": [
+        [
+          {
+            "node": "Merge & Dedupe",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "No Ahrefs": {
+      "main": [
+        [
+          {
+            "node": "Merge & Dedupe",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge & Dedupe": {
+      "main": [
+        [
+          {
+            "node": "Save Keywords",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Keywords": {
+      "main": [
+        [
+          {
+            "node": "Update Project",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Project": {
+      "main": [
+        [
+          {
+            "node": "Prepare Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Response": {
+      "main": [
+        [
+          {
+            "node": "Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "versionId": "fec7a4ab-9db7-4f06-8a62-b6656aabc557",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "b468285422c3ac1dfe43a49affb64495474f15ffdd0b5464abf91e9f69526166"
+  },
+  "id": "RkS8Zs4oOA1wZ4Xt",
+  "tags": [
+    {
+      "updatedAt": "2025-12-10T13:07:57.042Z",
+      "createdAt": "2025-12-10T13:07:57.042Z",
+      "id": "U3rvT53H4fecxr38",
+      "name": "Tool1-KeywordResearch"
+    }
+  ]
+}
