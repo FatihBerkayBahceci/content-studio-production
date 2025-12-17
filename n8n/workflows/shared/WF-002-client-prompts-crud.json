@@ -1,0 +1,865 @@
+{
+  "name": "WF-002 Client Prompts CRUD Operations",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "client-prompts/list/:clientId",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-list-prompts",
+      "name": "Webhook - List Prompts",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 200],
+      "webhookId": "client-prompts-list"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=SELECT id, client_id, prompt_name, prompt_text, is_active, sort_order, created_at, updated_at FROM client_prompts WHERE client_id = {{ parseInt($json.params.clientId) || 0 }} ORDER BY sort_order ASC, created_at DESC",
+        "options": {}
+      },
+      "id": "mysql-list-prompts",
+      "name": "MySQL - List Prompts",
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.4,
+      "position": [460, 200],
+      "credentials": {
+        "mySql": {
+          "id": "1",
+          "name": "SEO Suite MySQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": true,\n  \"data\": {{ JSON.stringify($input.all().map(i => ({ ...i.json, is_active: i.json.is_active === 1 || i.json.is_active === true }))) }}\n}",
+        "options": {}
+      },
+      "id": "respond-list-prompts",
+      "name": "Respond - List Prompts",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [680, 200]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "client-prompts/create",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-create-prompt",
+      "name": "Webhook - Create Prompt",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 400],
+      "webhookId": "client-prompts-create"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Check max prompts and prepare insert\nconst body = $json.body || {};\nconst clientId = parseInt(body.client_id);\nconst promptName = body.prompt_name || '';\nconst promptText = body.prompt_text || '';\nconst isActive = body.is_active ? 1 : 0;\n\nif (!clientId || !promptName || !promptText) {\n  return { json: { error: 'Missing required fields', valid: false } };\n}\n\nreturn {\n  json: {\n    clientId,\n    promptName,\n    promptText,\n    isActive,\n    valid: true\n  }\n};"
+      },
+      "id": "code-validate-create",
+      "name": "Code - Validate Create",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 400]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "condition-valid",
+              "leftValue": "={{ $json.valid }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "if-valid-create",
+      "name": "IF - Valid Create",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [680, 400]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=SELECT COUNT(*) as count FROM client_prompts WHERE client_id = {{ $json.clientId }}",
+        "options": {}
+      },
+      "id": "mysql-check-count",
+      "name": "MySQL - Check Count",
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.4,
+      "position": [900, 340],
+      "credentials": {
+        "mySql": {
+          "id": "1",
+          "name": "SEO Suite MySQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Check if under limit and pass data\nconst count = $json.count || 0;\nconst MAX_PROMPTS = 10;\nconst prevData = $('Code - Validate Create').item.json;\n\nif (count >= MAX_PROMPTS) {\n  return { json: { error: `Maximum ${MAX_PROMPTS} prompts allowed`, canCreate: false } };\n}\n\nreturn {\n  json: {\n    ...prevData,\n    canCreate: true\n  }\n};"
+      },
+      "id": "code-check-limit",
+      "name": "Code - Check Limit",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1120, 340]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "condition-can-create",
+              "leftValue": "={{ $json.canCreate }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "if-can-create",
+      "name": "IF - Can Create",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1340, 340]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=INSERT INTO client_prompts (client_id, prompt_name, prompt_text, is_active, sort_order) VALUES ({{ $json.clientId }}, {{ JSON.stringify($json.promptName) }}, {{ JSON.stringify($json.promptText) }}, {{ $json.isActive }}, (SELECT COALESCE(MAX(sort_order), 0) + 1 FROM client_prompts cp WHERE cp.client_id = {{ $json.clientId }}))",
+        "options": {}
+      },
+      "id": "mysql-create-prompt",
+      "name": "MySQL - Create Prompt",
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.4,
+      "position": [1560, 280],
+      "credentials": {
+        "mySql": {
+          "id": "1",
+          "name": "SEO Suite MySQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM client_prompts WHERE id = LAST_INSERT_ID()",
+        "options": {}
+      },
+      "id": "mysql-get-created-prompt",
+      "name": "MySQL - Get Created Prompt",
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.4,
+      "position": [1780, 280],
+      "credentials": {
+        "mySql": {
+          "id": "1",
+          "name": "SEO Suite MySQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": true,\n  \"data\": {{ JSON.stringify({ ...$json, is_active: $json.is_active === 1 }) }},\n  \"message\": \"Prompt created successfully\"\n}",
+        "options": {}
+      },
+      "id": "respond-create-prompt",
+      "name": "Respond - Create Prompt",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [2000, 280]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": false,\n  \"error\": {{ JSON.stringify($json.error || 'Cannot create prompt') }}\n}",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "id": "respond-create-error",
+      "name": "Respond - Create Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1560, 420]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": false,\n  \"error\": {{ JSON.stringify($json.error || 'Invalid request') }}\n}",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "id": "respond-invalid-create",
+      "name": "Respond - Invalid Create",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [900, 460]
+    },
+    {
+      "parameters": {
+        "httpMethod": "PUT",
+        "path": "client-prompts/update/:id",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-update-prompt",
+      "name": "Webhook - Update Prompt",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 600],
+      "webhookId": "client-prompts-update"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Build update query\nconst body = $json.body || {};\nconst promptId = parseInt($json.params.id);\n\nif (!promptId) {\n  return { json: { error: 'Invalid prompt ID', valid: false } };\n}\n\nconst updates = [];\nif (body.prompt_name !== undefined) {\n  updates.push(`prompt_name = ${JSON.stringify(body.prompt_name)}`);\n}\nif (body.prompt_text !== undefined) {\n  updates.push(`prompt_text = ${JSON.stringify(body.prompt_text)}`);\n}\nif (body.sort_order !== undefined) {\n  updates.push(`sort_order = ${parseInt(body.sort_order)}`);\n}\n\nif (updates.length === 0) {\n  return { json: { error: 'No fields to update', valid: false } };\n}\n\nupdates.push('updated_at = NOW()');\n\nreturn {\n  json: {\n    promptId,\n    query: `UPDATE client_prompts SET ${updates.join(', ')} WHERE id = ${promptId}`,\n    valid: true\n  }\n};"
+      },
+      "id": "code-build-update-prompt",
+      "name": "Code - Build Update Prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 600]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "condition-valid-update",
+              "leftValue": "={{ $json.valid }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "if-valid-update",
+      "name": "IF - Valid Update",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [680, 600]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "={{ $json.query }}",
+        "options": {}
+      },
+      "id": "mysql-update-prompt",
+      "name": "MySQL - Update Prompt",
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.4,
+      "position": [900, 540],
+      "credentials": {
+        "mySql": {
+          "id": "1",
+          "name": "SEO Suite MySQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=SELECT * FROM client_prompts WHERE id = {{ $('Code - Build Update Prompt').item.json.promptId }}",
+        "options": {}
+      },
+      "id": "mysql-get-updated-prompt",
+      "name": "MySQL - Get Updated Prompt",
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.4,
+      "position": [1120, 540],
+      "credentials": {
+        "mySql": {
+          "id": "1",
+          "name": "SEO Suite MySQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": {{ $json.id ? true : false }},\n  \"data\": {{ $json.id ? JSON.stringify({ ...$json, is_active: $json.is_active === 1 }) : 'null' }},\n  \"message\": {{ $json.id ? '\"Prompt updated successfully\"' : '\"Prompt not found\"' }}\n}",
+        "options": {}
+      },
+      "id": "respond-update-prompt",
+      "name": "Respond - Update Prompt",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1340, 540]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": false,\n  \"error\": {{ JSON.stringify($json.error || 'Invalid request') }}\n}",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "id": "respond-invalid-update",
+      "name": "Respond - Invalid Update",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [900, 660]
+    },
+    {
+      "parameters": {
+        "httpMethod": "DELETE",
+        "path": "client-prompts/delete/:id",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-delete-prompt",
+      "name": "Webhook - Delete Prompt",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 800],
+      "webhookId": "client-prompts-delete"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=DELETE FROM client_prompts WHERE id = {{ parseInt($json.params.id) || 0 }}",
+        "options": {}
+      },
+      "id": "mysql-delete-prompt",
+      "name": "MySQL - Delete Prompt",
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.4,
+      "position": [460, 800],
+      "credentials": {
+        "mySql": {
+          "id": "1",
+          "name": "SEO Suite MySQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": true,\n  \"message\": \"Prompt deleted successfully\"\n}",
+        "options": {}
+      },
+      "id": "respond-delete-prompt",
+      "name": "Respond - Delete Prompt",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [680, 800]
+    },
+    {
+      "parameters": {
+        "httpMethod": "PUT",
+        "path": "client-prompts/set-active/:id",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-set-active",
+      "name": "Webhook - Set Active",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 1000],
+      "webhookId": "client-prompts-set-active"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Get prompt ID and client ID\nconst promptId = parseInt($json.params.id);\nconst clientId = parseInt($json.body?.client_id);\n\nif (!promptId || !clientId) {\n  return { json: { error: 'Invalid prompt or client ID', valid: false } };\n}\n\nreturn {\n  json: {\n    promptId,\n    clientId,\n    valid: true\n  }\n};"
+      },
+      "id": "code-validate-set-active",
+      "name": "Code - Validate Set Active",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 1000]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "condition-valid-set-active",
+              "leftValue": "={{ $json.valid }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "if-valid-set-active",
+      "name": "IF - Valid Set Active",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [680, 1000]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=UPDATE client_prompts SET is_active = 0 WHERE client_id = {{ $json.clientId }}",
+        "options": {}
+      },
+      "id": "mysql-deactivate-all",
+      "name": "MySQL - Deactivate All",
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.4,
+      "position": [900, 940],
+      "credentials": {
+        "mySql": {
+          "id": "1",
+          "name": "SEO Suite MySQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=UPDATE client_prompts SET is_active = 1, updated_at = NOW() WHERE id = {{ $('Code - Validate Set Active').item.json.promptId }}",
+        "options": {}
+      },
+      "id": "mysql-activate-one",
+      "name": "MySQL - Activate One",
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.4,
+      "position": [1120, 940],
+      "credentials": {
+        "mySql": {
+          "id": "1",
+          "name": "SEO Suite MySQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": true,\n  \"message\": \"Active prompt updated successfully\"\n}",
+        "options": {}
+      },
+      "id": "respond-set-active",
+      "name": "Respond - Set Active",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1340, 940]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": false,\n  \"error\": {{ JSON.stringify($json.error || 'Invalid request') }}\n}",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "id": "respond-invalid-set-active",
+      "name": "Respond - Invalid Set Active",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [900, 1060]
+    },
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "client-prompts/active/:clientId",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-get-active",
+      "name": "Webhook - Get Active Prompt",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 1200],
+      "webhookId": "client-prompts-get-active"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=SELECT id, client_id, prompt_name, prompt_text, is_active, sort_order, created_at, updated_at FROM client_prompts WHERE client_id = {{ parseInt($json.params.clientId) || 0 }} AND is_active = 1 LIMIT 1",
+        "options": {}
+      },
+      "id": "mysql-get-active",
+      "name": "MySQL - Get Active Prompt",
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.4,
+      "position": [460, 1200],
+      "credentials": {
+        "mySql": {
+          "id": "1",
+          "name": "SEO Suite MySQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": {{ $json.id ? true : false }},\n  \"data\": {{ $json.id ? JSON.stringify({ ...$json, is_active: true }) : 'null' }},\n  \"message\": {{ $json.id ? '\"Active prompt found\"' : '\"No active prompt found\"' }}\n}",
+        "options": {}
+      },
+      "id": "respond-get-active",
+      "name": "Respond - Get Active",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [680, 1200]
+    }
+  ],
+  "connections": {
+    "Webhook - List Prompts": {
+      "main": [
+        [
+          {
+            "node": "MySQL - List Prompts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MySQL - List Prompts": {
+      "main": [
+        [
+          {
+            "node": "Respond - List Prompts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook - Create Prompt": {
+      "main": [
+        [
+          {
+            "node": "Code - Validate Create",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code - Validate Create": {
+      "main": [
+        [
+          {
+            "node": "IF - Valid Create",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF - Valid Create": {
+      "main": [
+        [
+          {
+            "node": "MySQL - Check Count",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond - Invalid Create",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MySQL - Check Count": {
+      "main": [
+        [
+          {
+            "node": "Code - Check Limit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code - Check Limit": {
+      "main": [
+        [
+          {
+            "node": "IF - Can Create",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF - Can Create": {
+      "main": [
+        [
+          {
+            "node": "MySQL - Create Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond - Create Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MySQL - Create Prompt": {
+      "main": [
+        [
+          {
+            "node": "MySQL - Get Created Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MySQL - Get Created Prompt": {
+      "main": [
+        [
+          {
+            "node": "Respond - Create Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook - Update Prompt": {
+      "main": [
+        [
+          {
+            "node": "Code - Build Update Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code - Build Update Prompt": {
+      "main": [
+        [
+          {
+            "node": "IF - Valid Update",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF - Valid Update": {
+      "main": [
+        [
+          {
+            "node": "MySQL - Update Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond - Invalid Update",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MySQL - Update Prompt": {
+      "main": [
+        [
+          {
+            "node": "MySQL - Get Updated Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MySQL - Get Updated Prompt": {
+      "main": [
+        [
+          {
+            "node": "Respond - Update Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook - Delete Prompt": {
+      "main": [
+        [
+          {
+            "node": "MySQL - Delete Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MySQL - Delete Prompt": {
+      "main": [
+        [
+          {
+            "node": "Respond - Delete Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook - Set Active": {
+      "main": [
+        [
+          {
+            "node": "Code - Validate Set Active",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code - Validate Set Active": {
+      "main": [
+        [
+          {
+            "node": "IF - Valid Set Active",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF - Valid Set Active": {
+      "main": [
+        [
+          {
+            "node": "MySQL - Deactivate All",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond - Invalid Set Active",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MySQL - Deactivate All": {
+      "main": [
+        [
+          {
+            "node": "MySQL - Activate One",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MySQL - Activate One": {
+      "main": [
+        [
+          {
+            "node": "Respond - Set Active",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook - Get Active Prompt": {
+      "main": [
+        [
+          {
+            "node": "MySQL - Get Active Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MySQL - Get Active Prompt": {
+      "main": [
+        [
+          {
+            "node": "Respond - Get Active",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "seo-tool-suite"
+  },
+  "tags": [
+    {
+      "name": "Shared-Core"
+    }
+  ]
+}

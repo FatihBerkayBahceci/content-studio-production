@@ -1,0 +1,606 @@
+TOOL 3
+
+INTERNAL LINKING
+
+İç Linkleme Stratejisi ve Otomasyonu
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
++-----------------------+-----------------------+-----------------------+
+| SENARYO A             | SENARYO B             | SENARYO C             |
+|                       |                       |                       |
+| Keyword Cluster       | Konu Başlığı          | URL/Sitemap           |
+|                       |                       |                       |
+| Tool 1'den Veri       | Manuel Input          | Teknik Analiz         |
++-----------------------+-----------------------+-----------------------+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+TEKNİK DOKÜMANTASYON
+
+Link Equity Akışı • Node Classification • Silo Stratejisi
+
+Versiyon 1.0 • Aralık 2025
+
+İÇİNDEKİLER
+
+1.  Tool Genel Bakış
+
+2.  Input Senaryoları
+
+3.  Node Classification (İçerik Rolleri)
+
+4.  Link Equity Akış Modelleri
+
+5.  Anchor Text Stratejisi
+
+6.  İç Linkleme Kuralları (Ruleset)
+
+7.  Silo ve Semantic Linking
+
+8.  Workflow Aşamaları
+
+9.  n8n Workflow Tasarımı
+
+10. Veritabanı Eşleştirmesi
+
+11. Output Formatları
+
+12. Risk Yönetimi
+
+1. TOOL GENEL BAKIŞ
+
+1.1 Amaç
+
+Tool 2, site içi link yapısını optimize ederek PageRank (Link Equity)
+akışını yönetir. Hedef: Doğru sayfaların doğru miktarda otorite almasını
+sağlamak ve kullanıcı deneyimini iyileştirmek.
+
+1.2 Temel Yetenekler
+
+-   3 farklı input senaryosu desteği (Keyword Cluster, Konu Başlığı,
+    URL/Sitemap)
+
+-   Otomatik Node Classification (Pillar, Hub, Cluster, Money Page)
+
+-   Link Equity akış modeli belirleme (Top-Down, Bottom-Up, Lateral)
+
+-   Akıllı Anchor Text önerileri (Exact, Partial, Semantic, Brand)
+
+-   Silo yapısı oluşturma ve Virtual Siloing
+
+-   Orphan Page ve Dead-End tespiti
+
+-   Link Graph analizi ve görselleştirme
+
+-   Relevance Score bazlı link önerileri
+
+1.3 Tool 1 ve Tool 2 ile Entegrasyon
+
+Tool 3, Tool 1'den keyword cluster ve Pillar-Cluster yapısını, Tool
+2'den ise üretilmiş içeriği alarak otomatik link stratejisi
+oluşturabilir. Manuel input da desteklenir.
+
+2. INPUT SENARYOLARI
+
+Tool 2, üç farklı input senaryosunu destekler. Her senaryo farklı analiz
+yaklaşımı gerektirir.
+
+SENARYO A: Keyword Cluster Inputu
+
+En temiz senaryo. Tool 1'den hazır Pillar-Cluster haritası gelir.
+
+Kaynak
+
+-   Tool 1 keyword_projects tablosundan cluster yapısı
+
+-   Tool 2'den üretilmiş içerik (HTML/Markdown)
+
+-   Keyword hacimleri ve intent etiketleri
+
+Analiz Yaklaşımı
+
+-   Hiyerarşi zaten belli: En yüksek hacimli keyword = Pillar
+
+-   Long-tail varyasyonlar = Cluster
+
+-   Linkleme şeması doğrudan semantik ilişkiye göre kurulur
+
+SENARYO B: Konu Başlığı Inputu
+
+Elimizde sadece başlıklar var. Kapsayıcılık düzeyine göre sınıflandırma
+yapılır.
+
+Kapsayıcılık Hiyerarşisi
+
+  "Ayakkabı" (Kategori) > "Koşu Ayakkabısı" (Alt Kategori) > "X Marka
+  İncelemesi" (İçerik)
+
+Analiz Yaklaşımı
+
+-   Başlıklar mantıksal taksonomiye (taxonomy) oturtulur
+
+-   Sanal site ağacı çizilir
+
+-   Her başlığa rol atanır (Pillar, Hub, Cluster)
+
+SENARYO C: Teknik URL Inputu (Sitemap/Liste)
+
+En teknik analiz gerektiren senaryo. Pattern Matching ve Reverse
+Engineering uygulanır.
+
+URL Desen Analizi (Pattern Matching)
+
+  -----------------------------------------------------------------------
+  URL Deseni                 Sayfa Tipi         Intent
+  -------------------------- ------------------ -------------------------
+  /blog/, /haber/, /guide/   Blog/Rehber        Informational
+
+  /product/, /urun/,         Ürün/Hizmet        Transactional
+  /hizmet/                                      
+
+  /kategori/, /collection/   Kategori           Navigational/Hub
+
+  /about, /hakkimizda        Kurumsal           Brand
+  -----------------------------------------------------------------------
+
+Derinlik Analizi (Depth)
+
+URL'deki slash (/) sayısına göre hiyerarşik derinlik ölçülür:
+
+  site.com/kategori ─────────────── Derinlik 1 (Yüksek Otorite)
+
+  site.com/kategori/alt ─────────── Derinlik 2 (Orta Otorite)
+
+  site.com/kategori/alt/urun-adi ── Derinlik 3 (Düşük Otorite)
+
+3. NODE CLASSIFICATION (İÇERİK ROLLERİ)
+
+Her URL bir Node (Düğüm)dur. Strateji kurmadan önce her URL'e rol
+atanır.
+
+  ------------------------------------------------------------------------
+  Rol             Tanım                  Link Stratejisi
+  --------------- ---------------------- ---------------------------------
+  Pillar          Otorite Merkezi. Geniş En çok link girişi almalı. Tüm
+                  hacimli ana konu.      Cluster'lara link verir.
+
+  Hub             Dağıtıcı. Kategori     Trafiği alt sayfalara dağıtır.
+                  sayfaları.             Çift yönlü link.
+
+  Cluster         Destekleyici. Blog/Alt Pillar'a link verir. Sibling'lere
+                  sayfalar.              lateral link.
+
+  Money Page      Dönüşüm odaklı.        Link çıkışı az, link girişi çok
+                  Ürün/Satış sayfaları.  olmalı.
+
+  Booster         Yüksek backlink/trafik Link Juice deposu. Stratejik link
+                  almış eski içerik.     çıkışı.
+
+  Bridge          Köprü. Farklı silolar  Sadece güçlü semantik bağ varsa
+                  arası geçiş.           kullanılır.
+  ------------------------------------------------------------------------
+
+  ⚠️ Neden Kritik?
+
+  Bir Ürün Sayfasından başka Ürün Sayfasına link vermek dönüşümü
+  düşürebilir. Ancak Blog'dan Ürün'e link vermek satışı artırır. Rolü
+  bilmeden link stratejisi kurulamaz!
+
+3.1 Otomatik Rol Atama Algoritması
+
+1.  URL Pattern Analysis: /blog/, /product/, /category/ desenlerine göre
+    ilk tahmin
+
+2.  Depth Analysis: Derinlik 1 = Hub/Pillar adayı, Derinlik 3+ = Cluster
+
+3.  Keyword Volume (Tool 1'den): Yüksek hacim = Pillar, Düşük hacim =
+    Cluster
+
+4.  Intent Label (Tool 1'den): Transactional = Money Page, Informational
+    = Cluster
+
+5.  Backlink Count (varsa): Yüksek backlink = Booster
+
+4. LINK EQUITY AKIŞ MODELLERİ
+
+Sitedeki gücü (PageRank) nasıl dağıtacağımızı belirleriz.
+
+4.1 Top-Down (Hiyerarşik) Akış
+
+Ana Sayfa → Kategori → Alt Sayfa
+
+-   Yeni siteler ve Senaryo B için ideal
+
+-   Crawl bütçesini verimli kullanır
+
+-   Google'ın site yapısını anlamasını kolaylaştırır
+
+4.2 Bottom-Up (Besleyici) Akış
+
+Cluster → Pillar/Kategori (Yukarı Besleme)
+
+-   Zorlu anahtar kelimelerde sıralama almak için ZORUNLU
+
+-   Senaryo A (Tool 1'den gelen cluster) için ideal
+
+-   Pillar sayfasının otoritesini hızla yükseltir
+
+4.3 Lateral (Yatay) Akış
+
+Sibling ↔ Sibling (Aynı Seviye İçerikler)
+
+-   KURAL: Sadece konuyla TAM alakalıysa yapılır
+
+-   Aynı cluster içindeki içerikler birbirine link verir
+
+4.4 Traffic Hubs → Money Pages
+
+Özel strateji: Yüksek trafik alan ama satış yapmayan blog sayfalarından,
+düşük trafikli ama yüksek cirolu ürün sayfalarına akış kurulur.
+
+  💡 Strateji
+
+  Blog yazısı 10.000 ziyaretçi alıyor ama satış 0. Ürün sayfası 100
+  ziyaretçi alıyor ama %10 dönüşüm. Blog'dan ürüne link = Trafik +
+  Dönüşüm birleşir.
+
+5. ANCHOR TEXT STRATEJİSİ
+
+Linkin tıklanabilir metni, Google'a hedef sayfanın ne hakkında olduğunu
+söyler.
+
+  -------------------------------------------------------------------------
+  Anchor Tipi      Açıklama           Örnek              Oran
+  ---------------- ------------------ ------------------ ------------------
+  Exact Match      Hedef kelime aynen "Su deposu"        %5-10 (Riskli)
+
+  Partial Match    Kelime varyasyonu  "Paslanmaz su      %20-30
+                                      depolama"          
+
+  Semantic         Anlamsal ilişkili  "Depolama          %20-30
+                                      çözümleri"         
+
+  Brand            Marka adı          "ABC Firması"      %10-20
+
+  Generic          Genel ifade        "Buraya tıklayın"  %10-15
+
+  Naked URL        URL kendisi        "site.com/sayfa"   %5-10
+
+  Contextual       Cümle içinde doğal "Detaylı           %15-20
+                                      rehberimize göz    
+                                      atın"              
+  -------------------------------------------------------------------------
+
+5.1 Senaryo C İçin Otomatik Anchor Türetme
+
+Elimizde sadece URL varsa, slug'dan anchor önerisi türetilir:
+
+  URL: site.com/blog/seo-nasil-yapilir Slug: seo-nasil-yapilir Anchor:
+  "SEO Nasıl Yapılır"
+
+5.2 Anchor Çeşitlilik Kontrolü
+
+Aynı anchor text ile 100 link = SPAM sinyali. Sistem otomatik çeşitlilik
+kontrolü yapar:
+
+-   Aynı exact match anchor %10'u geçerse UYARI
+
+-   Her hedef URL için anchor dağılımı raporlanır
+
+-   Otomatik varyasyon önerileri sunulur
+
+6. İÇ LİNKLEME KURALLARI (RULESET)
+
+Enterprise projelerde kaos oluşmaması için katı kurallar belirlenir.
+
+  -----------------------------------------------------------------------
+  Kural              Açıklama
+  ------------------ ----------------------------------------------------
+  Link Sayısı        Her 150 kelimede maksimum 1 link. 1500 kelimelik
+                     içerik = max 10 link.
+
+  Orphan Page        Hiçbir iç link almayan sayfa kalmamalı. Her URL min
+                     1 (tercihen 3) statik link almalı.
+
+  Dead-Ends          Link çıkışı olmayan sayfa olmamalı
+                     (Checkout/Teşekkür sayfası hariç).
+
+  Click Depth        Hiçbir önemli sayfa Ana Sayfa'dan 3 tıklamadan
+                     uzakta olmamalı.
+
+  Contextual         İçerik içi (contextual) linkler,
+  Priority           header/footer/sidebar linklerinden öncelikli.
+
+  Nofollow Usage     Login, sepet, yazdırma sayfalarına iç link
+                     veriliyorsa rel='nofollow' kullanılır.
+  -----------------------------------------------------------------------
+
+6.1 Yeni İçerik Eklendiğinde
+
+1.  Parent Link: Yeni içerik hangi Pillar'a bağlıysa, ona link verir
+
+2.  Sibling Link: Aynı kümedeki en az 3 eski içeriğe link verir
+
+3.  Reverse Linking: Eski otoriter 3-5 içerik güncellenir, yeni yazıya
+    link verilir (EN KRİTİK)
+
+  🔴 Kritik Uyarı
+
+  Reverse Linking adımı genelde atlanır ama en kritik adımdır! Yeni
+  içerik, eski otoriter sayfalardan link almazsa sıralama almakta
+  zorlanır.
+
+7. SİLO VE SEMANTIC LINKING YAPISI
+
+Sitenin otoritesini konulara göre izole ederiz (Siloing).
+
+7.1 Tematik Silo
+
+Her konu kendi silolarında kalır, karışmaz:
+
+  SEO Silosu: └── SEO Nedir? └── On-Page SEO └── Off-Page SEO └── Teknik
+  SEO
+
+  Sosyal Medya Silosu: └── Instagram Marketing └── LinkedIn Stratejisi
+  └── TikTok Reklamları
+
+SEO silosundaki yazılar SADECE diğer SEO yazılarına ve SEO servis
+sayfalarına link verir.
+
+7.2 Virtual Siloing (Sanal Silo)
+
+URL yapısı fiziksel siloya uygun değilse (örn: tüm bloglar /blog/
+altındaysa), linklemeyi SADECE konu bazlı yaparak sanal küme
+oluşturulur.
+
+7.3 Bridge Pages (Köprü Sayfalar)
+
+Farklı siloları birbirine bağlayan özel sayfalar. Sadece çok güçlü
+anlamsal bağ varsa kullanılır.
+
+-   Örnek: "Dijital Pazarlama Rehberi" hem SEO hem Sosyal Medya
+    silolarına bağlanabilir
+
+8. WORKFLOW AŞAMALARI
+
+AŞAMA 1: Input Alımı ve Senaryo Belirleme
+
+  -----------------------------------------------------------------------
+  Öğe             Detay
+  --------------- -------------------------------------------------------
+  Tetikleyici     Kullanıcı yeni linking projesi başlatır
+
+  Input           A) Tool 1'den proje seç, B) Konu başlıkları gir, C)
+  Seçenekleri     Sitemap/URL listesi yükle
+
+  Output          linking_projects kaydı, senaryo tipi belirlenir
+  -----------------------------------------------------------------------
+
+AŞAMA 2: Bilgi Mimarisi Çıkarımı
+
+-   Senaryo A: Cluster yapısı Tool 1'den alınır
+
+-   Senaryo B: Başlıklar taksonomiye oturtulur, sanal site ağacı çizilir
+
+-   Senaryo C: URL pattern analizi, derinlik analizi yapılır
+
+AŞAMA 3: Node Classification
+
+Her URL'e rol atanır: Pillar, Hub, Cluster, Money Page, Booster, Bridge
+
+AŞAMA 4: Silo Yapısı Oluşturma
+
+URL'ler tematik silolara ayrılır. Virtual siloing gerekiyorsa uygulanır.
+
+AŞAMA 5: Link Equity Akış Planı
+
+Top-Down, Bottom-Up ve Lateral akış stratejileri belirlenir.
+
+AŞAMA 6: Link Önerisi Üretimi
+
+1.  Her URL için uygun hedef URL'ler belirlenir
+
+2.  Relevance Score hesaplanır (0-100)
+
+3.  Anchor text önerileri üretilir
+
+4.  Context sentence (linkin ekleneceği cümle) önerilir
+
+AŞAMA 7: Kural Kontrolü ve Validasyon
+
+Orphan page, dead-end, click depth, anchor çeşitlilik kontrolleri
+yapılır.
+
+AŞAMA 8: Onay ve Uygulama
+
+Öneriler kullanıcıya sunulur. Onaylanan linkler uygulanır veya rapor
+olarak export edilir.
+
+9. N8N WORKFLOW TASARIMI
+
+  ------------------------------------------------------------------------
+  WF #      Workflow Adı             Açıklama
+  --------- ------------------------ -------------------------------------
+  WF-301    Linking Project          Proje oluşturma, senaryo belirleme,
+            Initializer              input alımı
+
+  WF-302    Architecture Extractor   Bilgi mimarisi çıkarımı (3 senaryo
+                                     için)
+
+  WF-303    Node Classifier          URL rol atama (Pillar, Hub, Cluster,
+                                     Money)
+
+  WF-304    Silo Builder             Tematik silo yapısı oluşturma
+
+  WF-305    Equity Flow Planner      Link equity akış stratejisi belirleme
+
+  WF-306    Link Suggester           Link önerisi üretimi, relevance
+                                     scoring
+
+  WF-307    Anchor Generator         Anchor text önerisi üretimi
+
+  WF-308    Rule Validator           Orphan, dead-end, depth, diversity
+                                     kontrolleri
+
+  WF-309    Link Applier             Onaylanan linkleri içeriğe uygulama
+
+  WF-310    Report Generator         URL Mapping, Gap Analizi, Görsel
+                                     harita export
+  ------------------------------------------------------------------------
+
+9.1 Workflow Akış Şeması
+
+WF-301: Project Initializer
+
+│
+
+├── Senaryo A? ─→ Tool 1 + Tool 2'den veri çek
+
+├── Senaryo B? ─→ Başlık parse et
+
+└── Senaryo C? ─→ URL pattern analizi
+
+│
+
+▼
+
+WF-302: Architecture Extractor
+
+│
+
+▼
+
+WF-303: Node Classifier
+
+│
+
+▼
+
+WF-304: Silo Builder
+
+│
+
+▼
+
+WF-305 → WF-306 → WF-307 → WF-308
+
+│
+
+▼
+
+WF-309: Link Applier (Opsiyonel)
+
+│
+
+▼
+
+WF-310: Report Generator
+
+10. VERİTABANI EŞLEŞTİRMESİ
+
+  ---------------------------------------------------------------------------
+  Aşama             Tablo                  Kaydedilen Veriler
+  ----------------- ---------------------- ----------------------------------
+  1. Proje          linking_projects       project_name, input_source,
+  Oluşturma                                scenario_type, settings
+
+  2. Mimari         linking_projects       URL listesi, hiyerarşi yapısı
+  Çıkarımı                                 
+
+  3. Node           client_url_inventory   page_type, topic_cluster,
+  Classification                           authority_score
+
+  4. Silo Yapısı    client_url_inventory   topic_cluster (silo ataması)
+
+  5-7. Link         linking_suggestions    target_url, anchor_text,
+  Önerileri                                relevance_score, context
+
+  8. Validasyon     linking_suggestions    is_approved, rejection_reason
+
+  9. Uygulama       linking_applied        applied_at, original_text,
+                                           linked_text
+
+  10. Rapor         linking_projects       status: completed, output_content
+  ---------------------------------------------------------------------------
+
+11. OUTPUT FORMATLARI
+
+11.1 Final Teslim Formatları
+
+  -----------------------------------------------------------------------
+  Output                İçerik
+  --------------------- -------------------------------------------------
+  URL Mapping Dosyası   Excel: Kaynak URL, Hedef URL, Anchor Text, Link
+                        Tipi, Relevance Score
+
+  Görsel Site Mimarisi  Siloların ve akışın görselleştirilmiş haritası
+                        (SVG/PNG)
+
+  Gap Analizi Raporu    Yeterince link almayan önemli sayfalar listesi
+
+  Orphan Page Listesi   Hiç link almayan sayfalar ve öneriler
+
+  Dead-End Listesi      Link çıkışı olmayan sayfalar
+
+  Anchor Distribution   Her hedef URL için anchor dağılımı raporu
+
+  Teknik Düzenleme      404'e giden linkler, redirect chains, duplicate
+                        URL'ler
+
+  Linklenmiş İçerik     Tool 3'e aktarılacak linklenmiş içerik
+                        (HTML/Markdown)
+  -----------------------------------------------------------------------
+
+11.2 Linklenmiş İçerik Çıktısı
+
+Tool 3 çıktısı olarak publish-ready içerik:
+
+-   output_content: Linklenmiş içerik (Markdown veya HTML)
+
+-   linking_applied kayıtları: Hangi linklerin nereye eklendiği
+
+-   CMS'e direkt yüklenebilir format
+
+12. RİSK YÖNETİMİ
+
+12.1 Over-Optimization (Aşırı Optimizasyon)
+
+Hep aynı anchor text ile 100 link = Google bunu SPAM olarak algılar.
+
+-   Çözüm: Anchor çeşitlilik kontrolü. Exact match %10'u geçmemeli.
+
+12.2 Crawl Loops (Tarama Döngüleri)
+
+Sayfa A → Sayfa B → Sayfa A sonsuz döngüleri, botun kaynaklarını
+tüketir.
+
+-   Çözüm: Link graph analizi ile döngü tespiti.
+
+12.3 Header/Footer/Sidebar Link Enflasyonu
+
+Site genelinde (sitewide) tekrarlanan linklerin değeri düşüktür.
+
+-   Çözüm: Contextual (içerik içi) linkler her zaman öncelikli.
+
+12.4 Duplicate URL (Parametre Sorunu)
+
+site.com/urun?renk=kirmizi ve site.com/urun aynı içerik.
+
+-   Çözüm: Sadece canonical URL'e link ver, parametreli URL'leri
+    yasakla.
+
+12.5 Money Page Leak (Dönüşüm Kaçağı)
+
+Ürün sayfasından başka ürün sayfasına link = Kullanıcı kaybı riski.
+
+-   Çözüm: Money Page'lerden çıkış kontrolü. Blog'a değil, ilgili
+    kategori'ye link.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+— DOKÜMAN SONU —
+
+Tool 3: Internal Linking • Teknik Dokümantasyon v1.0
+
+Aralık 2025

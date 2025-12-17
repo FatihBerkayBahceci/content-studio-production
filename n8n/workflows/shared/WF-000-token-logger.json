@@ -1,0 +1,81 @@
+{
+  "name": "WF-000: Token Logger",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "log-tokens",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "webhookId": "token-logger"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=INSERT INTO api_usage_tracking (client_id, tool_name, project_id, workflow_name, api_provider, model_name, tokens_input, tokens_output, api_calls, cost_usd, response_time_ms, was_successful, error_message) VALUES ({{ $json.client_id || 0 }}, '{{ $json.tool_name || 'other' }}', {{ $json.project_id || 'NULL' }}, '{{ $json.workflow_name || '' }}', '{{ $json.api_provider || 'google' }}', '{{ $json.model_name || '' }}', {{ $json.tokens_input || 0 }}, {{ $json.tokens_output || 0 }}, 1, {{ $json.cost_usd || 0 }}, {{ $json.response_time_ms || 0 }}, {{ $json.was_successful ? 1 : 0 }}, {{ $json.error_message ? \"'\" + $json.error_message.replace(/'/g, \"''\") + \"'\" : 'NULL' }})",
+        "options": {}
+      },
+      "id": "mysql-log",
+      "name": "MySQL - Log Token Usage",
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.4,
+      "position": [460, 300],
+      "credentials": {
+        "mySql": {
+          "id": "LYQGH6Sr5DJDmTWl",
+          "name": "SEO Suite MySQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "return { success: true, logged: true };"
+      },
+      "id": "code-response",
+      "name": "Code - Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 300]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "MySQL - Log Token Usage",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MySQL - Log Token Usage": {
+      "main": [
+        [
+          {
+            "node": "Code - Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": [
+    {
+      "id": "shared",
+      "name": "Shared"
+    }
+  ]
+}

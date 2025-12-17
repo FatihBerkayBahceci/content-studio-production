@@ -1,0 +1,74 @@
+# =====================================================================
+# SEO TOOL SUITE - GITIGNORE
+# =====================================================================
+
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build outputs
+.next/
+out/
+dist/
+build/
+
+# Environment files (keep .env.example)
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.production
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# Debug logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# TypeScript
+*.tsbuildinfo
+
+# Testing
+coverage/
+.nyc_output/
+
+# Docker
+docker/nginx/ssl/
+
+# n8n
+n8n_data/
+
+# MySQL
+mysql_data/
+
+# Redis
+redis_data/
+
+# OS files
+Thumbs.db
+*.log
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
+
+# Vercel
+.vercel
+
+# Local development
+*.local
+
+# Credentials (never commit!)
+credentials*.json
+*.pem
+*.key
+*.crt

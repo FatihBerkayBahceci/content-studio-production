@@ -1,0 +1,249 @@
+{
+  "name": "WF-100: Project Validator",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": ":projectId/validate",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "webhookId": "tool1-project-validate"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Input validation\nconst projectId = $json.params?.projectId;\n\nif (!projectId) {\n  return {\n    json: {\n      isValid: false,\n      error: 'project_id parametresi zorunludur',\n      errorCode: 400\n    }\n  };\n}\n\nconst parsedId = parseInt(projectId);\nif (isNaN(parsedId) || parsedId <= 0) {\n  return {\n    json: {\n      isValid: false,\n      error: 'project_id gecerli bir pozitif sayi olmalidir',\n      errorCode: 400\n    }\n  };\n}\n\nreturn {\n  json: {\n    isValid: true,\n    projectId: parsedId\n  }\n};"
+      },
+      "id": "code-validate-input",
+      "name": "Code - Validate Input",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "is-valid",
+              "leftValue": "={{ $json.isValid }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "if-valid-input",
+      "name": "IF - Valid Input",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": false,\n  \"error\": \"{{ $json.error }}\"\n}",
+        "options": {
+          "responseCode": "={{ $json.errorCode }}"
+        }
+      },
+      "id": "respond-validation-error",
+      "name": "Respond - Validation Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [900, 450]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=SELECT \n  -- Project Info\n  kp.id as project_id,\n  kp.uuid as project_uuid,\n  kp.project_name,\n  kp.main_keyword,\n  kp.status as project_status,\n  kp.created_at as project_created_at,\n  \n  -- Keyword Stats\n  (SELECT COUNT(*) FROM keyword_results kr WHERE kr.project_id = kp.id) as keyword_count,\n  (SELECT COUNT(*) FROM keyword_results kr WHERE kr.project_id = kp.id AND kr.search_intent IS NOT NULL) as filtered_keyword_count,\n  (SELECT COUNT(*) FROM keyword_results kr WHERE kr.project_id = kp.id AND kr.opportunity_score IS NOT NULL AND kr.opportunity_score > 0) as scored_keyword_count,\n  (SELECT COUNT(*) FROM keyword_results kr WHERE kr.project_id = kp.id AND kr.content_priority IS NOT NULL) as strategy_keyword_count,\n  \n  -- Competitor Stats\n  (SELECT COUNT(*) FROM competitor_data cd WHERE cd.project_id = kp.id) as competitor_count,\n  (SELECT COUNT(*) FROM competitor_data cd WHERE cd.project_id = kp.id AND cd.word_count IS NOT NULL AND cd.word_count > 0) as scraped_competitor_count,\n  \n  -- SERP Stats\n  (SELECT COUNT(*) FROM serp_features sf WHERE sf.project_id = kp.id) as serp_feature_count,\n  (SELECT COUNT(*) FROM paa_data pd WHERE pd.project_id = kp.id) as paa_count\n  \nFROM keyword_projects kp\nWHERE kp.id = {{ $json.projectId }}",
+        "options": {}
+      },
+      "id": "mysql-get-stats",
+      "name": "MySQL - Get All Stats",
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.4,
+      "position": [900, 300],
+      "credentials": {
+        "mySql": {
+          "id": "LYQGH6Sr5DJDmTWl",
+          "name": "SEO Suite MySQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Build comprehensive validation response\nconst result = $input.first().json;\nconst projectId = $('Code - Validate Input').first().json.projectId;\n\n// Check if project exists\nif (!result.project_id) {\n  return [{\n    json: {\n      success: false,\n      error: 'Project not found',\n      projectId: projectId,\n      projectExists: false\n    }\n  }];\n}\n\n// Extract stats\nconst stats = {\n  keywords: result.keyword_count || 0,\n  filteredKeywords: result.filtered_keyword_count || 0,\n  scoredKeywords: result.scored_keyword_count || 0,\n  strategyKeywords: result.strategy_keyword_count || 0,\n  competitors: result.competitor_count || 0,\n  scrapedCompetitors: result.scraped_competitor_count || 0,\n  serpFeatures: result.serp_feature_count || 0,\n  paaQuestions: result.paa_count || 0\n};\n\n// Build tool validation status\nconst tools = {\n  // WF-101a: Keyword Discovery - Always can run if project exists\n  'discovery': {\n    id: 'WF-101a',\n    name: 'Keyword Discovery',\n    canRun: true,\n    hasRun: stats.keywords > 0,\n    dataCount: stats.keywords,\n    prerequisites: [],\n    missingPrerequisites: []\n  },\n  \n  // WF-101b: Filter - Needs keywords\n  'filter': {\n    id: 'WF-101b',\n    name: 'AI Filtreleme',\n    canRun: stats.keywords > 0,\n    hasRun: stats.filteredKeywords > 0,\n    dataCount: stats.filteredKeywords,\n    prerequisites: ['discovery'],\n    missingPrerequisites: stats.keywords === 0 ? ['discovery'] : []\n  },\n  \n  // WF-104: Competitor Analyzer - Always can run if project exists\n  'competitors': {\n    id: 'WF-104',\n    name: 'Rakip Analizi',\n    canRun: true,\n    hasRun: stats.competitors > 0,\n    dataCount: stats.competitors,\n    prerequisites: [],\n    missingPrerequisites: []\n  },\n  \n  // WF-104b: Competitor Scraper - Needs competitor URLs\n  'scraper': {\n    id: 'WF-104b',\n    name: 'Rakip Scraper',\n    canRun: stats.competitors > 0,\n    hasRun: stats.scrapedCompetitors > 0,\n    dataCount: stats.scrapedCompetitors,\n    prerequisites: ['competitors'],\n    missingPrerequisites: stats.competitors === 0 ? ['competitors'] : []\n  },\n  \n  // WF-105: SERP Detector - Always can run if project exists\n  'serp': {\n    id: 'WF-105',\n    name: 'SERP Analizi',\n    canRun: true,\n    hasRun: stats.serpFeatures > 0,\n    dataCount: stats.serpFeatures,\n    prerequisites: [],\n    missingPrerequisites: []\n  },\n  \n  // WF-106: Content Gap - Needs keywords OR competitors\n  'contentGap': {\n    id: 'WF-106',\n    name: 'Icerik Boslugu',\n    canRun: stats.keywords > 0 || stats.scrapedCompetitors > 0,\n    hasRun: false, // Content gap adds keywords, hard to track separately\n    dataCount: 0,\n    prerequisites: ['discovery', 'scraper'],\n    missingPrerequisites: [\n      ...(stats.keywords === 0 ? ['discovery'] : []),\n      ...(stats.scrapedCompetitors === 0 ? ['scraper'] : [])\n    ],\n    note: 'En az keyword veya scraped competitor gerekli'\n  },\n  \n  // WF-107: Opportunity Scorer - Needs keywords\n  'opportunity': {\n    id: 'WF-107',\n    name: 'Firsat Skorlari',\n    canRun: stats.keywords > 0,\n    hasRun: stats.scoredKeywords > 0,\n    dataCount: stats.scoredKeywords,\n    prerequisites: ['discovery'],\n    missingPrerequisites: stats.keywords === 0 ? ['discovery'] : [],\n    recommended: stats.filteredKeywords === 0 ? ['filter'] : []\n  },\n  \n  // WF-109: Strategy Generator - Needs keywords (preferably with scores)\n  'strategy': {\n    id: 'WF-109',\n    name: 'Icerik Stratejisi',\n    canRun: stats.keywords > 0,\n    hasRun: stats.strategyKeywords > 0,\n    dataCount: stats.strategyKeywords,\n    prerequisites: ['discovery'],\n    missingPrerequisites: stats.keywords === 0 ? ['discovery'] : [],\n    recommended: [\n      ...(stats.scoredKeywords === 0 ? ['opportunity'] : []),\n      ...(stats.scrapedCompetitors === 0 ? ['scraper'] : [])\n    ]\n  }\n};\n\n// Calculate overall progress\nconst completedSteps = Object.values(tools).filter(t => t.hasRun).length;\nconst totalSteps = Object.keys(tools).length;\nconst progress = Math.round((completedSteps / totalSteps) * 100);\n\n// Determine next recommended step\nlet nextStep = null;\nconst stepOrder = ['discovery', 'filter', 'competitors', 'scraper', 'serp', 'contentGap', 'opportunity', 'strategy'];\nfor (const step of stepOrder) {\n  if (tools[step].canRun && !tools[step].hasRun) {\n    nextStep = step;\n    break;\n  }\n}\n\nreturn [{\n  json: {\n    success: true,\n    project: {\n      id: result.project_id,\n      uuid: result.project_uuid,\n      name: result.project_name,\n      mainKeyword: result.main_keyword,\n      status: result.project_status,\n      createdAt: result.project_created_at\n    },\n    stats: stats,\n    tools: tools,\n    progress: {\n      completed: completedSteps,\n      total: totalSteps,\n      percentage: progress\n    },\n    nextStep: nextStep,\n    nextStepInfo: nextStep ? tools[nextStep] : null\n  }\n}];"
+      },
+      "id": "code-build-response",
+      "name": "Code - Build Validation Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1120, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "project-exists",
+              "leftValue": "={{ $json.success }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "if-project-exists",
+      "name": "IF - Success",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1340, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "id": "respond-success",
+      "name": "Respond - Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1560, 200]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseCode": 404
+        }
+      },
+      "id": "respond-not-found",
+      "name": "Respond - Not Found",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1560, 400]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Code - Validate Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code - Validate Input": {
+      "main": [
+        [
+          {
+            "node": "IF - Valid Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF - Valid Input": {
+      "main": [
+        [
+          {
+            "node": "MySQL - Get All Stats",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond - Validation Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MySQL - Get All Stats": {
+      "main": [
+        [
+          {
+            "node": "Code - Build Validation Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code - Build Validation Response": {
+      "main": [
+        [
+          {
+            "node": "IF - Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF - Success": {
+      "main": [
+        [
+          {
+            "node": "Respond - Success",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond - Not Found",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": [
+    {
+      "id": "1",
+      "name": "Tool1-KeywordResearch"
+    }
+  ]
+}

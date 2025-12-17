@@ -1,0 +1,427 @@
+SEO TOOL SUITE
+
+VERİTABANI DOKÜMANTASYONU
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
++-----------------------+-----------------------+-----------------------+
+| TOOL 1                | TOOL 2                | TOOL 3                |
+|                       |                       |                       |
+| Keyword Analysis      | Internal Linking      | HTML Converter        |
++-----------------------+-----------------------+-----------------------+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+3 Bağımsız Tool • Ortak Veritabanı • Multi-Tenant
+
+Versiyon 2.0 • Aralık 2025
+
+İÇİNDEKİLER
+
+1.  Sistem Genel Bakış
+
+2.  Ortak Tablolar (Multi-Tenant Core)
+
+3.  Tool 1: Keyword Analysis Tabloları
+
+4.  Tool 2: Internal Linking Tabloları
+
+5.  Tool 3: HTML Converter Tabloları
+
+6.  Log ve İstatistik Tabloları
+
+7.  Tool'lar Arası Veri Akışı
+
+1. SİSTEM GENEL BAKIŞ
+
+1.1 Mimari Yapı
+
+Sistem, tek bir ortak veritabanı üzerinde çalışan 3 bağımsız tool'dan
+oluşur. Her tool ayrı ayrı kullanılabilir veya birbirine veri aktararak
+zincirleme çalışabilir.
+
+1.2 Tablo Kategorileri
+
+  -----------------------------------------------------------------------
+  Kategori           Tablo       Açıklama
+                     Sayısı      
+  ------------------ ----------- ----------------------------------------
+  Ortak (Core)       3           Müşteri yönetimi, URL havuzu - tüm
+                                 tool'lar kullanır
+
+  Tool 1: Keyword    5           Keyword analizi, rakip analizi, SERP,
+                                 PAA
+
+  Tool 2: Linking    3           Internal linking projeleri ve önerileri
+
+  Tool 3: HTML       2           HTML dönüştürme projeleri ve çıktıları
+
+  Log & Stats        2           Aktivite logları, API kullanım takibi
+
+  TOPLAM             15          
+  -----------------------------------------------------------------------
+
+1.3 Çalışma Modları
+
+  -----------------------------------------------------------------------
+  Mod                Açıklama
+  ------------------ ----------------------------------------------------
+  Bağımsız Kullanım  Her tool kendi başına çalışır. Input manuel girilir.
+
+  Zincirleme         Tool 1 → Tool 2 → Tool 3 şeklinde veri aktarımı
+  Kullanım           yapılır.
+  -----------------------------------------------------------------------
+
+2. ORTAK TABLOLAR (Multi-Tenant Core)
+
+Bu tablolar tüm tool'lar tarafından paylaşılır ve müşteri yönetimini
+sağlar.
+
+2.1 clients - Müşteri/Marka Tablosu
+
+Her müşteri/marka için bir kayıt. Sistemin en üst seviye tablosu.
+
+  --------------------------------------------------------------------------
+  Alan               Tip            Açıklama
+  ------------------ -------------- ----------------------------------------
+  id                 INT            Benzersiz ID (otomatik)
+
+  uuid               CHAR(36)       API için benzersiz tanımlayıcı
+
+  name               VARCHAR(100)   Müşteri/Marka adı
+
+  slug               VARCHAR(100)   URL-friendly isim
+
+  domain             VARCHAR(255)   Ana website adresi
+
+  industry           VARCHAR(100)   Sektör (ecommerce, saas, vb.)
+
+  default_language   CHAR(2)        Varsayılan dil (tr, en)
+
+  default_country    CHAR(2)        Varsayılan ülke (TR, US)
+
+  is_active          TINYINT        Aktif mi (1=Evet, 0=Hayır)
+  --------------------------------------------------------------------------
+
+2.2 client_configurations - Müşteri Ayarları
+
+Her müşteriye özel SEO kuralları, yazım tonu ve AI ayarları.
+
+  ----------------------------------------------------------------------------
+  Alan                      Tip         Açıklama
+  ------------------------- ----------- --------------------------------------
+  tone_of_voice             ENUM        formal, casual, professional,
+                                        friendly, technical
+
+  writing_style             TEXT        Detaylı yazım stili açıklaması
+
+  brand_keywords            JSON        Marka kelimeleri listesi
+
+  forbidden_words           JSON        Yasak kelimeler listesi
+
+  competitor_domains        JSON        Rakip domain listesi
+
+  keyword_density_min/max   DECIMAL     Anahtar kelime yoğunluğu limitleri
+
+  internal_links_per_1000   INT         1000 kelime başına link sayısı
+
+  ai_model_preference       ENUM        gpt-4, gemini-pro, claude-3
+
+  ai_temperature            DECIMAL     AI yaratıcılık seviyesi (0-1)
+  ----------------------------------------------------------------------------
+
+2.3 client_url_inventory - URL Havuzu
+
+Internal linking için müşterinin mevcut sayfa listesi. Tool 2 bu tabloyu
+kullanır.
+
+  ----------------------------------------------------------------------------
+  Alan                 Tip            Açıklama
+  -------------------- -------------- ----------------------------------------
+  url                  VARCHAR(500)   Tam sayfa URL'i
+
+  title                VARCHAR(255)   Sayfa başlığı
+
+  primary_keyword      VARCHAR(150)   Sayfanın hedef anahtar kelimesi
+
+  secondary_keywords   JSON           İkincil anahtar kelimeler
+
+  page_type            ENUM           pillar, cluster, product, blog, landing
+
+  topic_cluster        VARCHAR(100)   Ait olduğu konu kümesi
+
+  authority_score      INT            Sayfa otorite puanı (0-100)
+  ----------------------------------------------------------------------------
+
+  💡 URL Havuzu Kullanımı
+
+  Bu tablo sitemap'ten otomatik import edilebilir. Tool 2 (Internal
+  Linking) bu havuzdan uygun sayfaları seçer.
+
+3. TOOL 1: KEYWORD ANALİZİ TABLOLARI
+
+Anahtar kelime araştırması, rakip analizi, SERP özellikleri ve PAA
+soruları için tablolar.
+
+3.1 keyword_projects - Analiz Projeleri
+
+Her keyword analizi bir proje olarak kaydedilir.
+
+  ------------------------------------------------------------------------------------
+  Alan                          Tip            Açıklama
+  ----------------------------- -------------- ---------------------------------------
+  project_name                  VARCHAR(255)   Proje adı
+
+  main_keyword                  VARCHAR(200)   Ana anahtar kelime
+
+  target_language               CHAR(2)        Hedef dil (tr, en)
+
+  target_country                CHAR(2)        Hedef ülke (TR, US)
+
+  include_serp_analysis         TINYINT        SERP analizi yapılsın mı
+
+  include_competitor_analysis   TINYINT        Rakip analizi yapılsın mı
+
+  include_paa                   TINYINT        PAA soruları çekilsin mi
+
+  competitor_count              INT            Kaç rakip analiz edilsin (1-10)
+
+  status                        ENUM           pending, processing, completed, failed
+
+  api_source                    ENUM           ahrefs, semrush, manual
+
+  total_keywords_found          INT            Bulunan toplam keyword sayısı
+
+  total_paa_found               INT            Bulunan PAA soru sayısı
+  ------------------------------------------------------------------------------------
+
+3.2 keyword_results - Bulunan Anahtar Kelimeler
+
+  ---------------------------------------------------------------------------
+  Alan                 Tip            Açıklama
+  -------------------- -------------- ---------------------------------------
+  keyword              VARCHAR(200)   Anahtar kelime
+
+  keyword_type         ENUM           primary, secondary, long_tail,
+                                      semantic, question
+
+  search_volume        INT            Aylık arama hacmi
+
+  keyword_difficulty   INT            Zorluk skoru (0-100)
+
+  cpc                  DECIMAL        Tıklama başı maliyet ($)
+
+  search_intent        ENUM           informational, commercial,
+                                      transactional
+
+  parent_topic         VARCHAR(200)   Üst konu (Ahrefs Parent Topic)
+
+  trend_direction      ENUM           up, down, stable
+  ---------------------------------------------------------------------------
+
+3.3 competitor_data - Rakip Analiz Verileri
+
+  --------------------------------------------------------------------------
+  Alan                Tip            Açıklama
+  ------------------- -------------- ---------------------------------------
+  competitor_url      VARCHAR(500)   Rakip sayfa URL'i
+
+  serp_position       INT            SERP sırası (1-10)
+
+  title               VARCHAR(255)   Sayfa başlığı
+
+  word_count          INT            Kelime sayısı
+
+  h2_count / h3_count INT            Başlık sayıları
+
+  headings_json       JSON           Tüm başlıklar listesi
+
+  domain_rating       INT            Domain rating (0-100)
+
+  backlinks_count     INT            Backlink sayısı
+  --------------------------------------------------------------------------
+
+3.4 serp_features - SERP Özellikleri
+
+Google SERP'teki özel özelliklerin kaydı (Featured Snippet, PAA, Video,
+vb.)
+
+3.5 paa_data - People Also Ask Soruları
+
+"Halk şunu da soruyor" bölümündeki sorular. H2/H3 başlık önerisi olarak
+kullanılabilir.
+
+4. TOOL 2: INTERNAL LINKING TABLOLARI
+
+İçeriklere otomatik internal link ekleme için tablolar.
+
+4.1 linking_projects - Linking Projeleri
+
+  ---------------------------------------------------------------------------------
+  Alan                        Tip            Açıklama
+  --------------------------- -------------- --------------------------------------
+  project_name                VARCHAR(255)   Proje adı
+
+  input_source                ENUM           manual veya keyword_project (Tool
+                                             1'den)
+
+  source_keyword_project_id   INT            Tool 1'den veri çekildiyse proje ID'si
+
+  content_text                LONGTEXT       İşlenecek içerik metni
+
+  content_main_keyword        VARCHAR(200)   İçeriğin ana anahtar kelimesi
+
+  url_source                  ENUM           client_inventory veya manual_list
+
+  max_links_to_add            INT            Eklenecek maksimum link sayısı
+
+  min_relevance_score         DECIMAL        Minimum alaka puanı (0-100)
+
+  output_content              LONGTEXT       Linklenmiş çıktı içerik
+
+  status                      ENUM           pending, processing, completed, failed
+  ---------------------------------------------------------------------------------
+
+  🔗 Input Kaynağı Seçimi
+
+  input_source='keyword_project' seçilirse Tool 1'den keyword verileri
+  çekilir. 'manual' seçilirse kullanıcı içeriği kendisi girer.
+
+4.2 linking_suggestions - Link Önerileri
+
+  ------------------------------------------------------------------------------
+  Alan                    Tip            Açıklama
+  ----------------------- -------------- ---------------------------------------
+  target_url              VARCHAR(500)   Hedef sayfa URL'i
+
+  target_title            VARCHAR(255)   Hedef sayfa başlığı
+
+  suggested_anchor_text   VARCHAR(255)   Önerilen link metni
+
+  anchor_type             ENUM           exact_match, partial_match, natural,
+                                         contextual
+
+  context_sentence        TEXT           Linkin ekleneceği cümle
+
+  relevance_score         DECIMAL        Alaka puanı (0-100)
+
+  is_approved             TINYINT        NULL=bekliyor, 1=onay, 0=red
+
+  is_applied              TINYINT        İçeriğe eklendi mi
+  ------------------------------------------------------------------------------
+
+4.3 linking_applied - Uygulanan Linkler
+
+Onaylanan ve içeriğe eklenen linklerin log kaydı.
+
+5. TOOL 3: HTML CONVERTER TABLOLARI
+
+Google Docs veya ham HTML'i temiz, semantic HTML'e dönüştürme.
+
+5.1 html_projects - Dönüştürme Projeleri
+
+  ---------------------------------------------------------------------------------
+  Alan                        Tip            Açıklama
+  --------------------------- -------------- --------------------------------------
+  project_name                VARCHAR(255)   Proje adı
+
+  input_source                ENUM           manual, google_doc, linking_project
+                                             (Tool 2)
+
+  source_linking_project_id   INT            Tool 2'den veri çekildiyse
+
+  google_doc_url              VARCHAR(500)   Google Doc URL'i
+
+  input_html                  LONGTEXT       Manuel girilen HTML
+
+  remove_inline_styles        TINYINT        Inline CSS temizlensin mi
+
+  remove_classes              TINYINT        CSS class'ları kaldırılsın mı
+
+  convert_to_semantic         TINYINT        Semantic HTML'e çevrilsin mi
+
+  output_format               ENUM           html, clean_html, markdown
+
+  size_reduction_percent      DECIMAL        Boyut küçülme yüzdesi
+  ---------------------------------------------------------------------------------
+
+5.2 html_outputs - HTML Çıktıları
+
+  --------------------------------------------------------------------------
+  Alan                Tip            Açıklama
+  ------------------- -------------- ---------------------------------------
+  version             INT            Versiyon numarası
+
+  is_current          TINYINT        Aktif versiyon mu
+
+  output_html         LONGTEXT       Temizlenmiş HTML çıktısı
+
+  extracted_title     VARCHAR(255)   Çıkarılan başlık
+
+  extracted_h1        VARCHAR(255)   Çıkarılan H1
+
+  word_count          INT            Kelime sayısı
+
+  heading_count       JSON           Başlık sayıları (h1, h2, h3)
+
+  link_count          INT            Link sayısı
+
+  is_valid_html       TINYINT        HTML geçerli mi
+  --------------------------------------------------------------------------
+
+6. LOG VE İSTATİSTİK TABLOLARI
+
+6.1 activity_logs - Aktivite Logları
+
+Tüm tool'ların işlem kayıtları. Hata ayıklama ve takip için.
+
+6.2 api_usage - API Kullanım Takibi
+
+Ahrefs, SEMrush, OpenAI gibi API'lerin kullanım ve maliyet takibi.
+
+7. TOOL'LAR ARASI VERİ AKIŞI
+
+7.1 Bağımsız Kullanım
+
+Her tool ayrı ayrı kullanılabilir:
+
+-   Tool 1: Manuel keyword gir → Analiz sonuçlarını al
+
+-   Tool 2: Manuel içerik + URL listesi gir → Link önerileri al
+
+-   Tool 3: Manuel HTML gir → Temiz HTML çıktısı al
+
+7.2 Zincirleme Kullanım
+
+Tool 1 (Keyword)
+
+│ keyword_projects.id
+
+▼
+
+Tool 2 (Linking)
+
+│ source_keyword_project_id → Tool 1'den veri çeker
+
+│ linking_projects.id
+
+▼
+
+Tool 3 (HTML)
+
+│ source_linking_project_id → Tool 2'den içerik çeker
+
+▼
+
+Temiz HTML Çıktısı
+
+  ✅ Avantaj
+
+  Zincirleme kullanımda veriler otomatik aktarılır, manuel
+  kopyala-yapıştır gerekmez. Ancak her adımda kullanıcı onayı alınır.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+— DOKÜMAN SONU —
+
+SEO Tool Suite v2.0 • Aralık 2025

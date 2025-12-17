@@ -1,0 +1,367 @@
+{
+  "name": "WF-101-project-initializer",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "tool1/project/create",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "e32643fb-6c80-451c-a38d-f17ac9f60aee",
+      "name": "Webhook - Create Project",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 0],
+      "webhookId": "tool1-project-create"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// ============================================\n// WF-101 Input Validation\n// ============================================\n\nconst body = $json.body || {};\nconst errors = [];\n\n// Required fields validation\nif (!body.client_id || isNaN(parseInt(body.client_id))) {\n  errors.push('client_id zorunludur ve sayı olmalıdır');\n}\n\nif (!body.project_name || String(body.project_name).trim() === '') {\n  errors.push('project_name zorunludur');\n}\n\nif (!body.main_keyword || String(body.main_keyword).trim() === '') {\n  errors.push('main_keyword zorunludur');\n}\n\n// Scenario type validation\nconst validScenarios = ['seed_keyword', 'topic_based'];\nconst scenarioType = body.scenario_type || 'seed_keyword';\nif (!validScenarios.includes(scenarioType)) {\n  errors.push('scenario_type seed_keyword veya topic_based olmalıdır');\n}\n\n// Sanitize inputs to prevent SQL injection\nconst sanitize = (str) => {\n  if (str === null || str === undefined) return '';\n  return String(str).replace(/'/g, \"''\").trim();\n};\n\nreturn {\n  json: {\n    isValid: errors.length === 0,\n    errors: errors,\n    data: {\n      client_id: parseInt(body.client_id) || 0,\n      project_name: sanitize(body.project_name),\n      main_keyword: sanitize(body.main_keyword),\n      scenario_type: scenarioType,\n      target_country: sanitize(body.target_country) || 'TR',\n      target_language: sanitize(body.target_language) || 'tr'\n    }\n  }\n};"
+      },
+      "id": "code-validate-input",
+      "name": "Code - Validate Input",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [220, 0]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "check-valid",
+              "leftValue": "={{ $json.isValid }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "if-valid-input",
+      "name": "IF - Valid Input",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [440, 0]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": false,\n  \"error\": \"Validation failed\",\n  \"details\": {{ JSON.stringify($json.errors) }}\n}",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "id": "respond-validation-error",
+      "name": "Respond - Validation Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [660, 140]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=SELECT id, name FROM clients WHERE id = {{ $json.data.client_id }} AND deleted_at IS NULL LIMIT 1",
+        "options": {}
+      },
+      "id": "mysql-check-client",
+      "name": "MySQL - Check Client",
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.4,
+      "position": [660, -140],
+      "credentials": {
+        "mySql": {
+          "id": "LYQGH6Sr5DJDmTWl",
+          "name": "SEO Suite MySQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Check if client exists and pass validated data forward\nconst items = $input.all();\nconst validatedData = $('Code - Validate Input').first().json.data;\n\n// MySQL returns empty array if no client found\nconst clientExists = items.length > 0 && !!items[0].json.id;\nconst clientName = clientExists ? items[0].json.name : null;\n\nreturn [{\n  json: {\n    clientExists: clientExists,\n    client_id: validatedData.client_id,\n    client_name: clientName,\n    project_name: validatedData.project_name,\n    main_keyword: validatedData.main_keyword,\n    scenario_type: validatedData.scenario_type,\n    target_country: validatedData.target_country,\n    target_language: validatedData.target_language\n  }\n}];"
+      },
+      "id": "code-check-client",
+      "name": "Code - Check Client Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [880, -140]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "check-client-exists",
+              "leftValue": "={{ $json.clientExists }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "if-client-exists",
+      "name": "IF - Client Exists",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1100, -140]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": false,\n  \"error\": \"Client not found\",\n  \"details\": [\"Belirtilen client_id ile müşteri bulunamadı\"]\n}",
+        "options": {
+          "responseCode": 404
+        }
+      },
+      "id": "respond-client-not-found",
+      "name": "Respond - Client Not Found",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1320, 0]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=INSERT INTO keyword_projects (\n  client_id, project_name, main_keyword, scenario_type, \n  target_country, target_language, status\n) VALUES (\n  {{ $json.client_id }},\n  '{{ $json.project_name }}',\n  '{{ $json.main_keyword }}',\n  '{{ $json.scenario_type }}',\n  '{{ $json.target_country }}',\n  '{{ $json.target_language }}',\n  'pending'\n)",
+        "options": {}
+      },
+      "id": "mysql-create-project",
+      "name": "MySQL - Create Project",
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.4,
+      "position": [1320, -280],
+      "credentials": {
+        "mySql": {
+          "id": "LYQGH6Sr5DJDmTWl",
+          "name": "SEO Suite MySQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=SELECT id, uuid, project_name, main_keyword, scenario_type, status \nFROM keyword_projects \nWHERE client_id = {{ $('IF - Client Exists').item.json.client_id }} \nORDER BY id DESC LIMIT 1",
+        "options": {}
+      },
+      "id": "mysql-get-created",
+      "name": "MySQL - Get Created Project",
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.4,
+      "position": [1540, -280],
+      "credentials": {
+        "mySql": {
+          "id": "LYQGH6Sr5DJDmTWl",
+          "name": "SEO Suite MySQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=UPDATE keyword_projects \nSET status = 'processing', started_at = NOW() \nWHERE id = {{ $json.id }}",
+        "options": {}
+      },
+      "id": "mysql-set-processing",
+      "name": "MySQL - Set Processing",
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.4,
+      "position": [1760, -280],
+      "credentials": {
+        "mySql": {
+          "id": "LYQGH6Sr5DJDmTWl",
+          "name": "SEO Suite MySQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=INSERT INTO activity_logs (\n  client_id, tool_name, project_id, action, log_level, message\n) VALUES (\n  {{ $('IF - Client Exists').item.json.client_id }},\n  'keyword_research',\n  {{ $('MySQL - Get Created Project').item.json.id }},\n  'project_created',\n  'info',\n  'Keyword research project created: {{ $('MySQL - Get Created Project').item.json.project_name }}'\n)",
+        "options": {}
+      },
+      "id": "mysql-log-activity",
+      "name": "MySQL - Log Activity",
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.4,
+      "position": [1980, -280],
+      "credentials": {
+        "mySql": {
+          "id": "LYQGH6Sr5DJDmTWl",
+          "name": "SEO Suite MySQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": true,\n  \"data\": {\n    \"project_id\": {{ $('MySQL - Get Created Project').item.json.id }},\n    \"uuid\": \"{{ $('MySQL - Get Created Project').item.json.uuid }}\",\n    \"project_name\": \"{{ $('MySQL - Get Created Project').item.json.project_name }}\",\n    \"main_keyword\": \"{{ $('MySQL - Get Created Project').item.json.main_keyword }}\",\n    \"scenario_type\": \"{{ $('MySQL - Get Created Project').item.json.scenario_type }}\",\n    \"status\": \"processing\",\n    \"message\": \"Keyword research project created successfully\"\n  }\n}",
+        "options": {}
+      },
+      "id": "respond-success",
+      "name": "Respond - Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [2200, -280]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook - Create Project": {
+      "main": [
+        [
+          {
+            "node": "Code - Validate Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code - Validate Input": {
+      "main": [
+        [
+          {
+            "node": "IF - Valid Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF - Valid Input": {
+      "main": [
+        [
+          {
+            "node": "MySQL - Check Client",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond - Validation Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MySQL - Check Client": {
+      "main": [
+        [
+          {
+            "node": "Code - Check Client Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code - Check Client Result": {
+      "main": [
+        [
+          {
+            "node": "IF - Client Exists",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF - Client Exists": {
+      "main": [
+        [
+          {
+            "node": "MySQL - Create Project",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond - Client Not Found",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MySQL - Create Project": {
+      "main": [
+        [
+          {
+            "node": "MySQL - Get Created Project",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MySQL - Get Created Project": {
+      "main": [
+        [
+          {
+            "node": "MySQL - Set Processing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MySQL - Set Processing": {
+      "main": [
+        [
+          {
+            "node": "MySQL - Log Activity",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MySQL - Log Activity": {
+      "main": [
+        [
+          {
+            "node": "Respond - Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "11869599-1b52-4c7c-98ab-29e03f579907",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "b468285422c3ac1dfe43a49affb64495474f15ffdd0b5464abf91e9f69526166"
+  },
+  "id": "dIVrirBMBGGWsr09",
+  "tags": []
+}

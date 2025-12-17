@@ -1,0 +1,302 @@
+{
+  "name": "WF-104c: Get Competitors",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "tool1-competitors/:projectId/get",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-get",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "webhookId": "tool1-competitors-get"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Input validation\nconst projectId = $json.params?.projectId;\n\nif (!projectId) {\n  return {\n    json: {\n      isValid: false,\n      error: 'projectId parametresi zorunludur',\n      errorCode: 400\n    }\n  };\n}\n\nconst parsedId = parseInt(projectId);\nif (isNaN(parsedId) || parsedId <= 0) {\n  return {\n    json: {\n      isValid: false,\n      error: 'projectId gecerli bir pozitif sayi olmalidir',\n      errorCode: 400\n    }\n  };\n}\n\nreturn {\n  json: {\n    isValid: true,\n    projectId: parsedId\n  }\n};"
+      },
+      "id": "code-validate",
+      "name": "Code - Validate Input",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "is-valid",
+              "leftValue": "={{ $json.isValid }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "if-valid",
+      "name": "IF - Valid Input",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": false,\n  \"error\": \"Validation failed\",\n  \"message\": \"{{ $json.error }}\"\n}",
+        "options": {
+          "responseCode": "={{ $json.errorCode }}"
+        }
+      },
+      "id": "respond-validation-error",
+      "name": "Respond - Validation Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [900, 500]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=SELECT \n  (SELECT id FROM keyword_projects WHERE id = {{ $json.projectId }}) as project_id,\n  (SELECT project_name FROM keyword_projects WHERE id = {{ $json.projectId }}) as project_name,\n  (SELECT main_keyword FROM keyword_projects WHERE id = {{ $json.projectId }}) as main_keyword",
+        "options": {}
+      },
+      "id": "mysql-check-project",
+      "name": "MySQL - Check Project",
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.4,
+      "position": [900, 300],
+      "credentials": {
+        "mySql": {
+          "id": "LYQGH6Sr5DJDmTWl",
+          "name": "SEO Suite MySQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Check if project exists\nconst result = $input.first().json;\nconst validatedData = $('Code - Validate Input').first().json;\n\nif (!result.project_id) {\n  return [{\n    json: {\n      projectExists: false,\n      projectId: validatedData.projectId\n    }\n  }];\n}\n\nreturn [{\n  json: {\n    projectExists: true,\n    projectId: result.project_id,\n    projectName: result.project_name,\n    mainKeyword: result.main_keyword\n  }\n}];"
+      },
+      "id": "code-check-project",
+      "name": "Code - Check Project",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1120, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "project-exists",
+              "leftValue": "={{ $json.projectExists }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "if-project-exists",
+      "name": "IF - Project Exists",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1340, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": false,\n  \"error\": \"Project not found\",\n  \"message\": \"Proje bulunamadi: {{ $json.projectId }}\"\n}",
+        "options": {
+          "responseCode": 404
+        }
+      },
+      "id": "respond-not-found",
+      "name": "Respond - Not Found",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1560, 500]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=SELECT \n  cd.id,\n  cd.competitor_url,\n  cd.competitor_domain,\n  cd.serp_position,\n  cd.title,\n  cd.meta_description,\n  cd.word_count,\n  cd.h1_count,\n  cd.h2_count,\n  cd.h3_count,\n  cd.h4_count,\n  cd.h5_count,\n  cd.h6_count,\n  cd.headings_json,\n  cd.domain_rating,\n  cd.backlinks_count,\n  cd.source,\n  cd.analyzed_at\nFROM competitor_data cd\nWHERE cd.project_id = {{ $json.projectId }}\nORDER BY cd.serp_position ASC",
+        "options": {
+          "alwaysOutputData": true
+        }
+      },
+      "id": "mysql-get-competitors",
+      "name": "MySQL - Get Competitors",
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.4,
+      "position": [1560, 300],
+      "credentials": {
+        "mySql": {
+          "id": "LYQGH6Sr5DJDmTWl",
+          "name": "SEO Suite MySQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Format response\nconst competitorItems = $input.all();\nconst projectData = $('IF - Project Exists').first().json;\n\n// Check if we have competitors\nconst hasCompetitors = competitorItems.length > 0 && !!competitorItems[0].json.id;\nconst competitors = hasCompetitors ? competitorItems.map(item => {\n  const c = item.json;\n  let headings = null;\n  try {\n    headings = c.headings_json ? JSON.parse(c.headings_json) : null;\n  } catch (e) {\n    headings = null;\n  }\n  \n  return {\n    id: c.id,\n    url: c.competitor_url,\n    domain: c.competitor_domain,\n    position: c.serp_position,\n    title: c.title,\n    description: c.meta_description,\n    content_stats: {\n      word_count: c.word_count || 0,\n      h1_count: c.h1_count || 0,\n      h2_count: c.h2_count || 0,\n      h3_count: c.h3_count || 0,\n      h4_count: c.h4_count || 0,\n      h5_count: c.h5_count || 0,\n      h6_count: c.h6_count || 0\n    },\n    headings: headings,\n    seo_metrics: {\n      domain_rating: c.domain_rating,\n      backlinks: c.backlinks_count\n    },\n    source: c.source,\n    analyzed_at: c.analyzed_at\n  };\n}) : [];\n\n// Calculate averages\nconst avgWordCount = competitors.length > 0 \n  ? Math.round(competitors.reduce((sum, c) => sum + (c.content_stats.word_count || 0), 0) / competitors.length)\n  : 0;\nconst avgH2Count = competitors.length > 0\n  ? Math.round(competitors.reduce((sum, c) => sum + (c.content_stats.h2_count || 0), 0) / competitors.length)\n  : 0;\n\nreturn [{\n  json: {\n    success: true,\n    project: {\n      id: projectData.projectId,\n      name: projectData.projectName,\n      main_keyword: projectData.mainKeyword\n    },\n    data: competitors,\n    stats: {\n      total_competitors: competitors.length,\n      avg_word_count: avgWordCount,\n      avg_h2_count: avgH2Count,\n      scraped_count: competitors.filter(c => c.content_stats.word_count > 0).length\n    }\n  }\n}];"
+      },
+      "id": "code-format",
+      "name": "Code - Format Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1780, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "id": "respond-success",
+      "name": "Respond - Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [2000, 300]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Code - Validate Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code - Validate Input": {
+      "main": [
+        [
+          {
+            "node": "IF - Valid Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF - Valid Input": {
+      "main": [
+        [
+          {
+            "node": "MySQL - Check Project",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond - Validation Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MySQL - Check Project": {
+      "main": [
+        [
+          {
+            "node": "Code - Check Project",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code - Check Project": {
+      "main": [
+        [
+          {
+            "node": "IF - Project Exists",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF - Project Exists": {
+      "main": [
+        [
+          {
+            "node": "MySQL - Get Competitors",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond - Not Found",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MySQL - Get Competitors": {
+      "main": [
+        [
+          {
+            "node": "Code - Format Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code - Format Response": {
+      "main": [
+        [
+          {
+            "node": "Respond - Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": [
+    {
+      "id": "1",
+      "name": "Tool1-KeywordResearch"
+    }
+  ]
+}

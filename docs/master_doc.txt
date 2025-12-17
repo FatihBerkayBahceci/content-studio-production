@@ -1,0 +1,784 @@
+SEO TOOL SUITE
+
+MASTER DOKÜMANTASYON
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Enterprise SEO İçerik Üretim Pipeline'ı
+
++-----------------------+-----------------------+-----------------------+
+| TOOL 1                | TOOL 2                | TOOL 3                |
+|                       |                       |                       |
+| Keyword Research      | Content Studio        | Internal Linking      |
+|                       |                       |                       |
+| NE yazacağız?         | NASIL yazacağız?      | NEREYE bağlayacağız?  |
++-----------------------+-----------------------+-----------------------+
+
+▼
+
+  -----------------------------------------------------------------------
+  PUBLISH-READY SEO CONTENT
+
+  -----------------------------------------------------------------------
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+AI Planlama ve Geliştirme Referans Dokümanı
+
+Versiyon 1.0 • Aralık 2025
+
+İÇİNDEKİLER
+
+1.  Proje Özeti (Executive Summary)
+
+2.  Problem Tanımı ve Çözüm
+
+3.  Sistem Mimarisi
+
+4.  Tool 1: Keyword Research
+
+5.  Tool 2: Content Studio
+
+6.  Tool 3: Internal Linking
+
+7.  Veri Akışı ve Entegrasyon
+
+8.  Veritabanı Mimarisi
+
+9.  Teknoloji Stack
+
+10. Kullanım Senaryoları
+
+11. Geliştirme Yol Haritası
+
+12. AI Prompt Referansı
+
+1. PROJE ÖZETİ (EXECUTIVE SUMMARY)
+
+1.1 Proje Adı
+
+SEO Tool Suite - Enterprise SEO İçerik Üretim Pipeline'ı
+
+1.2 Amaç
+
+SEO uyumlu içerik üretim sürecini baştan sona otomatize eden, modüler ve
+ölçeklenebilir bir araç seti geliştirmek. Hedef: Topical Authority
+oluşturmak için gereken keyword araştırması, içerik üretimi ve internal
+linking süreçlerini tek bir pipeline'da birleştirmek.
+
+1.3 Hedef Kullanıcılar
+
+-   SEO Ajansları: Çoklu müşteri yönetimi, ölçeklenebilir içerik üretimi
+
+-   In-house SEO Ekipleri: Kurumsal içerik stratejisi, süreç
+    standardizasyonu
+
+-   İçerik Yöneticileri: Yazar briefingi, içerik kalite kontrolü
+
+1.4 Temel Çıktılar
+
+  -----------------------------------------------------------------------
+  Çıktı                  Açıklama
+  ---------------------- ------------------------------------------------
+  Keyword Stratejisi     Cluster yapısı, Pillar-Cluster haritası, Intent
+                         etiketleri
+
+  SEO İçerik             AI veya yazar tarafından üretilen, temiz HTML
+                         formatında içerik
+
+  Link Stratejisi        Internal linking önerileri, anchor text, silo
+                         yapısı
+
+  Publish-Ready HTML     CMS'e direkt yüklenebilir, schema dahil, SEO
+                         optimize
+  -----------------------------------------------------------------------
+
+2. PROBLEM TANIMI VE ÇÖZÜM
+
+2.1 Mevcut Problemler
+
+  ------------------------------------------------------------------------
+  #   Problem                Etki
+  --- ---------------------- ---------------------------------------------
+  1   Dağınık Araçlar        Ahrefs, SEMrush, Google Docs, CMS arasında
+                             manuel veri taşıma
+
+  2   Tutarsız İçerik        Farklı yazarlar, farklı formatlar, SEO
+                             standartları tutarsız
+
+  3   Manuel Linking         Internal link stratejisi manuel, zaman alıcı,
+                             hata eğilimli
+
+  4   Kirli HTML             Word/Docs'tan gelen kirli kod, inline
+                             stiller, semantik hatalar
+
+  5   Ölçeklenemezlik        Her içerik için baştan süreç, tekrar eden
+                             işler
+  ------------------------------------------------------------------------
+
+2.2 Çözüm Yaklaşımı
+
+3 bağımsız ama entegre çalışabilen modüler araç:
+
+  -----------------------------------------------------------------------
+  Tool            İsim               Çözdüğü Problem
+  --------------- ------------------ ------------------------------------
+  Tool 1          Keyword Research   NE yazacağız? Strateji ve hedef
+                                     belirleme
+
+  Tool 2          Content Studio     NASIL yazacağız? İçerik üretimi ve
+                                     HTML çıktı
+
+  Tool 3          Internal Linking   NEREYE bağlayacağız? Link stratejisi
+                                     ve uygulama
+  -----------------------------------------------------------------------
+
+2.3 Modülerlik Prensibi
+
+Her tool BAĞIMSIZ çalışabilir VEYA zincirlenebilir:
+
+-   Bağımsız: Sadece Tool 2'yi kullan, mevcut içeriği temiz HTML'e çevir
+
+-   Bağımsız: Sadece Tool 3'ü kullan, sitemap'ten link audit yap
+
+-   Zincir: Tool 1 → Tool 2 → Tool 3 tam pipeline akışı
+
+3. SİSTEM MİMARİSİ
+
+3.1 Yüksek Seviye Mimari
+
+  ┌─────────────────────────────────────────────────────────────────────────┐
+  │ SEO TOOL SUITE │
+  ├─────────────────────────────────────────────────────────────────────────┤
+  │ │ │
+  ┌─────────────────────────────────────────────────────────────────┐ │
+  │ │ FRONTEND (React + Vercel) │ │ │ │ ┌───────────┐ ┌───────────┐
+  ┌───────────┐ ┌───────────┐ │ │ │ │ │ Dashboard │ │ Tool 1 │ │ Tool 2
+  │ │ Tool 3 │ │ │ │ │ │ UI │ │ UI │ │ UI │ │ UI │ │ │ │ │ └───────────┘
+  └───────────┘ └───────────┘ └───────────┘ │ │ │
+  └──────────────────────────┬──────────────────────────────────────┘ │
+  │ │ REST API / Webhooks │ │ ▼ │ │
+  ┌─────────────────────────────────────────────────────────────────┐ │
+  │ │ BACKEND (n8n Self-Hosted) │ │ │ │ ┌───────────┐ ┌───────────┐
+  ┌───────────┐ │ │ │ │ │ WF-1xx │ │ WF-2xx │ │ WF-3xx │ │ │ │ │ │ Tool
+  1 │ │ Tool 2 │ │ Tool 3 │ │ │ │ │ │ Workflows │ │ Workflows │ │
+  Workflows │ │ │ │ │ └───────────┘ └───────────┘ └───────────┘ │ │ │
+  └──────────────────────────┬──────────────────────────────────────┘ │
+  │ │ │ │ ▼ │ │
+  ┌─────────────────────────────────────────────────────────────────┐ │
+  │ │ SHARED DATABASE (MySQL) │ │ │ │ ┌─────────┐ ┌─────────┐
+  ┌─────────┐ ┌─────────┐ │ │ │ │ │ clients │ │ keyword │ │ content │ │
+  linking │ │ │ │ │ │ │ │ tables │ │ tables │ │ tables │ │ │ │ │
+  └─────────┘ └─────────┘ └─────────┘ └─────────┘ │ │ │
+  └─────────────────────────────────────────────────────────────────┘ │
+  │ │ │
+  ┌─────────────────────────────────────────────────────────────────┐ │
+  │ │ EXTERNAL APIs │ │ │ │ Ahrefs SEMrush OpenAI/Claude Google APIs │ │
+  │ └─────────────────────────────────────────────────────────────────┘
+  │ │ │
+  └─────────────────────────────────────────────────────────────────────────┘
+
+3.2 Mimari Kararlar
+
+  -----------------------------------------------------------------------
+  Karar              Gerekçe
+  ------------------ ----------------------------------------------------
+  React + Vercel     Modern, hızlı frontend. Vercel ile kolay deployment,
+                     edge functions
+
+  n8n Backend        Low-code workflow engine, görsel akış tasarımı, API
+                     endpoint'leri
+
+  Shared Database    Tool'lar arası veri aktarımı FK ile, tutarlılık
+                     garantisi
+
+  Multi-tenant       Tek veritabanı, çoklu müşteri desteği (client_id ile
+                     izolasyon)
+
+  REST API/Webhook   Frontend-Backend iletişimi, n8n webhook trigger'ları
+
+  Modüler Tool'lar   Bağımsız kullanım, bakım kolaylığı, test
+                     edilebilirlik
+  -----------------------------------------------------------------------
+
+3.3 Katman Sorumlulukları
+
+  -----------------------------------------------------------------------
+  Katman          Sorumluluk
+  --------------- -------------------------------------------------------
+  Frontend        UI/UX, form validasyon, durum yönetimi, API çağrıları,
+                  sonuç görüntüleme
+
+  Backend         İş mantığı, workflow orchestration, API
+                  entegrasyonları, veri işleme
+
+  Database        Veri saklama, ilişkisel bütünlük, multi-tenant
+                  izolasyon
+  -----------------------------------------------------------------------
+
+4. TOOL 1: KEYWORD RESEARCH
+
+  🎯 Ana Soru
+
+  NE yazacağız? Hangi keyword'leri hedefleyeceğiz? Topical Authority
+  için strateji nedir?
+
+4.1 Senaryolar
+
+  ------------------------------------------------------------------------
+  Senaryo         Input                  Yaklaşım
+  --------------- ---------------------- ---------------------------------
+  Senaryo A       Seed Keyword           Genişletme (Expansion) -
+                                         Çekirdekten varyasyonlara
+
+  Senaryo B       Topic/Konu             Daraltma (Drill-down) - Geniş
+                                         konudan alt başlıklara
+  ------------------------------------------------------------------------
+
+4.2 Aşamalar (8 Adım)
+
+1.  Proje Oluşturma ve Hipotez Kurulumu
+
+2.  Keyword Discovery (Ham veri toplama)
+
+3.  Competitor Analysis (SERP Top 10)
+
+4.  SERP Feature Detection + Intent Doğrulama
+
+5.  Content Gap Analysis
+
+6.  Opportunity Scoring (Fırsat analizi)
+
+7.  Keyword Clustering (Semantic + Intent)
+
+8.  Content Strategy Output (Pillar-Cluster map)
+
+4.3 Output → Tool 2'ye
+
+-   Keyword cluster ve Pillar-Cluster yapısı
+
+-   Intent etiketleri (Informational, Commercial, Transactional)
+
+-   Content brief ve outline önerileri
+
+-   PAA soruları (H2/H3 önerileri)
+
+4.4 Workflow'lar
+
+WF-101 → WF-110 (10 workflow). Detay:
+Tool1_Keyword_Analysis_Teknik_Dokumantasyon.docx
+
+5. TOOL 2: CONTENT STUDIO
+
+  🎯 Ana Soru
+
+  NASIL yazacağız? İçerik var mı yok mu? Temiz, SEO uyumlu HTML nasıl
+  üretilecek?
+
+5.1 Senaryolar
+
+  ------------------------------------------------------------------------
+  Senaryo         Durum                  İşlem
+  --------------- ---------------------- ---------------------------------
+  Senaryo A       İçerik VAR             Temizle + Dönüştür → Temiz HTML
+
+  Senaryo B       İçerik YOK             AI Üret + Format → Temiz HTML
+  ------------------------------------------------------------------------
+
+5.2 Senaryo A: İçerik Dönüştürme
+
+-   Kaynak: Google Docs, Word, CMS, Markdown
+
+-   Temizlik: Inline CSS, MS Word etiketleri, boş taglar kaldırılır
+
+-   Dönüşüm: H1-H6 hiyerarşi düzeltme, semantik etiketler
+
+5.3 Senaryo B: AI İçerik Üretimi
+
+-   Input: Tool 1'den brief/outline VEYA manuel konu
+
+-   Üretim: Konusal kapsam, rakip analizi, E-E-A-T sinyalleri
+
+-   Çıktı: SEO uyumlu, yapılandırılmış içerik
+
+5.4 Her İki Senaryo İçin Ortak
+
+-   HTML Output: Tek H1, ardışık başlık hiyerarşisi, semantik etiketler
+
+-   Medya: Alt text, lazy load, width/height
+
+-   Schema: Sayfa türüne göre otomatik seçim ve enjeksiyon
+
+-   Metadata: Title, Description, OG tags üretimi
+
+5.5 Output → Tool 3'e
+
+-   Temiz HTML içerik (linklenmeye hazır)
+
+-   Metadata JSON objesi
+
+-   Keyword intent bilgisi
+
+5.6 Workflow'lar
+
+WF-201 → WF-212 (12 workflow). Detay:
+Tool2_Content_Studio_Teknik_Dokumantasyon.docx
+
+6. TOOL 3: INTERNAL LINKING
+
+  🎯 Ana Soru
+
+  NEREYE bağlayacağız? Link equity nasıl dağıtılacak? Silo yapısı nasıl
+  kurulacak?
+
+6.1 Senaryolar
+
+  ------------------------------------------------------------------------
+  Senaryo         Input                  Yaklaşım
+  --------------- ---------------------- ---------------------------------
+  Senaryo A       Keyword Cluster        Tool 1+2'den veri, hazır
+                                         hiyerarşi
+
+  Senaryo B       Konu Başlıkları        Manuel input, taksonomi oluşturma
+
+  Senaryo C       URL/Sitemap            Teknik analiz, pattern matching
+  ------------------------------------------------------------------------
+
+6.2 Node Classification (URL Rolleri)
+
+-   Pillar: Otorite merkezi, en çok link alan
+
+-   Hub: Kategori sayfası, trafiği dağıtan
+
+-   Cluster: Destekleyici içerik, Pillar'a link veren
+
+-   Money Page: Dönüşüm odaklı, link çıkışı az
+
+-   Booster: Yüksek backlink, link juice kaynağı
+
+6.3 Link Equity Akış Modelleri
+
+-   Top-Down: Ana Sayfa → Kategori → Alt Sayfa
+
+-   Bottom-Up: Cluster → Pillar (yukarı besleme)
+
+-   Lateral: Sibling ↔ Sibling (yatay)
+
+6.4 Output
+
+-   URL Mapping dosyası (Kaynak → Hedef → Anchor)
+
+-   Linklenmiş HTML içerik (publish-ready)
+
+-   Gap analizi raporu
+
+-   Görsel site mimarisi haritası
+
+6.5 Workflow'lar
+
+WF-301 → WF-310 (10 workflow). Detay:
+Tool3_Internal_Linking_Teknik_Dokumantasyon.docx
+
+7. VERİ AKIŞI VE ENTEGRASYON
+
+7.1 Tam Pipeline Akışı
+
+  ┌─────────────────────────────────────────────────────────────────────────┐
+  │ │ │ INPUT TOOL 1 OUTPUT │ │ ───── ────── ────── │ │ • Seed Keyword
+  ───▶ Keyword ───▶ • Cluster yapısı │ │ • Topic Research •
+  Pillar-Cluster map │ │ • Intent etiketleri │ │ • Brief/Outline │ │ │ │
+  │ ▼ │ │ INPUT TOOL 2 OUTPUT │ │ ───── ────── ────── │ │ • Tool 1
+  output ───▶ Content ───▶ • Temiz HTML │ │ • Mevcut içerik Studio •
+  Metadata JSON │ │ • Manuel konu • Schema markup │ │ │ │ │ ▼ │ │ INPUT
+  TOOL 3 OUTPUT │ │ ───── ────── ────── │ │ • Tool 2 output ───▶
+  Internal ───▶ • Linklenmiş HTML │ │ • URL inventory Linking • URL
+  mapping │ │ • Sitemap • Publish-ready! │ │ │
+  └─────────────────────────────────────────────────────────────────────────┘
+
+7.2 Entegrasyon Noktaları (FK İlişkileri)
+
+  ----------------------------------------------------------------------------------
+  Kaynak             Hedef              Bağlantı Alanı
+  ------------------ ------------------ --------------------------------------------
+  Tool 1             Tool 2             linking_projects.source_keyword_project_id →
+                                        keyword_projects.id
+
+  Tool 2             Tool 3             html_projects.source_linking_project_id →
+                                        linking_projects.id
+  ----------------------------------------------------------------------------------
+
+7.3 Bağımsız Kullanım Senaryoları
+
+  -----------------------------------------------------------------------
+  Senaryo                    Açıklama
+  -------------------------- --------------------------------------------
+  Sadece Tool 1              Keyword araştırması yap, brief al, yazara
+                             ver
+
+  Sadece Tool 2              Mevcut Word içeriğini temiz HTML'e çevir
+
+  Sadece Tool 3              Sitemap'ten link audit yap, öneriler üret
+
+  Tool 1 → Tool 2            Keyword'den AI içerik üret, yayınla
+                             (link'siz)
+
+  Tool 2 → Tool 3            Mevcut içeriği formatla ve linkle
+
+  Tam Pipeline               Keyword → İçerik → Link → Publish
+  -----------------------------------------------------------------------
+
+8. VERİTABANI MİMARİSİ
+
+8.1 Tablo Özeti (15 Tablo)
+
+  ------------------------------------------------------------------------
+  Kategori    Tablo                   Amaç
+  ----------- ----------------------- ------------------------------------
+  SHARED      clients                 Multi-tenant müşteri/marka yönetimi
+
+  SHARED      client_configurations   Müşteriye özel SEO ayarları
+
+  SHARED      client_url_inventory    Internal linking için URL havuzu
+
+  TOOL 1      keyword_projects        Keyword analiz projeleri
+
+  TOOL 1      keyword_results         Bulunan keyword'ler ve metrikleri
+
+  TOOL 1      competitor_data         SERP rakip analizi verileri
+
+  TOOL 1      serp_features           SERP özellik tespiti
+
+  TOOL 1      paa_data                People Also Ask soruları
+
+  TOOL 2      content_projects        İçerik üretim projeleri
+
+  TOOL 2      content_outputs         Üretilen HTML ve metadata
+
+  TOOL 3      linking_projects        Internal linking projeleri
+
+  TOOL 3      linking_suggestions     Link önerileri
+
+  TOOL 3      linking_applied         Uygulanan linkler logu
+
+  LOGS        activity_logs           Tüm aktivite logları
+
+  LOGS        api_usage               API kullanım takibi ve maliyet
+  ------------------------------------------------------------------------
+
+8.2 Veritabanı Özellikleri
+
+-   MySQL 8.0+ (JSON column support)
+
+-   InnoDB Engine (FK, transactions)
+
+-   UTF8MB4 (Full Unicode)
+
+-   4 View, 5 Trigger
+
+-   FULLTEXT index (semantic matching)
+
+Detay: seo_tool_suite_schema_v2.sql +
+SEO_Tool_Suite_Veritabani_Dokumantasyonu.docx
+
+9. TEKNOLOJİ STACK
+
+9.1 Frontend Stack
+
+  -----------------------------------------------------------------------
+  Teknoloji          Versiyon/Detay         Kullanım
+  ------------------ ---------------------- -----------------------------
+  React              18.x + TypeScript      UI component'ler, state
+                                            management
+
+  Next.js            14.x (App Router)      SSR, routing, API routes
+
+  Vercel             Hosting                Deployment, edge functions,
+                                            CI/CD
+
+  Tailwind CSS       3.x                    Styling, responsive design
+
+  React Query        5.x                    API state management, caching
+
+  Zustand/Redux      Latest                 Global state management
+  -----------------------------------------------------------------------
+
+9.2 Backend Stack
+
+  -----------------------------------------------------------------------
+  Teknoloji          Versiyon/Detay         Kullanım
+  ------------------ ---------------------- -----------------------------
+  n8n                Self-hosted (Latest)   Workflow engine, API
+                                            endpoints
+
+  MySQL              8.0+                   Ana veri deposu, FK
+                                            ilişkileri
+
+  Redis              Optional               Caching, queue management
+  -----------------------------------------------------------------------
+
+9.3 External APIs
+
+  -----------------------------------------------------------------------
+  API                Kategori               Kullanım
+  ------------------ ---------------------- -----------------------------
+  Ahrefs             SEO Data               Keyword data, backlink
+                                            analizi
+
+  SEMrush            SEO Data               Keyword magic, competitor
+                                            analysis
+
+  OpenAI GPT-4       AI                     İçerik üretimi, clustering
+
+  Anthropic Claude   AI                     İçerik üretimi, analiz
+
+  Google APIs        Search                 Search Console, SERP data
+  -----------------------------------------------------------------------
+
+9.4 Diğer Araçlar
+
+  -----------------------------------------------------------------------
+  Araç               Kategori               Kullanım
+  ------------------ ---------------------- -----------------------------
+  Cheerio/JSDOM      HTML Processing        HTML parsing, temizleme
+
+  W3C Validator      Validation             HTML syntax kontrolü
+
+  Lighthouse         Validation             Performance, SEO puanları
+
+  ExcelJS            Export                 Excel rapor çıktıları
+  -----------------------------------------------------------------------
+
+9.5 n8n Workflow Dağılımı
+
+  -----------------------------------------------------------------------
+  Tool            Prefix             Sayı               Örnek
+  --------------- ------------------ ------------------ -----------------
+  Tool 1          WF-1xx             10 workflow        WF-101...110
+
+  Tool 2          WF-2xx             12 workflow        WF-201...212
+
+  Tool 3          WF-3xx             10 workflow        WF-301...310
+
+  TOPLAM          -                  32 workflow        -
+  -----------------------------------------------------------------------
+
+9.6 Frontend ↔ Backend İletişimi
+
+React frontend, n8n backend ile şu yöntemlerle iletişim kurar:
+
+  -----------------------------------------------------------------------
+  Yöntem             Kullanım Senaryosu
+  ------------------ ----------------------------------------------------
+  Webhook Trigger    Frontend form submit → n8n workflow başlatma
+
+  REST API (GET)     Proje listesi, sonuçlar, raporlar çekme
+
+  REST API (POST)    Yeni proje oluşturma, ayar güncelleme
+
+  Polling/SSE        Uzun süren işlemlerde durum takibi
+  -----------------------------------------------------------------------
+
+  Frontend → n8n İletişim Akışı: 1. Kullanıcı React UI'da form doldurur
+  2. Frontend, n8n webhook endpoint'ine POST atar 3. n8n workflow
+  tetiklenir, işlem başlar 4. n8n, veritabanına sonuçları yazar 5.
+  Frontend, polling veya callback ile sonucu alır 6. UI güncellenir,
+  sonuç gösterilir
+
+10. KULLANIM SENARYOLARI
+
+10.1 Senaryo: Yeni Blog Serisi
+
+Müşteri için "Su Deposu" konusunda kapsamlı blog serisi oluşturma.
+
+1.  Tool 1: "Modüler su deposu" seed keyword ile araştırma başlat
+
+2.  Tool 1 Output: 5 cluster, 25 keyword, Pillar: "Modüler Su Deposu
+    Rehberi"
+
+3.  Tool 2: Her cluster için AI ile içerik üret (Senaryo B)
+
+4.  Tool 2 Output: 5 temiz HTML dosyası + metadata
+
+5.  Tool 3: Tüm içeriklere internal link ekle
+
+6.  Tool 3 Output: Publish-ready 5 HTML, URL mapping
+
+10.2 Senaryo: Mevcut İçerik Optimizasyonu
+
+Yazar tarafından hazırlanmış içeriği SEO uyumlu hale getirme.
+
+7.  Yazar Word'de içerik hazırlar
+
+8.  Tool 2: Word içeriğini import et (Senaryo A)
+
+9.  Tool 2: Kirli HTML temizle, hiyerarşi düzelt, schema ekle
+
+10. Tool 3: Mevcut site URL'leri ile link önerileri üret
+
+11. Çıktı: SEO optimize, linklenmiş HTML
+
+10.3 Senaryo: Site-Wide Link Audit
+
+Mevcut sitenin internal linking yapısını analiz ve optimize etme.
+
+12. Tool 3: Sitemap yükle (Senaryo C)
+
+13. URL pattern analizi, node classification
+
+14. Orphan page tespiti, dead-end analizi
+
+15. Çıktı: Gap raporu, link önerileri, silo haritası
+
+11. GELİŞTİRME YOL HARİTASI
+
+  ------------------------------------------------------------------------
+  Faz       Süre            Kapsam
+  --------- --------------- ----------------------------------------------
+  Faz 1     Hafta 1-2       Altyapı: Veritabanı kurulumu, n8n ortamı,
+                            Vercel proje setup, temel API bağlantıları
+
+  Faz 2     Hafta 3-4       Tool 1 Backend: n8n workflow'ları (WF-101 →
+                            WF-110)
+
+  Faz 3     Hafta 5-6       Tool 2 Backend: n8n workflow'ları (WF-201 →
+                            WF-212)
+
+  Faz 4     Hafta 7-8       Tool 3 Backend: n8n workflow'ları (WF-301 →
+                            WF-310)
+
+  Faz 5     Hafta 9-10      Frontend: React UI - Dashboard, Tool 1/2/3
+                            arayüzleri
+
+  Faz 6     Hafta 11-12     Entegrasyon: Frontend-Backend bağlantısı,
+                            test, bug fix
+
+  Faz 7     Hafta 13-14     Polish: UI/UX iyileştirme, dokümantasyon,
+                            production deployment
+  ------------------------------------------------------------------------
+
+11.1 Öncelik Sırası
+
+9.  Veritabanı şeması import ve test
+
+10. n8n kurulumu ve temel webhook yapısı
+
+11. Tool 2 Backend (Content Studio) - En sık kullanılacak
+
+12. Tool 2 Frontend UI
+
+13. Tool 3 Backend + Frontend (Internal Linking)
+
+14. Tool 1 Backend + Frontend (Keyword Research)
+
+15. Dashboard ve genel UI
+
+16. Tam pipeline entegrasyonu
+
+11.2 Frontend Sayfa Yapısı
+
+  React App Sayfa Yapısı: / → Dashboard (özet, son projeler,
+  istatistikler) /clients → Müşteri yönetimi /clients/[id] → Müşteri
+  detay ve ayarları /tool1 → Keyword Research ana sayfa /tool1/new →
+  Yeni keyword projesi /tool1/[projectId] → Proje detay ve sonuçlar
+  /tool2 → Content Studio ana sayfa /tool2/new → Yeni içerik projesi
+  /tool2/[projectId] → İçerik editör ve önizleme /tool3 → Internal
+  Linking ana sayfa /tool3/new → Yeni linking projesi /tool3/[projectId]
+  → Link haritası ve öneriler /settings → Genel ayarlar, API keys
+
+12. AI PROMPT REFERANSI
+
+Bu bölüm, AI asistana (Claude Terminal /plan modu vb.) projeyi
+anlatırken kullanılacak özet prompt'ları içerir.
+
+12.1 Proje Tanıtım Prompt'u
+
+  SEO Tool Suite - Enterprise SEO İçerik Üretim Pipeline'ı MİMARİ: -
+  Frontend: React + Next.js + Vercel (Kullanıcı arayüzü) - Backend: n8n
+  self-hosted (Workflow engine, iş mantığı) - Database: MySQL 8.0+
+  (Shared database, multi-tenant) 3 modüler, bağımsız ama entegre
+  çalışabilen araç: - Tool 1 (Keyword Research): NE yazacağız? Strateji
+  belirleme. - Tool 2 (Content Studio): NASIL yazacağız? İçerik
+  üretimi + temiz HTML. - Tool 3 (Internal Linking): NEREYE
+  bağlayacağız? Link stratejisi. ENTEGRASYONLAR: Ahrefs, SEMrush,
+  OpenAI/Claude, Google APIs VERİTABANI: 15 tablo, 4 view, 5 trigger
+  WORKFLOW: 32 toplam n8n workflow (10 + 12 + 10)
+
+12.2 Mimari Özet Prompt'u
+
+  FRONTEND (React + Vercel): - Next.js 14 App Router - TypeScript -
+  Tailwind CSS - React Query (API state) - Sayfalar: Dashboard,
+  Tool1/2/3 UI, Settings BACKEND (n8n): - Self-hosted n8n instance - 32
+  workflow (WF-1xx, WF-2xx, WF-3xx) - Webhook endpoints (Frontend
+  trigger) - REST API (data fetch) İLETİŞİM: Frontend → n8n: Webhook
+  POST (işlem başlat) n8n → DB: Sonuç yaz Frontend → DB: Polling/API ile
+  sonuç al
+
+12.3 Tool-Spesifik Prompt'lar
+
+Tool 1 için:
+
+  Tool 1: Keyword Research Senaryolar: A) Seed keyword genişletme, B)
+  Topic daraltma 8 Aşama: Discovery → Competitor → SERP → Gap → Score →
+  Cluster → Strategy Output: Pillar-Cluster map, intent labels,
+  brief/outline Backend: WF-101 → WF-110 (n8n) Frontend: /tool1,
+  /tool1/new, /tool1/[id]
+
+Tool 2 için:
+
+  Tool 2: Content Studio Senaryolar: A) İçerik VAR (dönüştür), B) İçerik
+  YOK (AI üret) Ortak: HTML cleanup, H1-H6 hiyerarşi, schema, metadata
+  Output: Temiz HTML + Metadata JSON Backend: WF-201 → WF-212 (n8n)
+  Frontend: /tool2, /tool2/new, /tool2/[id] (editör + önizleme)
+
+Tool 3 için:
+
+  Tool 3: Internal Linking Senaryolar: A) Cluster input, B) Topic input,
+  C) URL/Sitemap Node Roles: Pillar, Hub, Cluster, Money Page, Booster
+  Equity Flow: Top-Down, Bottom-Up, Lateral Output: Linklenmiş HTML, URL
+  mapping, gap report Backend: WF-301 → WF-310 (n8n) Frontend: /tool3,
+  /tool3/new, /tool3/[id] (link haritası)
+
+12.4 Geliştirme Talebi Prompt'u
+
+  [PROJE] SEO Tool Suite [MİMARİ] React/Vercel (Frontend) + n8n
+  (Backend) + MySQL (DB) [MEVCUT] Veritabanı şeması + 3 tool
+  dokümantasyonu hazır [TALEP - BACKEND] n8n workflow geliştirme - Tool
+  [X] - WF-[XXX] Referans: Tool[X]_[Ad]_Teknik_Dokumantasyon.docx
+  [TALEP - FRONTEND] React component/page geliştirme - Tool [X] UI
+  Sayfalar: /tool[X], /tool[X]/new, /tool[X]/[id] API: n8n webhook
+  endpoint'leri [VERİTABANI] seo_tool_suite_schema_v2.sql
+
+12.5 Frontend Geliştirme Prompt'u
+
+  [PROJE] SEO Tool Suite - Frontend [STACK] Next.js 14 + TypeScript +
+  Tailwind + React Query [HOSTING] Vercel [SAYFA] /tool2 - Content
+  Studio Ana Sayfa [AMAÇ] Mevcut content projeleri listele, yeni proje
+  başlat [BILEŞENLER] - ProjectList: Tablo, filtreleme, sıralama -
+  NewProjectButton: /tool2/new'e yönlendir - ProjectCard: Proje özeti,
+  durum badge [API CALLS] - GET /api/content-projects → n8n webhook -
+  POST /api/content-projects/new → n8n workflow trigger [STATE] React
+  Query ile server state, Zustand ile UI state
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+— MASTER DOKÜMAN SONU —
+
+SEO Tool Suite • Master Dokümantasyon v1.0
+
+Aralık 2025
+
+İLGİLİ DOKÜMANLAR
+
+  --------------------------------------------------------------------------------------
+  Doküman                             Dosya
+  ----------------------------------- --------------------------------------------------
+  Veritabanı Şeması                   seo_tool_suite_schema_v2.sql
+
+  Veritabanı Dokümantasyonu           SEO_Tool_Suite_Veritabani_Dokumantasyonu.docx
+
+  Tool 1 Dokümantasyonu               Tool1_Keyword_Analysis_Teknik_Dokumantasyon.docx
+
+  Tool 2 Dokümantasyonu               Tool2_Content_Studio_Teknik_Dokumantasyon.docx
+
+  Tool 3 Dokümantasyonu               Tool3_Internal_Linking_Teknik_Dokumantasyon.docx
+  --------------------------------------------------------------------------------------

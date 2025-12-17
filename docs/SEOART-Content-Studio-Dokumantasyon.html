@@ -1,0 +1,1101 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SEOART Content Studio - Kullanıcı Dokümantasyonu</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #ffffff;
+            color: #333333;
+            line-height: 1.6;
+            font-size: 13px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 40px;
+        }
+
+        /* Kapak Sayfası */
+        .cover {
+            text-align: center;
+            padding: 80px 40px;
+            border: 2px solid #333;
+            margin-bottom: 50px;
+            page-break-after: always;
+        }
+
+        .cover h1 {
+            font-size: 32px;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #1a1a1a;
+        }
+
+        .cover .subtitle {
+            font-size: 16px;
+            color: #666;
+            margin-bottom: 40px;
+        }
+
+        .cover .stats {
+            display: flex;
+            justify-content: center;
+            gap: 60px;
+            margin: 40px 0;
+            padding: 30px 0;
+            border-top: 1px solid #ddd;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .cover .stat-value {
+            font-size: 28px;
+            font-weight: 700;
+            color: #1a1a1a;
+        }
+
+        .cover .stat-label {
+            font-size: 12px;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .cover .version {
+            margin-top: 40px;
+            font-size: 12px;
+            color: #999;
+        }
+
+        /* İçindekiler */
+        .toc {
+            margin-bottom: 50px;
+            page-break-after: always;
+        }
+
+        .toc h2 {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #333;
+        }
+
+        .toc ul {
+            list-style: none;
+        }
+
+        .toc li {
+            padding: 8px 0;
+            border-bottom: 1px dotted #ccc;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .toc a {
+            color: #333;
+            text-decoration: none;
+        }
+
+        /* Başlıklar */
+        h1 {
+            font-size: 22px;
+            font-weight: 600;
+            color: #1a1a1a;
+            margin: 40px 0 20px 0;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #333;
+        }
+
+        h2 {
+            font-size: 16px;
+            font-weight: 600;
+            color: #fff;
+            background: #333;
+            padding: 10px 15px;
+            margin: 30px 0 15px 0;
+        }
+
+        h3 {
+            font-size: 14px;
+            font-weight: 600;
+            color: #333;
+            margin: 20px 0 10px 0;
+            padding-bottom: 5px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        h4 {
+            font-size: 13px;
+            font-weight: 600;
+            color: #333;
+            margin: 15px 0 8px 0;
+        }
+
+        p {
+            margin-bottom: 12px;
+        }
+
+        /* Workflow Kartları */
+        .workflow-card {
+            border: 1px solid #ddd;
+            padding: 20px;
+            margin: 20px 0;
+            page-break-inside: avoid;
+        }
+
+        .workflow-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .workflow-title {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .node-count {
+            background: #333;
+            color: #fff;
+            padding: 4px 10px;
+            font-size: 11px;
+            font-weight: 500;
+        }
+
+        .endpoint {
+            background: #f5f5f5;
+            padding: 8px 12px;
+            font-family: 'Consolas', monospace;
+            font-size: 12px;
+            border-left: 3px solid #333;
+            margin: 10px 0;
+        }
+
+        /* Tablolar */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+            font-size: 12px;
+        }
+
+        th, td {
+            padding: 10px;
+            text-align: left;
+            border: 1px solid #ddd;
+        }
+
+        th {
+            background: #f5f5f5;
+            font-weight: 600;
+        }
+
+        tr:nth-child(even) {
+            background: #fafafa;
+        }
+
+        /* Listeler */
+        ul, ol {
+            margin: 12px 0;
+            padding-left: 25px;
+        }
+
+        li {
+            margin: 6px 0;
+        }
+
+        /* Kod */
+        code {
+            background: #f5f5f5;
+            padding: 2px 6px;
+            font-family: 'Consolas', monospace;
+            font-size: 11px;
+        }
+
+        /* Bilgi Kutuları */
+        .info-box {
+            padding: 15px;
+            margin: 15px 0;
+            border-left: 3px solid #333;
+            background: #f9f9f9;
+        }
+
+        /* Akış Diyagramı */
+        .flow-step {
+            display: flex;
+            align-items: center;
+            margin: 8px 0;
+        }
+
+        .flow-number {
+            width: 24px;
+            height: 24px;
+            background: #333;
+            color: #fff;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: 600;
+            margin-right: 12px;
+            flex-shrink: 0;
+        }
+
+        .flow-content {
+            flex: 1;
+            padding: 8px 12px;
+            background: #f5f5f5;
+            font-size: 12px;
+        }
+
+        /* Pillar-Cluster */
+        .pillar-diagram {
+            text-align: center;
+            padding: 20px;
+            border: 1px solid #ddd;
+            margin: 15px 0;
+        }
+
+        .pillar-box {
+            display: inline-block;
+            padding: 15px 30px;
+            background: #333;
+            color: #fff;
+            font-weight: 600;
+            margin-bottom: 15px;
+        }
+
+        .cluster-row {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .cluster-box {
+            padding: 10px 20px;
+            border: 1px solid #333;
+            font-size: 12px;
+        }
+
+        /* Yazdırma */
+        @media print {
+            body { font-size: 11px; }
+            .container { padding: 20px; }
+            h1 { font-size: 18px; }
+            h2 { font-size: 14px; page-break-after: avoid; }
+            .workflow-card { page-break-inside: avoid; }
+        }
+
+        .footer {
+            margin-top: 50px;
+            padding-top: 20px;
+            border-top: 2px solid #333;
+            text-align: center;
+            font-size: 11px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Kapak -->
+        <div class="cover">
+            <h1>SEOART Content Studio</h1>
+            <p class="subtitle">Keyword Research & Content Strategy Tool<br>Kullanıcı Dokümantasyonu</p>
+
+            <div class="stats">
+                <div class="stat">
+                    <div class="stat-value">14</div>
+                    <div class="stat-label">Workflow</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value">261</div>
+                    <div class="stat-label">Node</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value">AI</div>
+                    <div class="stat-label">Destekli</div>
+                </div>
+            </div>
+
+            <div class="version">
+                Versiyon 1.9 | Aralık 2025
+            </div>
+        </div>
+
+        <!-- İçindekiler -->
+        <div class="toc">
+            <h2>İçindekiler</h2>
+            <ul>
+                <li><span>1. Genel Bakış</span></li>
+                <li><span>2. Sistem Mimarisi</span></li>
+                <li><span>3. Analiz Süreci</span></li>
+                <li><span>4. WF-101: Proje Oluşturucu</span></li>
+                <li><span>5. WF-101a: Keyword Keşfedici</span></li>
+                <li><span>6. WF-101b: AI Keyword Filtresi</span></li>
+                <li><span>7. WF-104: Rakip Analizcisi</span></li>
+                <li><span>8. WF-104b: Rakip İçerik Scraper</span></li>
+                <li><span>9. WF-105: SERP Özellik Dedektörü</span></li>
+                <li><span>10. WF-106: İçerik Boşluğu Bulucu</span></li>
+                <li><span>11. WF-107: Fırsat Skorlayıcı</span></li>
+                <li><span>12. WF-109: Strateji Üreticisi</span></li>
+                <li><span>13. WF-110: Rapor İhracatçısı</span></li>
+                <li><span>14. Teknik Özellikler</span></li>
+            </ul>
+        </div>
+
+        <!-- 1. Genel Bakış -->
+        <h1>1. Genel Bakış</h1>
+
+        <p>SEOART Content Studio, SEO odaklı içerik stratejisi oluşturmak için geliştirilmiş kapsamlı bir otomasyon platformudur.</p>
+
+        <h3>Temel Özellikler</h3>
+        <table>
+            <tr>
+                <th style="width: 30%;">Özellik</th>
+                <th>Açıklama</th>
+            </tr>
+            <tr>
+                <td>AI Destekli Analiz</td>
+                <td>Gemini 2.0 Flash ve OpenAI GPT-4o-mini entegrasyonu</td>
+            </tr>
+            <tr>
+                <td>Çoklu Veri Kaynağı</td>
+                <td>Google Suggest, Google Trends, Ahrefs, Serper API</td>
+            </tr>
+            <tr>
+                <td>Otomatik Skorlama</td>
+                <td>0-100 arası fırsat skoru hesaplama</td>
+            </tr>
+            <tr>
+                <td>Pillar-Cluster Yapısı</td>
+                <td>Stratejik içerik hiyerarşisi oluşturma</td>
+            </tr>
+            <tr>
+                <td>Çoklu Format Çıktı</td>
+                <td>JSON, CSV ve HTML/PDF rapor üretimi</td>
+            </tr>
+            <tr>
+                <td>Token Takibi</td>
+                <td>API kullanım ve maliyet izleme</td>
+            </tr>
+        </table>
+
+        <!-- 2. Sistem Mimarisi -->
+        <h1>2. Sistem Mimarisi</h1>
+
+        <h3>Veritabanı Tabloları</h3>
+        <table>
+            <tr>
+                <th>Tablo</th>
+                <th>Açıklama</th>
+            </tr>
+            <tr>
+                <td><code>keyword_projects</code></td>
+                <td>Proje bilgileri</td>
+            </tr>
+            <tr>
+                <td><code>keyword_results</code></td>
+                <td>Keyword verileri ve stratejileri</td>
+            </tr>
+            <tr>
+                <td><code>competitor_data</code></td>
+                <td>Rakip analiz sonuçları</td>
+            </tr>
+            <tr>
+                <td><code>serp_features</code></td>
+                <td>SERP özellik verileri</td>
+            </tr>
+            <tr>
+                <td><code>paa_data</code></td>
+                <td>People Also Ask soruları</td>
+            </tr>
+            <tr>
+                <td><code>api_usage_tracking</code></td>
+                <td>Token ve API kullanım kayıtları</td>
+            </tr>
+        </table>
+
+        <!-- 3. Analiz Süreci -->
+        <h1>3. Analiz Süreci</h1>
+
+        <p>Tam bir keyword araştırması ve strateji oluşturma süreci:</p>
+
+        <div style="margin: 20px 0;">
+            <div class="flow-step">
+                <div class="flow-number">1</div>
+                <div class="flow-content"><strong>Proje Oluşturma</strong> — WF-101</div>
+            </div>
+            <div class="flow-step">
+                <div class="flow-number">2</div>
+                <div class="flow-content"><strong>Keyword Keşfetme</strong> — WF-101a (Google Suggest, Trends, Ahrefs)</div>
+            </div>
+            <div class="flow-step">
+                <div class="flow-number">3</div>
+                <div class="flow-content"><strong>AI Keyword Filtreleme</strong> — WF-101b (Alaka, Intent belirleme)</div>
+            </div>
+            <div class="flow-step">
+                <div class="flow-number">4</div>
+                <div class="flow-content"><strong>Rakip Analizi</strong> — WF-104 + WF-104b (SERP, Scraping)</div>
+            </div>
+            <div class="flow-step">
+                <div class="flow-number">5</div>
+                <div class="flow-content"><strong>SERP Özellik Tespiti</strong> — WF-105 (Featured Snippet, PAA)</div>
+            </div>
+            <div class="flow-step">
+                <div class="flow-number">6</div>
+                <div class="flow-content"><strong>İçerik Boşluğu Analizi</strong> — WF-106 (AI destekli)</div>
+            </div>
+            <div class="flow-step">
+                <div class="flow-number">7</div>
+                <div class="flow-content"><strong>Fırsat Skorlaması</strong> — WF-107 (0-100 skor)</div>
+            </div>
+            <div class="flow-step">
+                <div class="flow-number">8</div>
+                <div class="flow-content"><strong>Strateji Oluşturma</strong> — WF-109 (Pillar-Cluster)</div>
+            </div>
+            <div class="flow-step">
+                <div class="flow-number">9</div>
+                <div class="flow-content"><strong>Rapor Üretimi</strong> — WF-110 (JSON/CSV/HTML)</div>
+            </div>
+        </div>
+
+        
+        <!-- WF-101 -->
+        <h1>4. WF-101: Proje Oluşturucu</h1>
+
+        <div class="workflow-card">
+            <div class="workflow-header">
+                <span class="workflow-title">Proje Oluşturucu</span>
+                <span class="node-count">13 Node</span>
+            </div>
+
+            <p><strong>Amaç:</strong> Yeni bir keyword araştırma projesi başlatmak</p>
+
+            <div class="endpoint">POST /tool1/project/create</div>
+
+            <h4>İşlem Adımları</h4>
+            <ol>
+                <li>Kullanıcıdan proje bilgilerini alır</li>
+                <li>Müşteri (client) kontrolü yapar</li>
+                <li>Veritabanında yeni proje kaydı oluşturur</li>
+                <li>Proje durumunu "processing" olarak ayarlar</li>
+            </ol>
+
+            <h4>Parametreler</h4>
+            <table>
+                <tr>
+                    <th>Parametre</th>
+                    <th>Tip</th>
+                    <th>Zorunlu</th>
+                    <th>Açıklama</th>
+                </tr>
+                <tr>
+                    <td>client_id</td>
+                    <td>integer</td>
+                    <td>Evet</td>
+                    <td>Müşteri ID</td>
+                </tr>
+                <tr>
+                    <td>project_name</td>
+                    <td>string</td>
+                    <td>Evet</td>
+                    <td>Proje adı</td>
+                </tr>
+                <tr>
+                    <td>main_keyword</td>
+                    <td>string</td>
+                    <td>Evet</td>
+                    <td>Ana anahtar kelime</td>
+                </tr>
+                <tr>
+                    <td>scenario_type</td>
+                    <td>string</td>
+                    <td>Hayır</td>
+                    <td>seed_keyword veya topic_based</td>
+                </tr>
+                <tr>
+                    <td>target_country</td>
+                    <td>string</td>
+                    <td>Hayır</td>
+                    <td>Hedef ülke (varsayılan: TR)</td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- WF-101a -->
+        <h1>5. WF-101a: Keyword Keşfedici</h1>
+
+        <div class="workflow-card">
+            <div class="workflow-header">
+                <span class="workflow-title">Keyword Keşfedici</span>
+                <span class="node-count">25 Node</span>
+            </div>
+
+            <p><strong>Amaç:</strong> Çoklu kaynaklardan alakalı keywordleri keşfetmek</p>
+
+            <div class="endpoint">POST /webhook/keyword-discovery</div>
+
+            <h4>Veri Kaynakları</h4>
+            <table>
+                <tr>
+                    <th>Kaynak</th>
+                    <th>Tip</th>
+                    <th>Maliyet</th>
+                </tr>
+                <tr>
+                    <td>Google Suggest</td>
+                    <td>Ücretsiz</td>
+                    <td>$0</td>
+                </tr>
+                <tr>
+                    <td>Google Trends</td>
+                    <td>Ücretsiz</td>
+                    <td>$0</td>
+                </tr>
+                <tr>
+                    <td>Ahrefs API</td>
+                    <td>Ücretli</td>
+                    <td>Ahrefs planı</td>
+                </tr>
+                <tr>
+                    <td>AI (Gemini)</td>
+                    <td>Ücretli</td>
+                    <td>~$0.001/istek</td>
+                </tr>
+            </table>
+
+            <h4>İşlem Adımları</h4>
+            <ol>
+                <li>Proje bilgilerini yükler</li>
+                <li>Google Suggest API'den öneriler alır</li>
+                <li>Google Trends tabanlı patternler üretir</li>
+                <li>Ahrefs API'den veri çeker (aktifse)</li>
+                <li>Tüm keywordleri birleştirir, tekrarları temizler</li>
+                <li>Veritabanına kaydeder</li>
+            </ol>
+        </div>
+
+        <!-- WF-101b -->
+        <h1>6. WF-101b: AI Keyword Filtresi</h1>
+
+        <div class="workflow-card">
+            <div class="workflow-header">
+                <span class="workflow-title">AI Keyword Filtresi</span>
+                <span class="node-count">30 Node</span>
+            </div>
+
+            <p><strong>Amaç:</strong> Keşfedilen keywordleri AI ile filtrelemek ve kategorize etmek</p>
+
+            <div class="endpoint">POST /webhook/:projectId/filter-keywords</div>
+
+            <h4>AI Analiz Kriterleri</h4>
+            <table>
+                <tr>
+                    <th>Search Intent</th>
+                    <th>Açıklama</th>
+                </tr>
+                <tr>
+                    <td>Informational</td>
+                    <td>Bilgi arama niyeti</td>
+                </tr>
+                <tr>
+                    <td>Commercial</td>
+                    <td>Satın alma araştırması</td>
+                </tr>
+                <tr>
+                    <td>Transactional</td>
+                    <td>İşlem yapma niyeti</td>
+                </tr>
+                <tr>
+                    <td>Navigational</td>
+                    <td>Belirli site/sayfa arama</td>
+                </tr>
+            </table>
+
+            <h4>İşlem Adımları</h4>
+            <ol>
+                <li>Projeden tüm keywordleri yükler</li>
+                <li>AI için kompakt CSV formatı oluşturur</li>
+                <li>Gemini API'ye gönderir (başarısızsa OpenAI fallback)</li>
+                <li>AI yanıtı parse eder</li>
+                <li>Keyword bilgilerini günceller</li>
+                <li>Token kullanımını kaydeder</li>
+            </ol>
+        </div>
+
+        <!-- WF-104 -->
+        <h1>7. WF-104: Rakip Analizcisi</h1>
+
+        <div class="workflow-card">
+            <div class="workflow-header">
+                <span class="workflow-title">Rakip Analizcisi</span>
+                <span class="node-count">25 Node</span>
+            </div>
+
+            <p><strong>Amaç:</strong> SERP'te sıralanan rakipleri analiz etmek</p>
+
+            <div class="endpoint">POST /webhook/:projectId/analyze-competitors</div>
+
+            <h4>Toplanan Veriler</h4>
+            <ul>
+                <li>URL ve domain bilgisi</li>
+                <li>Sayfa başlığı ve açıklaması</li>
+                <li>Domain Rating (DR)</li>
+                <li>Backlink sayısı</li>
+                <li>SERP pozisyonu</li>
+            </ul>
+
+            <h4>Desteklenen API'ler</h4>
+            <table>
+                <tr>
+                    <th>API</th>
+                    <th>Öncelik</th>
+                    <th>Veri Zenginliği</th>
+                </tr>
+                <tr>
+                    <td>Ahrefs</td>
+                    <td>1</td>
+                    <td>Yüksek (DR, backlinks)</td>
+                </tr>
+                <tr>
+                    <td>Serper</td>
+                    <td>2</td>
+                    <td>Orta (temel SERP)</td>
+                </tr>
+                <tr>
+                    <td>Mock</td>
+                    <td>3</td>
+                    <td>Düşük (test verisi)</td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- WF-104b -->
+        <h1>8. WF-104b: Rakip İçerik Scraper</h1>
+
+        <div class="workflow-card">
+            <div class="workflow-header">
+                <span class="workflow-title">Rakip İçerik Scraper</span>
+                <span class="node-count">16 Node</span>
+            </div>
+
+            <p><strong>Amaç:</strong> Rakip sayfaların içerik yapısını analiz etmek</p>
+
+            <div class="endpoint">POST /webhook/tool1-competitor-scrape/:projectId/scrape</div>
+
+            <h4>Çıkarılan Veriler</h4>
+            <table>
+                <tr>
+                    <th>Metrik</th>
+                    <th>Açıklama</th>
+                </tr>
+                <tr>
+                    <td>word_count</td>
+                    <td>Toplam kelime sayısı</td>
+                </tr>
+                <tr>
+                    <td>h1_count</td>
+                    <td>H1 başlık sayısı</td>
+                </tr>
+                <tr>
+                    <td>h2_count</td>
+                    <td>H2 başlık sayısı</td>
+                </tr>
+                <tr>
+                    <td>h3_count</td>
+                    <td>H3 başlık sayısı</td>
+                </tr>
+                <tr>
+                    <td>h4-h6_count</td>
+                    <td>Diğer başlık sayıları</td>
+                </tr>
+            </table>
+
+            <div class="info-box">
+                <strong>Önem:</strong> Rakip içeriklerin derinliğini anlamanızı sağlar. Kendi içerik uzunluğunuzu planlamanıza yardımcı olur.
+            </div>
+        </div>
+
+        <!-- WF-105 -->
+        <h1>9. WF-105: SERP Özellik Dedektörü</h1>
+
+        <div class="workflow-card">
+            <div class="workflow-header">
+                <span class="workflow-title">SERP Özellik Dedektörü</span>
+                <span class="node-count">19 Node</span>
+            </div>
+
+            <p><strong>Amaç:</strong> Google SERP'teki özel özellikleri tespit etmek</p>
+
+            <div class="endpoint">POST /webhook/tool1-serp-features/:projectId/detect</div>
+
+            <h4>Tespit Edilen Özellikler</h4>
+            <table>
+                <tr>
+                    <th>Özellik</th>
+                    <th>Açıklama</th>
+                </tr>
+                <tr>
+                    <td>Featured Snippet</td>
+                    <td>Öne Çıkan Sonuç</td>
+                </tr>
+                <tr>
+                    <td>People Also Ask</td>
+                    <td>İlgili Sorular</td>
+                </tr>
+                <tr>
+                    <td>Video Results</td>
+                    <td>Video Sonuçları</td>
+                </tr>
+                <tr>
+                    <td>Image Pack</td>
+                    <td>Resim Paketi</td>
+                </tr>
+                <tr>
+                    <td>Local Pack</td>
+                    <td>Yerel Sonuçlar</td>
+                </tr>
+                <tr>
+                    <td>Knowledge Panel</td>
+                    <td>Bilgi Paneli</td>
+                </tr>
+            </table>
+
+            <h4>Zero-Click Risk Seviyeleri</h4>
+            <table>
+                <tr>
+                    <th>Seviye</th>
+                    <th>Puan</th>
+                    <th>Anlamı</th>
+                </tr>
+                <tr>
+                    <td>Low</td>
+                    <td>0-1</td>
+                    <td>Düşük risk, iyi fırsat</td>
+                </tr>
+                <tr>
+                    <td>Medium</td>
+                    <td>2-3</td>
+                    <td>Orta risk</td>
+                </tr>
+                <tr>
+                    <td>High</td>
+                    <td>4+</td>
+                    <td>Yüksek risk</td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- WF-106 -->
+        <h1>10. WF-106: İçerik Boşluğu Bulucu</h1>
+
+        <div class="workflow-card">
+            <div class="workflow-header">
+                <span class="workflow-title">İçerik Boşluğu Bulucu</span>
+                <span class="node-count">23 Node</span>
+            </div>
+
+            <p><strong>Amaç:</strong> AI ile içerik boşluklarını ve fırsatları tespit etmek</p>
+
+            <div class="endpoint">POST /webhook/:projectId/analyze</div>
+
+            <h4>AI Analiz Çıktıları</h4>
+            <ul>
+                <li>Rakiplerin kapsamadığı konular</li>
+                <li>Düşük rekabetli fırsatlar</li>
+                <li>Trend potansiyeli yüksek alanlar</li>
+                <li>Yeni keyword önerileri</li>
+            </ul>
+
+            <h4>İçerik Format Önerileri</h4>
+            <table>
+                <tr>
+                    <th>Format</th>
+                    <th>Açıklama</th>
+                    <th>Uygun Intent</th>
+                </tr>
+                <tr>
+                    <td>blog</td>
+                    <td>Standart blog yazısı</td>
+                    <td>Informational</td>
+                </tr>
+                <tr>
+                    <td>guide</td>
+                    <td>Detaylı rehber</td>
+                    <td>Informational</td>
+                </tr>
+                <tr>
+                    <td>comparison</td>
+                    <td>Karşılaştırma yazısı</td>
+                    <td>Commercial</td>
+                </tr>
+                <tr>
+                    <td>checklist</td>
+                    <td>Kontrol listesi</td>
+                    <td>Informational</td>
+                </tr>
+                <tr>
+                    <td>how-to</td>
+                    <td>Nasıl yapılır</td>
+                    <td>Informational</td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- WF-107 -->
+        <h1>11. WF-107: Fırsat Skorlayıcı</h1>
+
+        <div class="workflow-card">
+            <div class="workflow-header">
+                <span class="workflow-title">Fırsat Skorlayıcı</span>
+                <span class="node-count">26 Node</span>
+            </div>
+
+            <p><strong>Amaç:</strong> Her keyword için fırsat skoru hesaplamak</p>
+
+            <div class="endpoint">POST /webhook/:projectId/calculate</div>
+
+            <h4>Skorlama Kriterleri</h4>
+            <table>
+                <tr>
+                    <th>Faktör</th>
+                    <th>Etkisi</th>
+                    <th>Açıklama</th>
+                </tr>
+                <tr>
+                    <td>Search Volume</td>
+                    <td>+20 puan</td>
+                    <td>Yüksek hacim daha iyi</td>
+                </tr>
+                <tr>
+                    <td>Keyword Difficulty</td>
+                    <td>+20 puan</td>
+                    <td>Düşük zorluk daha iyi</td>
+                </tr>
+                <tr>
+                    <td>CPC</td>
+                    <td>+10 puan</td>
+                    <td>Yüksek CPC = ticari değer</td>
+                </tr>
+                <tr>
+                    <td>Trend</td>
+                    <td>+10 puan</td>
+                    <td>Yükseliş trendi bonus</td>
+                </tr>
+                <tr>
+                    <td>Competition</td>
+                    <td>+15 puan</td>
+                    <td>Düşük rekabet tercih</td>
+                </tr>
+            </table>
+
+            <h4>Öncelik Seviyeleri</h4>
+            <table>
+                <tr>
+                    <th>Skor</th>
+                    <th>Öncelik</th>
+                    <th>Aksiyon</th>
+                </tr>
+                <tr>
+                    <td>70-100</td>
+                    <td><strong>High</strong></td>
+                    <td>Hemen içerik üret</td>
+                </tr>
+                <tr>
+                    <td>40-69</td>
+                    <td><strong>Medium</strong></td>
+                    <td>Planla</td>
+                </tr>
+                <tr>
+                    <td>0-39</td>
+                    <td><strong>Low</strong></td>
+                    <td>Ertelenebilir</td>
+                </tr>
+            </table>
+
+            <div class="info-box">
+                <strong>Low Hanging Fruit (LHF):</strong> Düşük zorluk + makul hacim = hızlı kazanım fırsatı
+            </div>
+        </div>
+
+        <!-- WF-109 -->
+        <h1>12. WF-109: Strateji Üreticisi</h1>
+
+        <div class="workflow-card">
+            <div class="workflow-header">
+                <span class="workflow-title">Strateji Üreticisi</span>
+                <span class="node-count">25 Node</span>
+            </div>
+
+            <p><strong>Amaç:</strong> Kapsamlı içerik stratejisi ve Pillar-Cluster yapısı oluşturmak</p>
+
+            <div class="endpoint">POST /webhook/:projectId/generate</div>
+
+            <h4>Pillar-Cluster Yapısı</h4>
+            <div class="pillar-diagram">
+                <div class="pillar-box">PILLAR PAGE<br><small>Ana Rehber — 3000+ kelime</small></div>
+                <div class="cluster-row">
+                    <div class="cluster-box">Cluster 1<br><small>1500 kelime</small></div>
+                    <div class="cluster-box">Cluster 2<br><small>1500 kelime</small></div>
+                    <div class="cluster-box">Cluster 3<br><small>1500 kelime</small></div>
+                </div>
+            </div>
+
+            <h4>AI Strateji Çıktısı</h4>
+            <table>
+                <tr>
+                    <th>Alan</th>
+                    <th>Açıklama</th>
+                </tr>
+                <tr>
+                    <td>page_type</td>
+                    <td>pillar / cluster / standalone</td>
+                </tr>
+                <tr>
+                    <td>content_format</td>
+                    <td>guide / blog / comparison / how-to</td>
+                </tr>
+                <tr>
+                    <td>content_priority</td>
+                    <td>high / medium / low</td>
+                </tr>
+                <tr>
+                    <td>recommended_word_count</td>
+                    <td>Önerilen kelime sayısı</td>
+                </tr>
+                <tr>
+                    <td>parent_pillar</td>
+                    <td>Bağlı olduğu pillar sayfa</td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- WF-110 -->
+        <h1>13. WF-110: Rapor İhracatçısı</h1>
+
+        <div class="workflow-card">
+            <div class="workflow-header">
+                <span class="workflow-title">Rapor İhracatçısı</span>
+                <span class="node-count">17 Node</span>
+            </div>
+
+            <p><strong>Amaç:</strong> Proje sonuçlarını çeşitli formatlarda dışa aktarmak</p>
+
+            <div class="endpoint">GET /webhook/:projectId/export?format=html</div>
+
+            <h4>Desteklenen Formatlar</h4>
+            <table>
+                <tr>
+                    <th>Format</th>
+                    <th>Kullanım Alanı</th>
+                    <th>Çıktı</th>
+                </tr>
+                <tr>
+                    <td>json</td>
+                    <td>API entegrasyonu</td>
+                    <td>Tam veri seti</td>
+                </tr>
+                <tr>
+                    <td>csv</td>
+                    <td>Excel analizi</td>
+                    <td>4 ayrı CSV dosyası</td>
+                </tr>
+                <tr>
+                    <td>html</td>
+                    <td>Sunum/PDF</td>
+                    <td>Görsel dashboard</td>
+                </tr>
+            </table>
+
+            <h4>HTML Rapor İçeriği</h4>
+            <ul>
+                <li>Genel Bakış: Keyword sayısı, Pillar/Cluster dağılımı</li>
+                <li>Öncelik Dağılımı: High/Medium/Low grafikler</li>
+                <li>Intent Dağılımı: Informational, Commercial vb.</li>
+                <li>Pillar-Cluster Haritası: Hiyerarşik yapı</li>
+                <li>Rakip Analizi: Kelime sayısı benchmarkları</li>
+                <li>Keyword Listesi: Detaylı tablo</li>
+            </ul>
+        </div>
+
+        <!-- 14. Teknik Özellikler -->
+        <h1>14. Teknik Özellikler</h1>
+
+        <h3>AI Model Entegrasyonu</h3>
+        <table>
+            <tr>
+                <th>Model</th>
+                <th>Hız</th>
+                <th>Maliyet</th>
+            </tr>
+            <tr>
+                <td>Gemini 2.0 Flash (Birincil)</td>
+                <td>2-5 saniye</td>
+                <td>~$0.00025 / 1K token</td>
+            </tr>
+            <tr>
+                <td>OpenAI GPT-4o-mini (Yedek)</td>
+                <td>3-8 saniye</td>
+                <td>~$0.00015 / 1K token</td>
+            </tr>
+        </table>
+
+        <h3>Fallback Sistemi</h3>
+        <ol>
+            <li>Gemini 2.0 Flash dene</li>
+            <li>Başarısızsa OpenAI GPT-4o-mini dene</li>
+            <li>O da başarısızsa Mock/Fallback veri kullan</li>
+        </ol>
+
+        <h3>Performans Metrikleri</h3>
+        <table>
+            <tr>
+                <th>Metrik</th>
+                <th>Değer</th>
+            </tr>
+            <tr>
+                <td>Tam analiz süresi</td>
+                <td>1-1.5 dakika</td>
+            </tr>
+            <tr>
+                <td>Ortalama token/analiz</td>
+                <td>5-15K</td>
+            </tr>
+            <tr>
+                <td>Maliyet/analiz</td>
+                <td>~$0.003-0.01</td>
+            </tr>
+            <tr>
+                <td>Desteklenen keyword</td>
+                <td>100+ / proje</td>
+            </tr>
+            <tr>
+                <td>Analiz edilen rakip</td>
+                <td>10-20 / analiz</td>
+            </tr>
+        </table>
+
+        <div class="footer">
+            <strong>SEOART Content Studio</strong><br>
+            AI Destekli SEO İçerik Stratejisi Platformu<br><br>
+            <em>Bu doküman Aralık 2025 tarihinde oluşturulmuştur.</em>
+        </div>
+    </div>
+</body>
+</html>

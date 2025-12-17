@@ -1,0 +1,669 @@
+TOOL 1
+
+KEYWORD ANALYSIS
+
+Anahtar Kelime Keşfi ve Analizi
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
++-----------------------------------+-----------------------------------+
+| SENARYO A                         | SENARYO B                         |
+|                                   |                                   |
+| Seed Keyword                      | Topic Based                       |
+|                                   |                                   |
+| Genişletme Yaklaşımı              | Daraltma Yaklaşımı                |
++-----------------------------------+-----------------------------------+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+TEKNİK DOKÜMANTASYON
+
+n8n Workflow Planlaması için Kapsamlı Rehber
+
+Versiyon 1.0 • Aralık 2025
+
+İÇİNDEKİLER
+
+1.  Tool Genel Bakış
+
+2.  Senaryolar ve Yaklaşımlar
+
+3.  Workflow Aşamaları
+
+4.  API Entegrasyonları
+
+5.  Veritabanı Eşleştirmesi
+
+6.  n8n Workflow Tasarımı
+
+7.  Output Formatları
+
+8.  Risk Yönetimi ve Kontroller
+
+1. TOOL GENEL BAKIŞ
+
+1.1 Amaç
+
+Tool 1, SEO içerik üretiminin temelini oluşturan anahtar kelime
+araştırması ve analizi işlemlerini otomatize eder. Hedef: Topical
+Authority (Konu Otoritesi) oluşturmak için gerekli tüm veriyi toplamak
+ve yapılandırmak.
+
+1.2 Temel Yetenekler
+
+-   Anahtar kelime keşfi (Seed keyword veya Topic based)
+
+-   Arama hacmi, zorluk, CPC ve trend verileri toplama
+
+-   Search Intent (Arama Niyeti) tespiti ve etiketleme
+
+-   Rakip analizi (SERP Top 10)
+
+-   SERP özellikleri tespiti (Featured Snippet, PAA, Video, vb.)
+
+-   Content Gap analizi (Rakip boşluk tespiti)
+
+-   Keyword Clustering (Semantik ve Intent bazlı kümeleme)
+
+-   Fırsat Skoru hesaplama
+
+1.3 Varış Noktası
+
+Her iki senaryo da aynı hedefe ulaşır: Topical Authority için gerekli
+keyword haritası, cluster yapısı ve içerik stratejisi. Fark sadece
+başlangıç noktasındaki odaktır.
+
+2. SENARYOLAR VE YAKLAŞIMLAR
+
++-----------------------------------------------------------------------+
+| SENARYO A                                                             |
+|                                                                       |
+| Seed Keyword (Ana Anahtar Kelime)                                     |
+|                                                                       |
+| Genişletme (Expansion) Yaklaşımı                                      |
++-----------------------------------------------------------------------+
+
+Tanım
+
+Elimizde spesifik bir ürün veya hizmet anahtar kelimesi var. Hedef: Bu
+çekirdek terimin etrafındaki tüm varyasyonları, satın alma niyetlerini
+ve teknik terimleri haritalandırmak.
+
+Örnek Input
+
+  "Modüler Su Deposu"
+
+Hipotez
+
+Kullanıcı bu ürünü arıyorsa: Karşılaştırma yapıyor olabilir, fiyat
+arıyor olabilir, teknik özellik (litre, malzeme, kapasite) bakıyor
+olabilir.
+
+Uygulanan Teknikler
+
+  -----------------------------------------------------------------------
+  Teknik                Açıklama
+  --------------------- -------------------------------------------------
+  Match Terms           Çekirdek kelimeyi içeren tüm varyasyonlar (Phrase
+                        Match)
+
+  LSI & Semantik        Kelime geçmese bile Google'ın ilişkilendirdiği
+                        terimler (Also rank for)
+
+  Long-Tail Discovery   Düşük hacimli ama yüksek dönüşüm potansiyelli
+                        spesifik sorgular
+
+  Question Keywords     Nedir, nasıl, ne kadar tarzı bilgi amaçlı
+                        sorgular
+  -----------------------------------------------------------------------
+
++-----------------------------------------------------------------------+
+| SENARYO B                                                             |
+|                                                                       |
+| Topic Based (Konu Başlığı)                                            |
+|                                                                       |
+| Daraltma ve Kategorize Etme Yaklaşımı                                 |
++-----------------------------------------------------------------------+
+
+Tanım
+
+Elimizde geniş bir kavram/konu var. Hedef: Bu konuyu aranabilir alt
+başlıklara bölmek ve hangi kelimelerin ticari değeri olduğunu bulmak.
+
+Örnek Input
+
+  "Su Deposu Kurulumu"
+
+Hipotez
+
+Bu konu hem "Nasıl yapılır?" (Informational) hem de "Montaj hizmeti"
+(Transactional) niyetlerini barındırır. Ayrıştırma kritiktir.
+
+Uygulanan Teknikler
+
+  -----------------------------------------------------------------------
+  Teknik                Açıklama
+  --------------------- -------------------------------------------------
+  Brainstorming         Konu başlığının alt dalları çıkarılır (Montaj,
+                        Bakım, Tamir, Projelendirme)
+
+  Broad Match Discovery SEMrush Related sekmesi ile geniş eşleşme keşfi
+
+  Competitor Discovery  Konuda otoriter blog/sayfa bulunur, organik
+                        kelimeleri çekilir
+
+  Intent Ayrıştırma     Informational vs Transactional ayrımı yapılır
+  -----------------------------------------------------------------------
+
+3. WORKFLOW AŞAMALARI
+
+Tool 1, 8 ana aşamadan oluşan bir pipeline izler. Her aşama bağımsız
+çalışabilir ve sonuçlar veritabanına kaydedilir.
+
+AŞAMA 1: Proje Oluşturma ve Hipotez Kurulumu
+
+  -----------------------------------------------------------------------
+  Öğe             Detay
+  --------------- -------------------------------------------------------
+  Tetikleyici     Kullanıcı yeni proje başlatır
+
+  Input           Senaryo tipi (A veya B), Ana keyword/topic, Dil, Ülke,
+                  Rakip sayısı
+
+  İşlem           keyword_projects tablosuna yeni kayıt oluşturulur
+
+  Output          project_id, status: pending
+  -----------------------------------------------------------------------
+
+AŞAMA 2: Anahtar Kelime Keşfi (Discovery)
+
+Ham veri toplama aşaması. Filtreleme yapılmaz, havuz genişletilir.
+
+Senaryo A için İşlemler:
+
+1.  Ahrefs Keywords Explorer: Match Terms (Phrase Match) çekilir
+
+2.  Ahrefs Also Rank For: LSI ve semantik terimler alınır
+
+3.  Google Suggest: Autocomplete önerileri toplanır
+
+4.  Long-tail ve Question keywords filtrelenir
+
+Senaryo B için İşlemler:
+
+1.  SEMrush Keyword Magic Tool: Related keywords çekilir
+
+2.  Brainstorm: Alt konu başlıkları belirlenir
+
+3.  Competitor organic keywords: Otoriter sayfa analizi
+
+4.  Intent etiketleme: Informational/Commercial/Transactional
+
+Her İki Senaryo İçin Ortak Filtreler:
+
+-   Long-Tail Keywords: Spesifik, düşük hacimli ama yüksek dönüşüm
+
+-   Question Keywords: Nedir, nasıl, ne kadar sorguları
+
+  -----------------------------------------------------------------------
+  Öğe             Detay
+  --------------- -------------------------------------------------------
+  API Calls       Ahrefs Keywords Explorer, SEMrush Keyword Magic Tool
+
+  Output          keyword_results tablosuna kayıt (keyword, type, volume,
+                  KD, CPC, intent)
+  -----------------------------------------------------------------------
+
+AŞAMA 3: Rakip Analizi (Competitor Analysis)
+
+SERP'te ilk 10 sıradaki rakip sayfaların detaylı analizi yapılır.
+
+Toplanan Veriler:
+
+  -----------------------------------------------------------------------
+  Veri                  Açıklama
+  --------------------- -------------------------------------------------
+  URL & Domain          Rakip sayfa URL'i ve domain
+
+  SERP Pozisyonu        1-10 arası sıralama
+
+  Title & Meta          Sayfa başlığı ve meta açıklaması
+
+  Word Count            Kelime sayısı
+
+  Heading Structure     H1, H2, H3, H4 başlık sayıları ve içerikleri
+
+  Link Counts           Internal ve external link sayıları
+
+  Domain Rating         Ahrefs DR (0-100)
+
+  Backlinks             Backlink ve referring domain sayıları
+  -----------------------------------------------------------------------
+
+  💡 Neden Önemli?
+
+  Rakip analizi, içerik derinliğini (Content Depth) belirlememizi
+  sağlar. Rakipler 500 kelimeyle mi, 3000 kelimeyle mi çözmüş? Bu, hedef
+  kelime sayımızı belirler.
+
+AŞAMA 4: SERP Analizi ve Intent Doğrulama
+
+Veriler yalan söyleyebilir ama SERP söylemez. Google'ın gerçekte ne
+sıraladığını analiz ederiz.
+
+SERP Özellikleri Tespiti:
+
+  -----------------------------------------------------------------------
+  SERP Feature          SEO Stratejisi
+  --------------------- -------------------------------------------------
+  Featured Snippet      İçerikte Tanım ve Liste formatları MUTLAKA
+                        kullanılmalı
+
+  PAA (People Also Ask) Sorular H2/H3 başlık veya FAQ Schema olarak
+                        eklenmeli
+
+  Video Results         Video içerik stratejisi değerlendirilmeli
+
+  Image Pack            Görsel SEO optimizasyonu yapılmalı
+
+  Local Pack            Google My Business optimizasyonu gerekli
+
+  Knowledge Panel       Schema markup ve Wikipedia referansları
+  -----------------------------------------------------------------------
+
+Intent Doğrulama Kuralı:
+
+İlk 5 sonuçtaki dominant sayfa türü belirlenir:
+
+-   5 üzerinden 4+ Blog → Bu kelimeye Ürün sayfasıyla girilmez, Blog
+    yazılır
+
+-   5 üzerinden 4+ E-ticaret → Bu kelimeye Blog ile girilmez,
+    Ürün/Kategori sayfası yapılır
+
+  ⚠️ Zero-Click Riski
+
+  Cevabı doğrudan Google SERP'te verilen kelimelere yatırım yapılmaz.
+  Örn: 'suyun donma derecesi' - kullanıcı siteye girmez.
+
+AŞAMA 5: Content Gap Analizi (Boşluk Tespiti)
+
+Rakiplerin gözünden kaçırdığı 'mavi okyanusları' bulma aşaması.
+
+Süreç:
+
+1.  Ahrefs Content Gap aracına en güçlü 3 rakip ve kendi site girilir
+
+2.  Sorgu: 'Rakiplerin en az 2'sinin sıralandığı ama benim hiç
+    sıralanmadığım kelimeler'
+
+3.  Topical Authority genişletme fırsatları tespit edilir
+
+Örnek:
+
+Rakipler "su deposu" satıyor ama "su deposu yalıtımı" konusuna hiç
+girmemişlerse → Bu konuyu sahiplenerek ana kelimede otorite artırılır.
+
+AŞAMA 6: Zorluk ve Fırsat Analizi
+
+Basit KD (Keyword Difficulty) metriğine güvenilmez. Kendi Fırsat Skoru
+hesaplanır.
+
+Fırsat Skoru Formülü (Kavramsal):
+
+Fırsat Skoru = (Arama Hacmi × Ticari Değer) / Gerçek Rekabet Gücü
+
+Kontrol Noktaları:
+
+-   Backlink Profili: KD düşük görünebilir ama ilk 3'te
+    Wikipedia/Trendyol varsa zorluk yüksektir
+
+-   Low-Hanging Fruits: Yüksek hacimli ama içeriği zayıf (thin content)
+    sayfaların sıralandığı kelimeler
+
+-   Eski Tarihli Sayfalar: 2+ yıl güncellenmemiş içerikler fırsat
+    oluşturur
+
+AŞAMA 7: Keyword Clustering (Kümeleme)
+
+Binlerce kelimeyi tek tek hedefleyemeyiz. Google'ın aynı sayfada
+sıraladığı gruplara ayırırız.
+
+Kümeleme Tipleri:
+
+  -----------------------------------------------------------------------
+  Kümeleme Tipi      Açıklama ve Örnek
+  ------------------ ----------------------------------------------------
+  Semantic           Eşanlamlıları birleştirme. 'Su deposu montajı' = 'Su
+  Clustering         deposu kurulumu' → Tek sayfa
+
+  Intent Clustering  Niyete göre ayrıştırma. 'Nasıl yapılır' (Blog) ≠
+                     'Tamir servisi' (Hizmet Sayfası)
+
+  Topic Authority    Alt kümeler: Malzeme Türleri, Kapasiteler, Sorunlar
+                     & Çözümler
+  -----------------------------------------------------------------------
+
+AŞAMA 8: İçerik Stratejisi Oluşturma
+
+Analiz, eylem planına dönüştürülür.
+
+Pillar-Cluster Modeli:
+
+  ------------------------------------------------------------------------
+  Sayfa Tipi      Örnek                  Hedef
+  --------------- ---------------------- ---------------------------------
+  Pillar Page     Modüler Su Depoları    Geniş, kapsamlı, yüksek hacimli
+                  Rehberi                ana kelime
+
+  Cluster Page    GRP Modüler Depo       Spesifik alt konu, Pillar'a link
+                  Nedir?                 verir
+
+  Cluster Page    Paslanmaz Depo         Ticari niyet, ürün sayfasına
+                  Fiyatları              yönlendirir
+
+  Cluster Page    Modüler Depo Montajı   Hizmet sayfası veya how-to blog
+  ------------------------------------------------------------------------
+
+İçerik Formatı Belirleme:
+
+  -----------------------------------------------------------------------
+  Search Intent          Önerilen Format
+  ---------------------- ------------------------------------------------
+  Informational          Blog, Rehber, Video, Infografik
+
+  Commercial             Karşılaştırma sayfası, X vs Y inceleme
+
+  Transactional          Ürün sayfası, Hizmet sayfası, Landing page
+
+  Navigational           Marka sayfası, Hakkımızda
+  -----------------------------------------------------------------------
+
+4. API ENTEGRASYONLARI
+
+4.1 Ahrefs API
+
+  -----------------------------------------------------------------------
+  Endpoint               Kullanım Amacı
+  ---------------------- ------------------------------------------------
+  Keywords Explorer      Volume, CPC, KD, Parent Topic, Clicks Per Search
+
+  Site Explorer          Rakip URL organik keywords (reverse engineering)
+
+  Content Gap            Rakip boşluk analizi
+
+  SERP Overview          SERP özellik tespiti
+  -----------------------------------------------------------------------
+
+4.2 SEMrush API
+
+  -----------------------------------------------------------------------
+  Endpoint               Kullanım Amacı
+  ---------------------- ------------------------------------------------
+  Keyword Magic Tool     Broad match, phrase match, question keywords
+
+  Keyword Manager        Keyword listeleme ve clustering
+
+  Domain Overview        Rakip domain analizi
+
+  Intent Labels          Otomatik intent etiketleme (I, C, T, N)
+  -----------------------------------------------------------------------
+
+4.3 Google APIs
+
+  -----------------------------------------------------------------------
+  API/Kaynak             Kullanım Amacı
+  ---------------------- ------------------------------------------------
+  Google Suggest         Autocomplete önerileri
+
+  SERP Scraping          PAA soruları, Featured Snippet içeriği
+
+  Search Console         Mevcut sıralama verileri (opsiyonel)
+  -----------------------------------------------------------------------
+
+4.4 AI APIs (Clustering & Analysis)
+
+  -----------------------------------------------------------------------
+  API                    Kullanım Amacı
+  ---------------------- ------------------------------------------------
+  OpenAI GPT-4           Semantic clustering, intent classification,
+                         fırsat skoru hesaplama
+
+  Anthropic Claude       Content gap analizi yorumlama, strateji
+                         önerileri
+  -----------------------------------------------------------------------
+
+5. VERİTABANI EŞLEŞTİRMESİ
+
+Her workflow aşaması, belirli veritabanı tablolarına veri yazar.
+
+  -----------------------------------------------------------------------
+  Aşama              Tablo              Kaydedilen Veriler
+  ------------------ ------------------ ---------------------------------
+  1. Proje Oluşturma keyword_projects   project_name, main_keyword,
+                                        scenario_type, settings
+
+  2. Keyword         keyword_results    keyword, type, volume, KD, CPC,
+  Discovery                             intent, source
+
+  3. Rakip Analizi   competitor_data    URL, position, title, word_count,
+                                        headings, DR
+
+  4. SERP Analizi    serp_features      featured_snippet, PAA, video,
+                                        image_pack, etc.
+
+  4. SERP Analizi    paa_data           question, answer_snippet,
+                                        source_url, position
+
+  5. Content Gap     keyword_results    gap_type: content_gap,
+                                        opportunity_score
+
+  6. Fırsat Analizi  keyword_results    opportunity_score (calculated
+                                        field)
+
+  7. Clustering      keyword_results    keyword_cluster, parent_topic
+
+  8. Strateji        keyword_projects   status: completed, total counts
+  -----------------------------------------------------------------------
+
+5.1 Tablo Detayları
+
+keyword_projects (Ana Proje Tablosu)
+
+Her analiz projesi için tek kayıt. Senaryo tipi, ayarlar ve özet
+istatistikler.
+
+keyword_results (Keyword Verileri)
+
+Bulunan tüm anahtar kelimeler. Volume, KD, CPC, intent, cluster
+bilgileri.
+
+competitor_data (Rakip Analizi)
+
+SERP Top 10 rakip sayfalarının detaylı analizi. Heading yapısı, word
+count, DR.
+
+serp_features (SERP Özellikleri)
+
+Google SERP'teki özel özelliklerin tespiti. Featured Snippet, PAA,
+Video, Local Pack.
+
+paa_data (People Also Ask)
+
+PAA soruları ve cevap snippet'leri. H2/H3 başlık önerisi olarak
+kullanılır.
+
+6. N8N WORKFLOW TASARIMI
+
+6.1 Workflow Listesi
+
+  ------------------------------------------------------------------------
+  WF #      Workflow Adı           Açıklama
+  --------- ---------------------- ---------------------------------------
+  WF-101    Project Initializer    Yeni proje oluşturma, senaryo belirleme
+
+  WF-102    Keyword Discovery -    Senaryo A: Seed keyword genişletme
+            Seed                   
+
+  WF-103    Keyword Discovery -    Senaryo B: Topic based daraltma
+            Topic                  
+
+  WF-104    Competitor Analyzer    SERP Top 10 rakip analizi
+
+  WF-105    SERP Feature Detector  SERP özellik tespiti ve PAA çekme
+
+  WF-106    Content Gap Finder     Rakip boşluk analizi
+
+  WF-107    Opportunity Scorer     Fırsat skoru hesaplama
+
+  WF-108    Keyword Clusterer      Semantic ve intent clustering
+
+  WF-109    Strategy Generator     Pillar-Cluster yapısı ve içerik planı
+
+  WF-110    Report Exporter        Final rapor oluşturma (Excel, PDF)
+  ------------------------------------------------------------------------
+
+6.2 Workflow Akış Şeması
+
+WF-101: Project Initializer
+
+│
+
+├── Senaryo A? ──→ WF-102: Keyword Discovery (Seed)
+
+│
+
+└── Senaryo B? ──→ WF-103: Keyword Discovery (Topic)
+
+│
+
+▼
+
+WF-104: Competitor Analyzer
+
+│
+
+▼
+
+WF-105: SERP Feature Detector
+
+│
+
+▼
+
+WF-106: Content Gap Finder
+
+│
+
+▼
+
+WF-107: Opportunity Scorer
+
+│
+
+▼
+
+WF-108: Keyword Clusterer
+
+│
+
+▼
+
+WF-109: Strategy Generator
+
+│
+
+▼
+
+WF-110: Report Exporter
+
+7. OUTPUT FORMATLARI
+
+7.1 Final Teslim Formatları
+
+  -----------------------------------------------------------------------
+  Output             İçerik
+  ------------------ ----------------------------------------------------
+  Master Keyword     Excel/Sheets: Tüm ham veri, volume, KD, CPC, Intent
+  Database           etiketleri
+
+  Content Map        Görsel/Tablo: Hangi cluster hangi pillar'a bağlı,
+                     site ağacı yapısı
+
+  Action Plan        3-6 aylık içerik üretim planı, öncelik sıralaması
+
+  Competitor         Rakipler nerede güçlü, biz nereden vuracağız raporu
+  Benchmark          
+
+  PAA Question List  H2/H3 başlık önerileri, FAQ Schema için sorular
+
+  SERP Feature Map   Hangi keyword'de hangi SERP özelliği var, strateji
+                     önerileri
+  -----------------------------------------------------------------------
+
+7.2 Tool 2'ye Aktarılacak Veriler
+
+Tool 2 (Internal Linking) için keyword_projects tablosundan şu veriler
+aktarılır:
+
+-   Clustered keywords (kümelenmiş anahtar kelimeler)
+
+-   Pillar-Cluster yapısı
+
+-   Intent etiketleri
+
+-   Hedef sayfa türleri
+
+8. RİSK YÖNETİMİ VE KONTROLLER
+
+8.1 Keyword Cannibalization (Yamyamlık)
+
+Aynı site içindeki iki farklı sayfanın aynı kelime için yarışması
+engellenir.
+
+-   Her sayfanın birincil anahtar kelimesi UNIQUE (benzersiz) olmalı
+
+-   Clustering aşamasında aynı cluster'daki kelimeler tek sayfaya
+    yönlendirilir
+
+-   Mevcut site audit yapılarak çakışmalar tespit edilir
+
+8.2 Zero-Click Riski
+
+Google'ın SERP'te cevabı doğrudan verdiği kelimelere yatırım yapılmaz.
+
+-   Knowledge Panel dominant kelimeler işaretlenir
+
+-   Featured Snippet + düşük CTR kombinasyonu uyarı verir
+
+-   Ahrefs Clicks Per Search (CPS) metriği kontrol edilir
+
+8.3 Intent Mismatch
+
+Araç intent tahmini ile gerçek SERP uyuşmazlığı kontrol edilir.
+
+-   SEMrush 'Informational' dedi ama SERP'te e-ticaret siteleri var →
+    Uyarı
+
+-   Manuel SERP kontrolü her zaman yapılır
+
+8.4 API Rate Limits
+
+  -----------------------------------------------------------------------
+  API                Rate Limit             Yönetim Stratejisi
+  ------------------ ---------------------- -----------------------------
+  Ahrefs             Plan bazlı             Öncelikli keyword'ler için
+                     (500-10000/ay)         kullan
+
+  SEMrush            10,000 request/gün     Batch processing, caching
+
+  OpenAI             Token bazlı            Chunk işleme, özet kullanımı
+  -----------------------------------------------------------------------
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+— DOKÜMAN SONU —
+
+Tool 1: Keyword Analysis • Teknik Dokümantasyon v1.0
+
+Aralık 2025

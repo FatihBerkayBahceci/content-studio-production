@@ -1,0 +1,37 @@
+{
+  "name": "seo-tool-suite",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Enterprise SEO Content Production Pipeline - 3 Modular Tools",
+  "keywords": [
+    "seo",
+    "content-studio",
+    "keyword-research",
+    "internal-linking",
+    "n8n",
+    "automation"
+  ],
+  "author": "SEO Tool Suite Team",
+  "license": "UNLICENSED",
+  "scripts": {
+    "dev": "pnpm --filter web dev",
+    "build": "pnpm --filter web build",
+    "start": "pnpm --filter web start",
+    "lint": "pnpm --filter web lint",
+    "type-check": "pnpm -r type-check",
+    "clean": "pnpm -r clean",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "docker:logs": "docker-compose logs -f",
+    "db:migrate": "mysql -u root -p < database/schema/seo_tool_suite_schema_v3.sql"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "typescript": "^5.3.0"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "pnpm": ">=8.0.0"
+  },
+  "packageManager": "pnpm@8.15.0"
+}

@@ -1,0 +1,482 @@
+{
+  "name": "WF-104b: Competitor Scraper",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "tool1-competitor-scrape/:projectId/scrape",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-scraper",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        240,
+        300
+      ],
+      "webhookId": "tool1-competitor-scrape"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Input validation\nconst projectId = $json.params?.projectId;\n\nif (!projectId) {\n  return {\n    json: {\n      isValid: false,\n      error: 'projectId parametresi zorunludur',\n      errorCode: 400\n    }\n  };\n}\n\nconst parsedId = parseInt(projectId);\nif (isNaN(parsedId) || parsedId <= 0) {\n  return {\n    json: {\n      isValid: false,\n      error: 'projectId gecerli bir pozitif sayi olmalidir',\n      errorCode: 400\n    }\n  };\n}\n\nreturn {\n  json: {\n    isValid: true,\n    projectId: parsedId\n  }\n};"
+      },
+      "id": "code-validate",
+      "name": "Code - Validate Input",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        460,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "is-valid",
+              "leftValue": "={{ $json.isValid }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "if-valid",
+      "name": "IF - Valid Input",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        680,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": false,\n  \"error\": \"Validation failed\",\n  \"message\": \"{{ $json.error }}\"\n}",
+        "options": {
+          "responseCode": "={{ $json.errorCode }}"
+        }
+      },
+      "id": "respond-validation-error",
+      "name": "Respond - Validation Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        900,
+        500
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=SELECT \n  (SELECT id FROM keyword_projects WHERE id = {{ $json.projectId }}) as project_id,\n  (SELECT project_name FROM keyword_projects WHERE id = {{ $json.projectId }}) as project_name",
+        "options": {}
+      },
+      "id": "mysql-check-project",
+      "name": "MySQL - Check Project",
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.4,
+      "position": [
+        900,
+        300
+      ],
+      "credentials": {
+        "mySql": {
+          "id": "LYQGH6Sr5DJDmTWl",
+          "name": "SEO Suite MySQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Check if project exists\nconst result = $input.first().json;\nconst validatedData = $('Code - Validate Input').first().json;\n\nif (!result.project_id) {\n  return [{\n    json: {\n      projectExists: false,\n      projectId: validatedData.projectId\n    }\n  }];\n}\n\nreturn [{\n  json: {\n    projectExists: true,\n    projectId: result.project_id,\n    projectName: result.project_name\n  }\n}];"
+      },
+      "id": "code-check-project",
+      "name": "Code - Check Project",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "project-exists",
+              "leftValue": "={{ $json.projectExists }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "if-project-exists",
+      "name": "IF - Project Exists",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1340,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": false,\n  \"error\": \"Project not found\",\n  \"message\": \"Proje bulunamadi: {{ $json.projectId }}\"\n}",
+        "options": {
+          "responseCode": 404
+        }
+      },
+      "id": "respond-not-found",
+      "name": "Respond - Not Found",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1560,
+        500
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=SELECT \n  cd.id,\n  cd.competitor_url as url,\n  cd.competitor_domain as domain,\n  cd.project_id\nFROM competitor_data cd\nWHERE cd.project_id = {{ $json.projectId }}\n  AND (cd.word_count IS NULL OR cd.word_count = 0)\nLIMIT 10",
+        "options": {
+          "alwaysOutputData": true
+        }
+      },
+      "id": "mysql-get-unscraped",
+      "name": "MySQL - Get Unscraped",
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.4,
+      "position": [
+        1560,
+        300
+      ],
+      "credentials": {
+        "mySql": {
+          "id": "LYQGH6Sr5DJDmTWl",
+          "name": "SEO Suite MySQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Check if there are unscraped competitors\nconst items = $input.all();\nconst projectData = $('IF - Project Exists').first().json;\n\nconst hasCompetitors = items.length > 0 && !!items[0].json.id;\n\nif (!hasCompetitors) {\n  return [{\n    json: {\n      hasCompetitors: false,\n      projectId: projectData.projectId,\n      message: 'Scrape edilecek rakip bulunamadi',\n      competitors: []\n    }\n  }];\n}\n\n// Return competitors list in single item for sequential processing\nconst competitors = items.map(item => ({\n  competitorId: item.json.id,\n  url: item.json.url,\n  domain: item.json.domain,\n  projectId: item.json.project_id\n}));\n\nreturn [{\n  json: {\n    hasCompetitors: true,\n    projectId: projectData.projectId,\n    competitors: competitors\n  }\n}];"
+      },
+      "id": "code-check-competitors",
+      "name": "Code - Check Competitors",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1780,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "has-competitors",
+              "leftValue": "={{ $json.hasCompetitors }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "if-has-competitors",
+      "name": "IF - Has Competitors",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        2000,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": true,\n  \"data\": {\n    \"message\": \"{{ $json.message }}\",\n    \"scraped_count\": 0\n  }\n}",
+        "options": {}
+      },
+      "id": "respond-no-competitors",
+      "name": "Respond - No Competitors",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        2220,
+        500
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const inputData = $input.first().json;\nconst competitors = inputData.competitors || [];\n\nconst sanitize = (str) => {\n  if (!str) return '';\n  return str.replace(/[\\x00-\\x1F\\x7F]/g, '').replace(/\\\\/g, '').replace(/[\\\"']/g, '').trim();\n};\n\nconst escapeForMysql = (str) => {\n  if (!str) return '';\n  return str.replace(/'/g, \"''\");\n};\n\nconst parseHtml = (html, comp) => {\n  const fail = { competitorId: comp.competitorId, projectId: comp.projectId, url: comp.url, wordCount: 0, h1Count: 0, h2Count: 0, h3Count: 0, h4Count: 0, h5Count: 0, h6Count: 0, headingsJson: '{\"h1\":[],\"h2\":[],\"h3\":[],\"h4\":[],\"h5\":[],\"h6\":[]}', scrapeStatus: 'failed' };\n  if (!html || html.length < 100) return fail;\n  \n  let text = html.replace(/<script[\\s\\S]*?<\\/script>/gi, '').replace(/<style[\\s\\S]*?<\\/style>/gi, '').replace(/<[^>]+>/g, ' ').replace(/\\s+/g, ' ').trim();\n  const wc = text.split(' ').filter(w => w.length > 0).length;\n  \n  const getH = (n) => {\n    const r = new RegExp('<h' + n + '[^>]*>([\\\\s\\\\S]*?)</h' + n + '>', 'gi');\n    const m = html.match(r) || [];\n    return m.map(x => sanitize(x.replace(/<[^>]+>/g, '').substring(0, 150)));\n  };\n  \n  const h1=getH(1), h2=getH(2), h3=getH(3), h4=getH(4), h5=getH(5), h6=getH(6);\n  const toArr = (a) => '[' + a.slice(0,20).map(s => '\"' + s + '\"').join(',') + ']';\n  const js = '{\"h1\":'+toArr(h1)+',\"h2\":'+toArr(h2)+',\"h3\":'+toArr(h3)+',\"h4\":'+toArr(h4)+',\"h5\":'+toArr(h5)+',\"h6\":'+toArr(h6)+'}';\n  \n  return { competitorId: comp.competitorId, projectId: comp.projectId, url: comp.url, wordCount: wc, h1Count: h1.length, h2Count: h2.length, h3Count: h3.length, h4Count: h4.length, h5Count: h5.length, h6Count: h6.length, headingsJson: escapeForMysql(js), scrapeStatus: 'success' };\n};\n\nconst results = [];\nfor (const c of competitors) {\n  try {\n    const res = await this.helpers.httpRequest({ method: 'GET', url: c.url, timeout: 15000, returnFullResponse: true, ignoreHttpStatusErrors: true });\n    results.push({ json: parseHtml(res.body || '', c) });\n  } catch (e) {\n    results.push({ json: parseHtml('', c) });\n  }\n}\nreturn results;"
+      },
+      "id": "code-fetch-parse",
+      "name": "Code - Fetch & Parse",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2220,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=UPDATE competitor_data SET \n  word_count = {{ $json.wordCount || 0 }},\n  h1_count = {{ $json.h1Count || 0 }},\n  h2_count = {{ $json.h2Count || 0 }},\n  h3_count = {{ $json.h3Count || 0 }},\n  h4_count = {{ $json.h4Count || 0 }},\n  h5_count = {{ $json.h5Count || 0 }},\n  h6_count = {{ $json.h6Count || 0 }},\n  analyzed_at = NOW()\nWHERE id = {{ $json.competitorId }}",
+        "options": {}
+      },
+      "id": "mysql-update-competitor",
+      "name": "MySQL - Update Competitor",
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.4,
+      "position": [
+        2660,
+        300
+      ],
+      "credentials": {
+        "mySql": {
+          "id": "LYQGH6Sr5DJDmTWl",
+          "name": "SEO Suite MySQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Prepare success response\nconst allItems = $input.all();\nconst successCount = allItems.filter(i => i.json.affectedRows > 0).length;\nconst projectId = $('IF - Project Exists').first().json.projectId;\n\nreturn [{\n  json: {\n    success: true,\n    data: {\n      projectId: projectId,\n      scraped_count: successCount,\n      message: `${successCount} rakip sayfasi basariyla scrape edildi`\n    }\n  }\n}];"
+      },
+      "id": "code-prepare-response",
+      "name": "Code - Prepare Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2880,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "id": "respond-success",
+      "name": "Respond - Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        3100,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Code - Validate Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code - Validate Input": {
+      "main": [
+        [
+          {
+            "node": "IF - Valid Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF - Valid Input": {
+      "main": [
+        [
+          {
+            "node": "MySQL - Check Project",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond - Validation Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MySQL - Check Project": {
+      "main": [
+        [
+          {
+            "node": "Code - Check Project",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code - Check Project": {
+      "main": [
+        [
+          {
+            "node": "IF - Project Exists",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF - Project Exists": {
+      "main": [
+        [
+          {
+            "node": "MySQL - Get Unscraped",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond - Not Found",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MySQL - Get Unscraped": {
+      "main": [
+        [
+          {
+            "node": "Code - Check Competitors",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code - Check Competitors": {
+      "main": [
+        [
+          {
+            "node": "IF - Has Competitors",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF - Has Competitors": {
+      "main": [
+        [
+          {
+            "node": "Code - Fetch & Parse",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond - No Competitors",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code - Fetch & Parse": {
+      "main": [
+        [
+          {
+            "node": "MySQL - Update Competitor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MySQL - Update Competitor": {
+      "main": [
+        [
+          {
+            "node": "Code - Prepare Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code - Prepare Response": {
+      "main": [
+        [
+          {
+            "node": "Respond - Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": [
+    {
+      "id": "1",
+      "name": "Tool1-KeywordResearch"
+    }
+  ]
+}

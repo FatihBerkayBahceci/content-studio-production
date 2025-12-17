@@ -1,0 +1,689 @@
+TOOL 2
+
+CONTENT STUDIO
+
+İçerik Üretimi + Temiz HTML Çıktısı
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
++-----------------------------------+-----------------------------------+
+| SENARYO A                         | SENARYO B                         |
+|                                   |                                   |
+| İçerik VAR                        | İçerik YOK                        |
+|                                   |                                   |
+| Dönüştürme & Temizleme            | AI Üretim & HTML Çıktı            |
++-----------------------------------+-----------------------------------+
+
+▼
+
+  -----------------------------------------------------------------------
+  TEMİZ HTML ÇIKTI
+
+  -----------------------------------------------------------------------
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+TEKNİK DOKÜMANTASYON
+
+SEO Uyumlu • Semantik HTML • Schema Ready
+
+Versiyon 1.0 • Aralık 2025
+
+İÇİNDEKİLER
+
+1.  Tool Genel Bakış
+
+2.  Input Analizi ve Senaryo Seçimi
+
+3.  SEO Değerlendirme Metodolojisi
+
+4.  Senaryo A: İçerik Dönüştürme
+
+5.  Senaryo B: İçerik Üretimi
+
+6.  HTML Output Yapı Stratejisi
+
+7.  Linkleme Stratejisi
+
+8.  Medya Yerleşim ve Optimizasyon
+
+9.  Schema Markup Stratejisi
+
+10. Metadata Üretim Mantığı
+
+11. Kalite Kontrol Checklist
+
+12. n8n Workflow Tasarımı
+
+13. Veritabanı Eşleştirmesi
+
+14. Output Validasyon ve Teslimat
+
+1. TOOL GENEL BAKIŞ
+
+1.1 Amaç
+
+Tool 2, SEO uyumlu içerik üretimi ve mevcut içeriklerin temiz HTML
+formatına dönüştürülmesini sağlar. İki ana senaryo desteklenir: mevcut
+içeriğin dönüştürülmesi veya sıfırdan AI ile içerik üretimi. Her iki
+senaryoda da çıktı, Tool 3 (Internal Linking) için hazır, temiz HTML
+formatındadır.
+
+1.2 Temel Yetenekler
+
+-   İçerik durumu analizi ve otomatik senaryo seçimi
+
+-   Keyword Intent ve SERP analizi entegrasyonu
+
+-   AI destekli içerik üretimi (Senaryo B)
+
+-   Kirli HTML temizleme ve semantik dönüşüm (Senaryo A)
+
+-   Otomatik H1-H6 hiyerarşi düzenleme
+
+-   Schema Markup seçimi ve enjeksiyonu
+
+-   Metadata üretimi (Title, Meta Description)
+
+-   Medya optimizasyonu (Alt text, lazy load, CDN)
+
+-   W3C ve Lighthouse validasyonu
+
+1.3 Tool Entegrasyonları
+
+  ------------------------------------------------------------------------
+  Tool            Alınan Veri                Verilen Veri
+  --------------- -------------------------- -----------------------------
+  Tool 1          Keyword cluster, intent,   -
+                  brief, outline             
+
+  Tool 3          -                          Temiz HTML içerik, metadata
+                                             JSON
+  ------------------------------------------------------------------------
+
+2. INPUT ANALİZİ VE SENARYO SEÇİMİ
+
+2.1 Girdi Kaynağı Analizi
+
+  -----------------------------------------------------------------------
+  Girdi Tipi         Açıklama
+  ------------------ ----------------------------------------------------
+  Manuel Input       Kullanıcı konu başlığı, alt başlıklar veya mevcut
+                     içerik metnini doğrudan sağlar. Esnekliğe
+                     odaklanılır.
+
+  JSON Input         Veritabanı şemasına uygun JSON: içerik parçaları,
+                     keyword hedefleri, sayfa türü, metadata. Otomasyon
+                     için öncelikli.
+
+  Tool 1 Entegrasyon keyword_projects tablosundan brief, outline ve
+                     cluster yapısı otomatik çekilir.
+  -----------------------------------------------------------------------
+
+2.2 Senaryo Seçim Mantığı
+
+  KONTROL: Girdi, işlenecek ham içerik metni içeriyor mu?
+
+  -----------------------------------------------------------------------
+  Durum           Senaryo                     Aksiyon
+  --------------- --------------------------- ---------------------------
+  İçerik VAR      Senaryo A                   Dönüştürme & Temizleme
+                                              pipeline'ı
+
+  İçerik YOK      Senaryo B                   AI İçerik Üretim pipeline'ı
+  -----------------------------------------------------------------------
+
+2.3 Hata Senaryoları
+
+  -----------------------------------------------------------------------
+  Hata Durumu            Davranış
+  ---------------------- ------------------------------------------------
+  Kritik Veri Eksikliği  Hedef keyword, sayfa türü veya ID eksikse →
+                         Süreç hata döner, işlem yapılmaz
+
+  Senaryo Çatışması      Hem içerik var hem 'oluştur' komutu → Senaryo A
+                         varsayılır, uyarı loglanır
+  -----------------------------------------------------------------------
+
+  ⚠️ Kritik Veri Neden Zorunlu?
+
+  Temel hedef keyword olmadan Keyword Intent uyumu sağlanamaz. Sayfa
+  türü olmadan doğru bilgi mimarisi ve Schema seçimi yapılamaz.
+
+3. SEO DEĞERLENDİRME METODOLOJİSİ
+
+Senaryo seçiminden bağımsız olarak, her içerik işlemi öncesinde SEO ve
+Semantik değerlendirme yapılır.
+
+3.1 Keyword Intent Analizi
+
+  -----------------------------------------------------------------------
+  Intent Türü        Açıklama               Sayfa Formatı
+  ------------------ ---------------------- -----------------------------
+  Informational      Bilgi arama            Blog, Rehber, How-to
+
+  Commercial         Karşılaştırma,         X vs Y, Review, Liste
+                     inceleme               
+
+  Transactional      Satın alma niyeti      Ürün, Hizmet, Landing
+
+  Navigational       Marka/site arama       Hakkımızda, İletişim
+  -----------------------------------------------------------------------
+
+3.2 SERP Analizi
+
+Rakip SERP yapısı incelenir ve şu veriler çıkarılır:
+
+-   Rakiplerin kullandığı alt başlık (H2/H3) yapısı
+
+-   Kullanılan Schema türleri
+
+-   Ortalama içerik derinliği (kelime sayısı)
+
+-   SERP özellikleri (Featured Snippet, PAA, vb.)
+
+3.3 Bilgi Mimarisi (IA) Hazırlığı
+
+1.  İhtiyaç Belirleme: Hedef intent için gerekli yapısal bileşenler
+    (tablo, liste, FAQ) belirlenir
+
+2.  Silolama Kararı: İçeriğin hangi konu kümesi altına yerleşeceği
+    belirlenir
+
+3.  Dahili Link Stratejisi: Silo içi linklenecek sayfalar işaretlenir
+
+4. SENARYO A: İÇERİK DÖNÜŞTÜRME
+
+İçerik VAR → Temizle & Dönüştür → Temiz HTML
+
+4.1 Kaynak Türleri
+
+-   Google Docs'tan kopyalanan içerik
+
+-   Microsoft Word'den export edilmiş HTML
+
+-   CMS'ten copy-paste edilmiş içerik
+
+-   Ham Markdown veya HTML dosyası
+
+4.2 Yapısal Temizleme Kuralları
+
+  -----------------------------------------------------------------------
+  Temizlenecek Öğe           Açıklama
+  -------------------------- --------------------------------------------
+  Inline CSS                 style='...' attributeleri tamamen kaldırılır
+
+  Class Attributeleri        class='...' attributeleri kaldırılır
+                             (opsiyonel: beyaz liste)
+
+  MS Word Etiketleri         <o:p>, <w:...>, mso-* stilleri ayıklanır
+
+  Boş Etiketler              İçeriksiz <p></p>, <span></span> kaldırılır
+
+  Font Etiketleri            <font>, <center> gibi deprecated etiketler
+                             kaldırılır
+
+  Gereksiz Div'ler           Metin sarmalayan anlamsız <div>'ler
+                             kaldırılır
+  -----------------------------------------------------------------------
+
+4.3 Hiyerarşi Dönüşüm Kuralları
+
+  -----------------------------------------------------------------------
+  Kaynak Durum                   Dönüşüm
+  ------------------------------ ----------------------------------------
+  Kalın + Büyük font             → Uygun H seviyesine (H2, H3, vb.)
+
+  Yanlış sıralı başlık (H4 sonra → Ardışık hiyerarşiye düzeltilir
+  H2)                            
+
+  Birden fazla H1                → İlki kalır, diğerleri H2'ye dönüşür
+
+  Paragraf içinde line break     → Ayrı <p> etiketlerine bölünür
+  -----------------------------------------------------------------------
+
+4.4 Paragraf ve Liste Standardizasyonu
+
+-   Çok uzun paragraflar (5+ cümle) → Kısa, okunabilir parçalara ayrılır
+
+-   Madde işaretli metin → <ul><li> yapısına dönüşür
+
+-   Numaralı liste → <ol><li> yapısına dönüşür
+
+-   Tablo formatında veri → <table> yapısına dönüşür
+
+5. SENARYO B: İÇERİK ÜRETİMİ
+
+İçerik YOK → AI Üretim → Temiz HTML
+
+5.1 Input Kaynakları
+
+-   Tool 1'den gelen brief ve outline
+
+-   Manuel konu başlığı ve alt başlıklar
+
+-   JSON formatında keyword set ve metadata
+
+5.2 Konusal Kapsam Belirleme
+
+Hedef anahtar kelime setini en geniş ve derin şekilde kapsayacak H2/H3
+hiyerarşisi oluşturulur.
+
+  Örnek: "Modüler Su Deposu" için: H2: Modüler Su Deposu Nedir? H2:
+  Modüler Su Deposu Türleri H3: GRP Modüler Depolar H3: Paslanmaz Çelik
+  Depolar H2: Fiyatları ve Kurulum
+
+5.3 İçerik Derinliği Kontrolü
+
+1.  Rakip SERP analizi: Ortalama kelime sayısı tespit edilir
+
+2.  Hedef: Rakip ortalamasından %20-30 daha kapsamlı içerik
+
+3.  Eksik semantik ilişkiler tespit edilir ve ek bölümler planlanır
+
+5.4 E-E-A-T Sinyalleri
+
+Üretilen içerikte uzmanlık ve güvenilirlik sinyalleri eklenir:
+
+-   Kaynak alıntıları için yer tutucular: [KAYNAK: ...]
+
+-   Uzman görüşü bölümleri
+
+-   İstatistik ve veri referansları
+
+-   Yazar bilgisi (Author Schema için)
+
+  💡 E-E-A-T Nedir?
+
+  Experience, Expertise, Authoritativeness, Trustworthiness - Google'ın
+  içerik kalitesi değerlendirme kriterleri. Özellikle YMYL (Your Money
+  Your Life) konularda kritik önem taşır.
+
+6. HTML OUTPUT YAPI STRATEJİSİ
+
+Her iki senaryo için de geçerli olan nihai HTML yapısı kuralları.
+
+6.1 Başlık Hiyerarşisi (H1-H6)
+
+  -----------------------------------------------------------------------
+  Kural           Açıklama
+  --------------- -------------------------------------------------------
+  Tek H1          Sayfada yalnızca BİR ADET <h1> etiketi bulunmalı. Ana
+                  hedef keyword'ü içermeli.
+
+  Ardışık Sıra    H1 > H2 > H3 > H4... Atlama yapılmamalı (H2'den sonra
+                  H4 YASAK)
+
+  Semantik Anlam  Başlıklar görsel değil, yapısal anlam taşımalı
+  -----------------------------------------------------------------------
+
+6.2 Semantik Etiket Kullanımı
+
+  ------------------------------------------------------------------------
+  Etiket          Kullanım                   Yasak Kullanım
+  --------------- -------------------------- -----------------------------
+  <p>             Paragraf metinleri         Liste öğesi olarak
+
+  <ul>/<ol>       Listeler                   Navigasyon menüsü dışında
+
+  <blockquote>    Alıntılar                  Vurgulama amaçlı
+
+  <figure>        Görsel + caption           Dekoratif görsel
+
+  <table>         Veri tabloları             Layout amaçlı
+
+  <div>           Container/Layout           Metin sarmalama
+  ------------------------------------------------------------------------
+
+6.3 Önem Vurgulama
+
+  -----------------------------------------------------------------------
+  Kullan             Amaç                   Kullanma
+  ------------------ ---------------------- -----------------------------
+  <strong>           Anlamsal önem vurgusu  <b> (görsel kalınlık)
+
+  <em>               Anlamsal vurgu/italik  <i> (görsel italik)
+  -----------------------------------------------------------------------
+
+7. LİNKLEME STRATEJİSİ
+
+7.1 Internal Linking (Dahili Bağlantı)
+
+NOT: Detaylı internal linking stratejisi Tool 3'te uygulanır. Tool 2'de
+sadece yer tutucular ve öneriler eklenir.
+
+-   Hedef: Sayfanın yer aldığı topic cluster içindeki ilgili sayfalara
+    link önerileri
+
+-   Anchor Text: Exact match veya partial match keyword temelli
+
+-   Format: [INTERNAL_LINK: hedef_sayfa | anchor_text]
+
+7.2 Outbound Linking (Dış Bağlantı)
+
+  -----------------------------------------------------------------------
+  Kural              Açıklama
+  ------------------ ----------------------------------------------------
+  Minimum 1 Dış Link E-E-A-T sinyali için yüksek otoriteli kaynağa link
+
+  Kaynak Seçimi      .gov, .edu, tanınmış endüstri otoriteleri tercih
+                     edilir
+
+  rel='nofollow'     Ticari veya sponsorlu linklerde kullanılır
+
+  rel='sponsored'    Reklam veya ücretli içerik linkleri için
+  -----------------------------------------------------------------------
+
+8. MEDYA YERLEŞİM VE OPTİMİZASYON
+
+8.1 Görsel Yerleşim Kuralları
+
+-   İlk ana başlık (H2) öncesinde veya hemen sonrasında hero görsel
+
+-   Kritik veri noktalarında destekleyici görsel
+
+-   İçeriğin anlamsal akışını destekleyen konumlar
+
+8.2 Alt Text Üretim Kuralları
+
+1.  İçeriğin ilgili kısmını doğru tanımlamalı
+
+2.  Hedef keyword'ü doğal olarak içermeli
+
+3.  Açıklayıcı ve erişilebilir olmalı (WCAG uyumu)
+
+4.  'Görsel', 'Resim' gibi gereksiz kelimeler içermemeli
+
+8.3 Performans Optimizasyonu
+
+  -----------------------------------------------------------------------
+  Optimizasyon       Uygulama
+  ------------------ ----------------------------------------------------
+  Lazy Loading       loading="lazy" attribute - kritik olmayan tüm
+                     görseller
+
+  CDN Kullanımı      Medya varlıkları CDN üzerinden servis edilmeli
+
+  Boyut Tanımı       width ve height attribute zorunlu (CLS önleme)
+
+  Format             WebP tercih, fallback için JPG/PNG
+  -----------------------------------------------------------------------
+
+9. SCHEMA MARKUP STRATEJİSİ
+
+9.1 Temel Schema Seçimi
+
+  -----------------------------------------------------------------------
+  Sayfa Türü             Birincil Schema        Not
+  ---------------------- ---------------------- -------------------------
+  Blog/Makale            Article / BlogPosting  datePublished, author
+                                                zorunlu
+
+  Ürün Sayfası           Product                price, availability
+                                                önemli
+
+  Hizmet Sayfası         Service                serviceType, provider
+
+  Kurumsal               Organization           logo, contactPoint
+
+  SSS İçeriği            FAQPage                Question-Answer pairs
+
+  Nasıl Yapılır          HowTo                  step, tool, supply
+  -----------------------------------------------------------------------
+
+9.2 İkincil/Zenginleştirici Şemalar
+
+-   Review: Ürün veya hizmet değerlendirmesi varsa
+
+-   VideoObject: Video içerik embed edilmişse
+
+-   ImageObject: Önemli infografik veya diyagram varsa
+
+-   BreadcrumbList: Navigasyon için (her sayfada önerilir)
+
+  🎯 Schema Amacı
+
+  Arama motorlarına içeriğin NE HAKKINDA olduğunu net iletmek ve SERP
+  görünürlüğünü (Rich Results ile CTR artışı) maksimize etmek.
+
+10. METADATA ÜRETİM MANTIĞI
+
+10.1 Title Etiketi
+
+  -----------------------------------------------------------------------
+  Kural              Açıklama
+  ------------------ ----------------------------------------------------
+  Keyword İçermeli   Hedef ana keyword MUTLAKA dahil edilmeli
+
+  Intent Yansıtmalı  Arama niyetine uygun ton ve içerik
+
+  Uzunluk            55-60 karakter (pixel sınırı dikkate alınır)
+
+  Yapı               [Birincil Keyword] | [İkincil Çekici] | [Marka]
+  -----------------------------------------------------------------------
+
+10.2 Meta Description
+
+  -----------------------------------------------------------------------
+  Kural              Açıklama
+  ------------------ ----------------------------------------------------
+  Fayda Özeti        Sayfanın temel faydasını özetlemeli
+
+  CTA İçermeli       Eylem çağrısı (Call to Action) dahil edilmeli
+
+  İkincil Keywords   Title'da olmayan önemli ikincil keywordler
+
+  Uzunluk            155-160 karakter aralığı
+  -----------------------------------------------------------------------
+
+10.3 Diğer Meta Etiketler
+
+-   canonical: Doğru canonical URL belirlenmeli
+
+-   robots: index, follow (veya duruma göre)
+
+-   og:title, og:description: Sosyal medya paylaşımı için
+
+-   og:image: Paylaşım görseli (1200x630px önerilir)
+
+11. KALİTE KONTROL CHECKLİST
+
+Final HTML çıktısı oluşturulmadan önce uygulanan zorunlu kontrol
+noktaları.
+
+11.1 Teknik SEO Kontrolleri
+
+-   Tek H1 kuralı sağlandı mı?
+
+-   Başlık hiyerarşisi doğru ve ardışık mı (H1, H2, H3...)?
+
+-   Tüm görsellerde anlamlı alt text var mı?
+
+-   Görsellerde width/height tanımlı mı?
+
+-   Lazy loading uygulandı mı?
+
+-   Canonical URL doğru hedefi gösteriyor mu?
+
+11.2 İçerik ve Semantik Kontroller
+
+-   Hedef Keyword Intent tam olarak karşılanıyor mu?
+
+-   Dahili link yer tutucuları/önerileri mantıklı mı?
+
+-   Dış bağlantılar yüksek otoriteye sahip mi?
+
+-   Metadata (Title, Description) keyword ve CTA içeriyor mu?
+
+-   E-E-A-T sinyalleri mevcut mu?
+
+11.3 Yapısal Kontroller
+
+-   Kirli/anlamsız HTML etiketlerinden arındırıldı mı?
+
+-   Inline stiller kaldırıldı mı?
+
+-   Schema Markup doğrulandı mı?
+
+-   Semantik etiketler doğru kullanılmış mı?
+
+12. N8N WORKFLOW TASARIMI
+
+  ------------------------------------------------------------------------
+  WF #      Workflow Adı             Açıklama
+  --------- ------------------------ -------------------------------------
+  WF-201    Content Project          Proje oluşturma, input analizi,
+            Initializer              senaryo seçimi
+
+  WF-202    SEO Evaluator            Keyword intent, SERP analizi, IA
+                                     hazırlığı
+
+  WF-203    Content Importer (A)     Senaryo A: Mevcut içerik import ve
+                                     parse
+
+  WF-204    Content Generator (B)    Senaryo B: AI ile içerik üretimi
+
+  WF-205    HTML Cleaner             Kirli HTML temizleme, inline stil
+                                     kaldırma
+
+  WF-206    Structure Transformer    Hiyerarşi düzeltme, semantik dönüşüm
+
+  WF-207    Media Optimizer          Alt text, lazy load, boyut
+                                     optimizasyonu
+
+  WF-208    Schema Injector          Schema Markup seçimi ve enjeksiyonu
+
+  WF-209    Metadata Generator       Title, Description, OG tags üretimi
+
+  WF-210    QC Validator             Kalite kontrol checklist doğrulama
+
+  WF-211    Output Validator         W3C, Lighthouse, Schema validasyonu
+
+  WF-212    Final Exporter           Temiz HTML + Metadata JSON export
+  ------------------------------------------------------------------------
+
+12.1 Workflow Akış Şeması
+
+WF-201: Project Initializer
+
+│
+
+▼
+
+WF-202: SEO Evaluator
+
+│
+
+├── İçerik VAR? ─→ WF-203: Content Importer
+
+│ │
+
+└── İçerik YOK? ─→ WF-204: Content Generator
+
+│
+
+┌───────────────┴───────────────┐
+
+▼ ▼
+
+WF-205: HTML Cleaner ◄─────────────────────┘
+
+│
+
+▼
+
+WF-206 → WF-207 → WF-208 → WF-209
+
+│
+
+▼
+
+WF-210: QC Validator → WF-211: Output Validator
+
+│
+
+▼
+
+WF-212: Final Exporter → Tool 3'e Aktarım
+
+13. VERİTABANI EŞLEŞTİRMESİ
+
+  -----------------------------------------------------------------------
+  Aşama             Tablo              Kaydedilen Veriler
+  ----------------- ------------------ ----------------------------------
+  1. Proje          content_projects   project_name, input_source,
+  Oluşturma                            scenario_type
+
+  2. SEO            content_projects   keyword_intent, serp_analysis,
+  Değerlendirme                        target_word_count
+
+  3. İçerik Import  content_projects   input_content, source_type
+  (A)                                  
+
+  4. İçerik Üretim  content_projects   generated_outline, ai_content
+  (B)                                  
+
+  5-7. Dönüşüm      content_outputs    cleaned_html, structure_json
+
+  8. Schema         content_outputs    schema_type, schema_json
+
+  9. Metadata       content_outputs    meta_title, meta_description,
+                                       og_tags
+
+  10-11. Validasyon content_outputs    qc_passed, validation_errors
+
+  12. Export        content_outputs    final_html, metadata_json, status:
+                                       completed
+  -----------------------------------------------------------------------
+
+14. OUTPUT VALİDASYON VE TESLİMAT
+
+14.1 Validasyon Araçları
+
+  -----------------------------------------------------------------------
+  Araç               Kontrol
+  ------------------ ----------------------------------------------------
+  W3C Validator      HTML sözdizimi (syntax) hataları kontrolü
+
+  Lighthouse         Performans, Erişilebilirlik, SEO puanları
+
+  Schema Validator   Google Rich Results Test ile yapılandırılmış veri
+                     doğrulama
+
+  Semantik Kontrol   Etiketlerin bağlamsal doğruluğu (H2 içinde p
+                     olmaması vb.)
+  -----------------------------------------------------------------------
+
+14.2 Final Teslimat Formatı
+
+Başarılı validasyon sonrası teslim edilen çıktılar:
+
+1. Temiz HTML Dosyası
+
+-   Semantik, SEO uyumlu, kirli koddan arındırılmış HTML
+
+-   Tool 3 (Internal Linking) için hazır format
+
+2. Metadata JSON Objesi
+
+  { "title": "...", "description": "...", "canonical": "...",
+  "og_title": "...", "og_description": "...", "og_image": "...",
+  "schema": { ... } }
+
+14.3 Tool 3'e Aktarım
+
+Tool 3 (Internal Linking) şu verileri alır:
+
+-   content_outputs.final_html: Linklenmeye hazır temiz HTML
+
+-   content_outputs.metadata_json: SEO metadata
+
+-   content_projects.keyword_intent: Link stratejisi için intent bilgisi
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+— DOKÜMAN SONU —
+
+Tool 2: Content Studio • Teknik Dokümantasyon v1.0
+
+Aralık 2025

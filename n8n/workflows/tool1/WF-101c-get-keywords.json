@@ -1,0 +1,331 @@
+{
+  "name": "WF-101c: Get Keywords",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": ":projectId/keywords",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "webhookId": "tool1-get-keywords"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Input validation - supports both numeric ID and UUID\nconst projectId = $json.params?.projectId;\n\nif (!projectId) {\n  return {\n    json: {\n      isValid: false,\n      error: 'project_id parametresi zorunludur',\n      errorCode: 400\n    }\n  };\n}\n\n// Check if it's a valid UUID format\nconst uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;\nconst isUuid = uuidRegex.test(projectId);\n\n// Check if it's a valid numeric ID\nconst parsedId = parseInt(projectId);\nconst isNumericId = !isNaN(parsedId) && parsedId > 0;\n\nif (!isUuid && !isNumericId) {\n  return {\n    json: {\n      isValid: false,\n      error: 'project_id gecerli bir sayi veya UUID olmalidir',\n      errorCode: 400\n    }\n  };\n}\n\nconst query = $json.query || {};\nconst limit = Math.min(Math.max(parseInt(query.limit) || 100, 1), 500);\nconst offset = Math.max(parseInt(query.offset) || 0, 0);\n\nreturn {\n  json: {\n    isValid: true,\n    projectId: isUuid ? projectId : parsedId,\n    isUuid: isUuid,\n    limit: limit,\n    offset: offset\n  }\n};"
+      },
+      "id": "code-validate-input",
+      "name": "Code - Validate Input",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "is-valid",
+              "leftValue": "={{ $json.isValid }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "if-valid-input",
+      "name": "IF - Valid Input",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": false,\n  \"error\": \"Validation failed\",\n  \"message\": \"{{ $json.error }}\"\n}",
+        "options": {
+          "responseCode": "={{ $json.errorCode }}"
+        }
+      },
+      "id": "respond-validation-error",
+      "name": "Respond - Validation Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [900, 450]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=SELECT id as project_id, project_name, main_keyword, status FROM keyword_projects WHERE {{ $json.isUuid ? \"uuid = '\" + $json.projectId + \"'\" : \"id = \" + $json.projectId }}",
+        "options": {}
+      },
+      "id": "mysql-check-project",
+      "name": "MySQL - Check Project",
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.4,
+      "position": [900, 300],
+      "credentials": {
+        "mySql": {
+          "id": "LYQGH6Sr5DJDmTWl",
+          "name": "SEO Suite MySQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Check if project exists\nconst result = $input.first().json;\nconst validatedData = $('Code - Validate Input').first().json;\n\nif (!result.project_id) {\n  return [{\n    json: {\n      projectExists: false,\n      projectId: validatedData.projectId\n    }\n  }];\n}\n\n// Use the actual numeric project_id from DB (important when UUID was used)\nreturn [{\n  json: {\n    projectExists: true,\n    projectId: result.project_id,\n    projectName: result.project_name,\n    mainKeyword: result.main_keyword,\n    status: result.status,\n    limit: validatedData.limit,\n    offset: validatedData.offset\n  }\n}];"
+      },
+      "id": "code-check-project",
+      "name": "Code - Check Project",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1120, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "project-exists",
+              "leftValue": "={{ $json.projectExists }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "if-project-exists",
+      "name": "IF - Project Exists",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1340, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": false,\n  \"error\": \"Project not found\",\n  \"message\": \"Proje bulunamadi: {{ $json.projectId }}\"\n}",
+        "options": {
+          "responseCode": 404
+        }
+      },
+      "id": "respond-project-not-found",
+      "name": "Respond - Project Not Found",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1560, 450]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=SELECT \n  kr.id,\n  kr.keyword,\n  kr.keyword_type,\n  kr.search_volume,\n  kr.keyword_difficulty,\n  kr.cpc,\n  kr.competition,\n  kr.search_intent,\n  kr.trend_direction,\n  kr.parent_topic,\n  kr.keyword_cluster,\n  kr.opportunity_score,\n  kr.source,\n  kr.created_at\nFROM keyword_results kr\nWHERE kr.project_id = {{ $json.projectId }}\nORDER BY \n  CASE WHEN kr.opportunity_score IS NOT NULL THEN 0 ELSE 1 END,\n  kr.opportunity_score DESC,\n  kr.search_volume DESC\nLIMIT {{ $json.limit }}\nOFFSET {{ $json.offset }}",
+        "options": {
+          "alwaysOutputData": true
+        }
+      },
+      "id": "mysql-get-keywords",
+      "name": "MySQL - Get Keywords",
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.4,
+      "position": [1560, 300],
+      "credentials": {
+        "mySql": {
+          "id": "LYQGH6Sr5DJDmTWl",
+          "name": "SEO Suite MySQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=SELECT \n  COUNT(*) as total_count,\n  COALESCE(AVG(search_volume), 0) as avg_volume,\n  COALESCE(AVG(keyword_difficulty), 0) as avg_difficulty,\n  COALESCE(AVG(opportunity_score), 0) as avg_opportunity,\n  SUM(CASE WHEN search_intent IS NOT NULL THEN 1 ELSE 0 END) as with_intent\nFROM keyword_results \nWHERE project_id = {{ $('IF - Project Exists').item.json.projectId }}",
+        "options": {}
+      },
+      "id": "mysql-get-stats",
+      "name": "MySQL - Get Stats",
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.4,
+      "position": [1780, 300],
+      "credentials": {
+        "mySql": {
+          "id": "LYQGH6Sr5DJDmTWl",
+          "name": "SEO Suite MySQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Aggregate results\nconst keywordItems = $('MySQL - Get Keywords').all();\nconst statsResult = $input.first().json;\nconst projectData = $('IF - Project Exists').first().json;\n\n// Check if keywords exist\nconst hasKeywords = keywordItems.length > 0 && !!keywordItems[0].json.id;\nconst keywords = hasKeywords ? keywordItems.map(i => i.json) : [];\n\n// Group by type\nconst byType = {};\nkeywords.forEach(kw => {\n  const type = kw.keyword_type || 'unknown';\n  if (!byType[type]) byType[type] = 0;\n  byType[type]++;\n});\n\n// Group by cluster\nconst byCluster = {};\nkeywords.forEach(kw => {\n  if (kw.keyword_cluster) {\n    if (!byCluster[kw.keyword_cluster]) byCluster[kw.keyword_cluster] = 0;\n    byCluster[kw.keyword_cluster]++;\n  }\n});\n\n// Group by intent\nconst byIntent = {};\nkeywords.forEach(kw => {\n  if (kw.search_intent) {\n    if (!byIntent[kw.search_intent]) byIntent[kw.search_intent] = 0;\n    byIntent[kw.search_intent]++;\n  }\n});\n\nreturn [{\n  json: {\n    success: true,\n    project: {\n      id: projectData.projectId,\n      name: projectData.projectName,\n      main_keyword: projectData.mainKeyword,\n      status: projectData.status\n    },\n    data: keywords,\n    stats: {\n      total: parseInt(statsResult.total_count) || 0,\n      filtered_count: keywords.length,\n      with_intent: parseInt(statsResult.with_intent) || 0,\n      avg_volume: Math.round(parseFloat(statsResult.avg_volume) || 0),\n      avg_difficulty: Math.round(parseFloat(statsResult.avg_difficulty) || 0),\n      avg_opportunity: Math.round(parseFloat(statsResult.avg_opportunity) || 0)\n    },\n    by_type: byType,\n    by_cluster: byCluster,\n    by_intent: byIntent,\n    pagination: {\n      limit: projectData.limit,\n      offset: projectData.offset,\n      returned: keywords.length,\n      has_more: keywords.length === projectData.limit\n    }\n  }\n}];"
+      },
+      "id": "code-aggregate",
+      "name": "Code - Aggregate",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2000, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "id": "respond-success",
+      "name": "Respond - Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [2220, 300]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Code - Validate Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code - Validate Input": {
+      "main": [
+        [
+          {
+            "node": "IF - Valid Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF - Valid Input": {
+      "main": [
+        [
+          {
+            "node": "MySQL - Check Project",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond - Validation Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MySQL - Check Project": {
+      "main": [
+        [
+          {
+            "node": "Code - Check Project",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code - Check Project": {
+      "main": [
+        [
+          {
+            "node": "IF - Project Exists",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF - Project Exists": {
+      "main": [
+        [
+          {
+            "node": "MySQL - Get Keywords",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond - Project Not Found",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MySQL - Get Keywords": {
+      "main": [
+        [
+          {
+            "node": "MySQL - Get Stats",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MySQL - Get Stats": {
+      "main": [
+        [
+          {
+            "node": "Code - Aggregate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code - Aggregate": {
+      "main": [
+        [
+          {
+            "node": "Respond - Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": [
+    {
+      "id": "1",
+      "name": "Tool1-KeywordResearch"
+    }
+  ]
+}

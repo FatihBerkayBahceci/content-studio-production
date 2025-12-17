@@ -1,0 +1,118 @@
+# SEO Tool Suite - Local Development Docker Configuration
+# n8n + MySQL + Redis
+# NOTE: Ports configured to avoid conflicts with existing containers
+
+services:
+  # n8n Workflow Automation
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: seo-suite-n8n
+    restart: unless-stopped
+    ports:
+      - "5679:5678"  # Host:Container - using 5679 to avoid conflict
+    environment:
+      # General
+      - N8N_HOST=localhost
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+      - WEBHOOK_URL=http://localhost:5679/
+      - GENERIC_TIMEZONE=Europe/Istanbul
+
+      # Database (n8n internal storage)
+      - DB_TYPE=sqlite
+      - DB_SQLITE_DATABASE=/home/node/.n8n/database.sqlite
+
+      # Execution
+      - EXECUTIONS_MODE=regular
+      - EXECUTIONS_DATA_SAVE_ON_ERROR=all
+      - EXECUTIONS_DATA_SAVE_ON_SUCCESS=all
+      - EXECUTIONS_DATA_SAVE_ON_PROGRESS=true
+      - EXECUTIONS_DATA_SAVE_MANUAL_EXECUTIONS=true
+
+      # Security (disable for local dev)
+      - N8N_BASIC_AUTH_ACTIVE=false
+      - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY:-development-encryption-key-change-in-prod}
+
+      # Workflow settings
+      - N8N_DIAGNOSTICS_ENABLED=false
+      - N8N_VERSION_NOTIFICATIONS_ENABLED=false
+
+      # AI API Keys
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+
+      # Google Ads API (Keyword Planner)
+      - GOOGLE_ADS_DEVELOPER_TOKEN=${GOOGLE_ADS_DEVELOPER_TOKEN:-}
+      - GOOGLE_ADS_CLIENT_ID=${GOOGLE_ADS_CLIENT_ID:-}
+      - GOOGLE_ADS_CLIENT_SECRET=${GOOGLE_ADS_CLIENT_SECRET:-}
+      - GOOGLE_ADS_REFRESH_TOKEN=${GOOGLE_ADS_REFRESH_TOKEN:-}
+      - GOOGLE_ADS_CUSTOMER_ID=${GOOGLE_ADS_CUSTOMER_ID:-}
+      - GOOGLE_ADS_LOGIN_CUSTOMER_ID=${GOOGLE_ADS_LOGIN_CUSTOMER_ID:-}
+
+      # DataForSEO API (Optional)
+      - DATAFORSEO_LOGIN=${DATAFORSEO_LOGIN:-}
+      - DATAFORSEO_PASSWORD=${DATAFORSEO_PASSWORD:-}
+    volumes:
+      - n8n_data:/home/node/.n8n
+      - ./n8n/workflows:/home/node/workflows:ro
+    networks:
+      - seo-suite-network
+    depends_on:
+      - mysql
+
+  # MySQL Database
+  mysql:
+    image: mysql:8.0
+    container_name: seo-suite-mysql
+    restart: unless-stopped
+    ports:
+      - "3308:3306"  # Host:Container - using 3308 to avoid conflict
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD:-123456}
+      - MYSQL_DATABASE=seo_tool_suite
+      - MYSQL_CHARACTER_SET_SERVER=utf8mb4
+      - MYSQL_COLLATION_SERVER=utf8mb4_unicode_ci
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./database/schema:/docker-entrypoint-initdb.d:ro
+    networks:
+      - seo-suite-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+    command: >
+      --default-authentication-plugin=mysql_native_password
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_unicode_ci
+      --init-connect='SET NAMES utf8mb4'
+      --skip-character-set-client-handshake
+
+  # Redis (Optional - for caching and queue)
+  redis:
+    image: redis:7-alpine
+    container_name: seo-suite-redis
+    restart: unless-stopped
+    ports:
+      - "6381:6379"  # Host:Container - using 6381 to avoid conflict
+    volumes:
+      - redis_data:/data
+    networks:
+      - seo-suite-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  n8n_data:
+    name: seo-suite-n8n-data
+  mysql_data:
+    name: seo-suite-mysql-data
+  redis_data:
+    name: seo-suite-redis-data
+
+networks:
+  seo-suite-network:
+    name: seo-suite-network
+    driver: bridge
