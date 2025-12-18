@@ -72,3 +72,11 @@ credentials*.json
 *.pem
 *.key
 *.crt
+n8n_5679_database.sqlite
+
+# Large database files
+*.sqlite
+n8n_*.sqlite
+*.sql.gz
+*_backup.sql
+
