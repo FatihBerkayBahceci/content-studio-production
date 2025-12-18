@@ -11,6 +11,7 @@ interface RouteParams {
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
     const session = await getSession();
+    console.log('[Keywords API] Session:', session?.user?.id, 'Role:', session?.user?.role);
     if (!session?.user) {
       return NextResponse.json(
         { success: false, error: 'Yetkilendirme gerekli' },
@@ -19,6 +20,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     }
 
     const { projectId } = params;
+    console.log('[Keywords API] Fetching keywords for projectId:', projectId);
     const { searchParams } = new URL(request.url);
     const limitParam = Number(searchParams.get('limit')) || 500;
     const offsetParam = Number(searchParams.get('offset')) || 0;
@@ -30,14 +32,17 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       LIMIT 1
     `;
     const projects = await query(projectSql, [projectId, projectId]);
+    console.log('[Keywords API] Project lookup result:', JSON.stringify(projects));
     const project = Array.isArray(projects) && projects.length > 0 ? projects[0] : null;
 
     if (!project) {
+      console.log('[Keywords API] Project not found for:', projectId);
       return NextResponse.json(
         { success: false, error: 'Proje bulunamadı' },
         { status: 404 }
       );
     }
+    console.log('[Keywords API] Found project id:', project.id, 'client_id:', project.client_id);
 
     // Check access
     if (session.user.role !== 'admin' && !canAccessClient(session.user, project.client_id)) {
@@ -80,6 +85,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       LIMIT ${limitParam} OFFSET ${offsetParam}
     `;
     const keywords = await query(keywordsSql, []);
+    console.log('[Keywords API] Keywords query returned:', Array.isArray(keywords) ? keywords.length : 0, 'items for pid:', pid);
 
     // Get total count
     const countSql = `SELECT COUNT(*) as total FROM keyword_results WHERE project_id = ${pid}`;

@@ -171,6 +171,10 @@ export default function KeywordsPage() {
   const loadingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const tipIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Custom rules for AI selection
+  const [customRules, setCustomRules] = useState('');
+  const [showRulesPanel, setShowRulesPanel] = useState(false);
+
   // Bulk mode state
   const [inputMode, setInputMode] = useState<'single' | 'bulk'>('single');
   const [bulkKeywords, setBulkKeywords] = useState('');
@@ -259,11 +263,12 @@ export default function KeywordsPage() {
       try {
         const response = await fetch('/api/clients');
         const data = await response.json();
-        if (data.success && data.clients) {
-          setClients(data.clients);
+        if (data.success && (data.data || data.clients)) {
+          const clientList = data.data || data.clients;
+          setClients(clientList);
           // Only set default if no persisted selection
-          if (data.clients.length > 0 && !selectedClientId) {
-            setSelectedClientId(data.clients[0].id);
+          if (clientList.length > 0 && !selectedClientId) {
+            setSelectedClientId(clientList[0].id);
           }
         }
       } catch (err) {
@@ -355,6 +360,7 @@ export default function KeywordsPage() {
         throw new Error(projectData.error || 'Proje oluşturulamadı');
       }
       const projectId = projectData.project.id;
+      const projectUuid = projectData.project.uuid || projectId;
       setCreatedProjectId(projectId);
 
       const response = await api.post<KeywordResearchResponse>('/keyword-research', {
@@ -363,6 +369,7 @@ export default function KeywordsPage() {
         language: country === 'TR' ? 'tr' : 'en',
         project_id: projectId,
         client_id: selectedClientId,
+        custom_rules: customRules.trim() || undefined,
       }, { timeout: 300000 });
 
       if (response.success) {
@@ -392,8 +399,24 @@ export default function KeywordsPage() {
             console.error('Failed to update project status:', e);
           }
 
-          // Redirect to project detail page
-          router.push(`/keywords/${projectId}`);
+          // Save keywords to localStorage for fallback (in case DB save is slow)
+          // Use UUID for localStorage key since URL uses UUID
+          try {
+            const fallbackData = {
+              projectId: projectId,
+              projectUuid: projectUuid,
+              keywords: response.keywords,
+              stats: response.stats,
+              savedAt: Date.now(),
+            };
+            localStorage.setItem(`keywords-fallback-${projectUuid}`, JSON.stringify(fallbackData));
+            console.log(`[Keywords] Saved ${response.keywords.length} keywords to localStorage fallback (uuid: ${projectUuid})`);
+          } catch (e) {
+            console.error('Failed to save keywords to localStorage:', e);
+          }
+
+          // Redirect to project detail page using UUID
+          router.push(`/keywords/${projectUuid}`);
           return;
         }
       } else {
@@ -453,6 +476,7 @@ export default function KeywordsPage() {
         language: country === 'TR' ? 'tr' : 'en',
         project_id: projectId,
         client_id: selectedClientId,
+        custom_rules: customRules.trim() || undefined,
       }, { timeout: 300000 });
 
       if (response.success && response.keywords?.length) {
@@ -1076,6 +1100,71 @@ export default function KeywordsPage() {
                   </div>
                 </div>
               )}
+
+              {/* Custom Rules Panel */}
+              <div className="mt-4">
+                <button
+                  onClick={() => setShowRulesPanel(!showRulesPanel)}
+                  className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <SlidersHorizontal className="h-4 w-4" />
+                  <span>Özel Kurallar</span>
+                  <ChevronDown className={cn(
+                    "h-4 w-4 transition-transform",
+                    showRulesPanel && "rotate-180"
+                  )} />
+                  {customRules.trim() && (
+                    <span className="px-2 py-0.5 rounded-full bg-primary/20 text-primary text-xs">
+                      Aktif
+                    </span>
+                  )}
+                </button>
+
+                <AnimatePresence>
+                  {showRulesPanel && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="overflow-hidden"
+                    >
+                      <div className="mt-3 p-4 rounded-xl bg-[hsl(var(--glass-bg-1))] border border-[hsl(var(--glass-border-subtle))]">
+                        <div className="flex items-start gap-2 mb-3">
+                          <Brain className="h-4 w-4 text-purple-400 mt-0.5" />
+                          <div>
+                            <p className="text-sm font-medium text-foreground">AI Seçim Kuralları</p>
+                            <p className="text-xs text-muted-foreground">
+                              Doğal dilde kurallar yazın. AI keyword seçerken bu kurallara uyacaktır.
+                            </p>
+                          </div>
+                        </div>
+                        <textarea
+                          value={customRules}
+                          onChange={(e) => setCustomRules(e.target.value)}
+                          placeholder={`Örnek kurallar:\n• Marka isimleri olmasın\n• Sadece B2B odaklı keywordler\n• Minimum 3 kelimelik long-tail tercih et\n• Fiyat içeren keywordleri dahil etme\n• Teknik terimler kullan`}
+                          className="w-full h-28 p-3 rounded-lg bg-[hsl(var(--glass-bg-3))] border border-[hsl(var(--glass-border-subtle))] text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:border-purple-500/50 focus:ring-2 focus:ring-purple-500/10 transition-all resize-none"
+                          disabled={isLoading || isBulkProcessing}
+                        />
+                        {customRules.trim() && (
+                          <div className="flex items-center justify-between mt-2">
+                            <span className="text-xs text-muted-foreground">
+                              {customRules.trim().split('\n').filter(l => l.trim()).length} kural tanımlı
+                            </span>
+                            <button
+                              onClick={() => setCustomRules('')}
+                              className="text-xs text-red-400 hover:text-red-300 flex items-center gap-1"
+                            >
+                              <Trash2 className="h-3 w-3" />
+                              Temizle
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
 
               {/* Error Message */}
               <AnimatePresence>

@@ -7,18 +7,20 @@ import {
   ArrowLeft, Building2, Globe, Save, Loader2, Settings,
   Users, Bot, CheckCircle2, XCircle, Trash2,
   AlertTriangle, Plus, X, MessageSquare, Edit3, Power,
-  ChevronRight
+  ChevronRight, FileSpreadsheet
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useClient, useUpdateClient, useDeleteClient } from '@/lib/hooks/use-clients';
 import { cn } from '@/lib/utils/cn';
 import { PageTransition } from '@/components/motion';
+import { SheetsConfigForm, SheetsConfigList } from '@/components/sheets';
+import type { SheetsConfig } from '@/lib/api/sheets-config';
 
 interface PageProps {
   params: { clientId: string };
 }
 
-type TabType = 'general' | 'prompts' | 'content' | 'ai' | 'competitors';
+type TabType = 'general' | 'prompts' | 'content' | 'ai' | 'competitors' | 'sheets';
 
 const TABS: { id: TabType; label: string; icon: React.ElementType }[] = [
   { id: 'general', label: 'Genel', icon: Building2 },
@@ -26,6 +28,7 @@ const TABS: { id: TabType; label: string; icon: React.ElementType }[] = [
   { id: 'content', label: 'İçerik', icon: Settings },
   { id: 'ai', label: 'AI', icon: Bot },
   { id: 'competitors', label: 'Rakipler', icon: Users },
+  { id: 'sheets', label: 'Sheets', icon: FileSpreadsheet },
 ];
 
 interface ClientPrompt {
@@ -100,6 +103,10 @@ export default function ClientDetailPage({ params }: PageProps) {
   const [editingPrompt, setEditingPrompt] = useState<ClientPrompt | null>(null);
   const [newPrompt, setNewPrompt] = useState({ name: '', text: '' });
   const [showNewPromptForm, setShowNewPromptForm] = useState(false);
+
+  // Sheets config state
+  const [showSheetsConfigForm, setShowSheetsConfigForm] = useState(false);
+  const [editingSheetsConfig, setEditingSheetsConfig] = useState<SheetsConfig | null>(null);
 
   const client = data?.success ? data.data : null;
 
@@ -835,6 +842,58 @@ export default function ClientDetailPage({ params }: PageProps) {
                   description="Backlink ve DR verileri için Ahrefs kullan"
                 />
               </Section>
+            </motion.div>
+          )}
+
+          {/* Sheets Tab */}
+          {activeTab === 'sheets' && (
+            <motion.div
+              className="space-y-6"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+            >
+              {showSheetsConfigForm || editingSheetsConfig ? (
+                <Section
+                  title={editingSheetsConfig ? 'Konfigürasyonu Düzenle' : 'Yeni Sheets Konfigürasyonu'}
+                  description="Google Sheets bağlantısı ve sütun eşleştirmesi"
+                >
+                  <SheetsConfigForm
+                    clientId={client.id}
+                    editConfig={editingSheetsConfig}
+                    onSuccess={() => {
+                      setShowSheetsConfigForm(false);
+                      setEditingSheetsConfig(null);
+                    }}
+                    onCancel={() => {
+                      setShowSheetsConfigForm(false);
+                      setEditingSheetsConfig(null);
+                    }}
+                  />
+                </Section>
+              ) : (
+                <>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-sm font-semibold text-foreground">Google Sheets Entegrasyonu</h3>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Anahtar kelime verilerini Google Sheets'e aktarmak için konfigürasyonlar
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => setShowSheetsConfigForm(true)}
+                      className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+                    >
+                      <Plus className="h-4 w-4" />
+                      Yeni Ekle
+                    </button>
+                  </div>
+
+                  <SheetsConfigList
+                    clientId={client.id}
+                    onEdit={(config) => setEditingSheetsConfig(config)}
+                  />
+                </>
+              )}
             </motion.div>
           )}
         </div>

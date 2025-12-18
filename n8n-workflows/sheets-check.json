@@ -1,0 +1,90 @@
+{
+  "name": "WF-004 Sheets Check",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "sheets-check",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 0],
+      "webhookId": "sheets-check"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const body = $json.body || {};\nconst mappings = body.column_mappings || {};\nconst startRow = body.start_row || 2;\n\n// Get first mapped column (usually 'keyword' -> 'A')\nconst firstCol = Object.values(mappings)[0] || 'A';\nconst range = `${firstCol}${startRow}:${firstCol}`;\n\nreturn { json: { \n  spreadsheet_id: body.spreadsheet_id,\n  sheet_name: body.sheet_name,\n  range,\n  start_row: startRow\n}};"
+      },
+      "id": "prepare",
+      "name": "Prepare",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [220, 0]
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "documentId": { "__rl": true, "mode": "id", "value": "={{ $json.spreadsheet_id }}" },
+        "sheetName": { "__rl": true, "mode": "name", "value": "={{ $json.sheet_name }}" },
+        "options": { "range": "={{ $json.range }}" }
+      },
+      "id": "read-data",
+      "name": "Read Data",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [440, 0],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const items = $input.all();\nconst rowCount = items.length;\nconst hasData = rowCount > 0 && Object.keys(items[0].json || {}).length > 1;\nconst startRow = $('Prepare').item.json.start_row;\n\nreturn { json: {\n  success: true,\n  has_existing_data: hasData,\n  existing_row_count: hasData ? rowCount : 0,\n  first_empty_row: hasData ? startRow + rowCount : startRow\n}};"
+      },
+      "id": "analyze",
+      "name": "Analyze",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [660, -60]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const startRow = $('Prepare').item.json.start_row;\nreturn { json: {\n  success: true,\n  has_existing_data: false,\n  existing_row_count: 0,\n  first_empty_row: startRow\n}};"
+      },
+      "id": "no-data",
+      "name": "No Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [660, 80]
+    },
+    {
+      "parameters": { "respondWith": "json", "responseBody": "={{ JSON.stringify($json) }}", "options": {} },
+      "id": "respond-ok",
+      "name": "Respond OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [880, -60]
+    },
+    {
+      "parameters": { "respondWith": "json", "responseBody": "={{ JSON.stringify($json) }}", "options": {} },
+      "id": "respond-empty",
+      "name": "Respond Empty",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [880, 80]
+    }
+  ],
+  "connections": {
+    "Webhook": { "main": [[{ "node": "Prepare", "type": "main", "index": 0 }]] },
+    "Prepare": { "main": [[{ "node": "Read Data", "type": "main", "index": 0 }]] },
+    "Read Data": { "main": [[{ "node": "Analyze", "type": "main", "index": 0 }], [{ "node": "No Data", "type": "main", "index": 0 }]] },
+    "Analyze": { "main": [[{ "node": "Respond OK", "type": "main", "index": 0 }]] },
+    "No Data": { "main": [[{ "node": "Respond Empty", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" }
+}

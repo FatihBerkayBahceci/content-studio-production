@@ -1,0 +1,133 @@
+{
+  "name": "WF-005 Sheets Write",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "sheets-write",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 0],
+      "webhookId": "sheets-write"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const body = $json.body || {};\nconst mappings = body.column_mappings || {};\nconst data = body.data || [];\nconst startRow = body.start_row || 2;\nconst writeMode = body.write_mode || 'append';\nconst includeHeaders = body.include_headers !== false;\n\n// Build rows for Google Sheets\nconst rows = [];\n\n// Add headers if needed\nif (includeHeaders && writeMode === 'replace') {\n  const headerRow = {};\n  for (const [field, col] of Object.entries(mappings)) {\n    const labels = {\n      keyword: 'Anahtar Kelime',\n      search_volume: 'Arama Hacmi',\n      keyword_difficulty: 'Zorluk',\n      cpc: 'CPC',\n      competition: 'Rekabet',\n      search_intent: 'Arama Niyeti',\n      opportunity_score: 'Fırsat Skoru',\n      ai_category: 'AI Kategori'\n    };\n    headerRow[col] = labels[field] || field;\n  }\n  rows.push(headerRow);\n}\n\n// Add data rows\nfor (const item of data) {\n  const row = {};\n  for (const [field, col] of Object.entries(mappings)) {\n    row[col] = item[field] !== null && item[field] !== undefined ? String(item[field]) : '';\n  }\n  rows.push(row);\n}\n\nreturn { json: {\n  spreadsheet_id: body.spreadsheet_id,\n  sheet_name: body.sheet_name,\n  start_row: startRow,\n  write_mode: writeMode,\n  rows,\n  row_count: data.length\n}};"
+      },
+      "id": "prepare",
+      "name": "Prepare Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [220, 0]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true },
+          "conditions": [{ "id": "c1", "leftValue": "={{ $json.write_mode }}", "rightValue": "replace", "operator": { "type": "string", "operation": "equals" }}]
+        }
+      },
+      "id": "if-replace",
+      "name": "IF Replace",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [440, 0]
+    },
+    {
+      "parameters": {
+        "operation": "clear",
+        "documentId": { "__rl": true, "mode": "id", "value": "={{ $json.spreadsheet_id }}" },
+        "sheetName": { "__rl": true, "mode": "name", "value": "={{ $json.sheet_name }}" },
+        "options": {}
+      },
+      "id": "clear-sheet",
+      "name": "Clear Sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [660, -60]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "return { json: $('Prepare Data').item.json };"
+      },
+      "id": "restore-data",
+      "name": "Restore Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [880, -60]
+    },
+    {
+      "parameters": {
+        "mode": "passThrough"
+      },
+      "id": "merge",
+      "name": "Merge",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [1100, 0]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const data = $json;\nconst rows = data.rows || [];\n\nif (rows.length === 0) {\n  return { json: { success: false, error: 'Yazılacak veri yok' } };\n}\n\n// Convert rows to items for Google Sheets\nconst items = rows.map(row => ({ json: row }));\n\nreturn items;"
+      },
+      "id": "split-rows",
+      "name": "Split Rows",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1320, 0]
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": { "__rl": true, "mode": "id", "value": "={{ $('Prepare Data').item.json.spreadsheet_id }}" },
+        "sheetName": { "__rl": true, "mode": "name", "value": "={{ $('Prepare Data').item.json.sheet_name }}" },
+        "columns": { "mappingMode": "autoMapInputData", "value": {} },
+        "options": {}
+      },
+      "id": "write-data",
+      "name": "Write Data",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [1540, 0]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const prepData = $('Prepare Data').item.json;\nconst items = $input.all();\nconst rowsWritten = items.length;\n\nreturn { json: {\n  success: true,\n  rows_written: rowsWritten,\n  spreadsheet_url: `https://docs.google.com/spreadsheets/d/${prepData.spreadsheet_id}`\n}};"
+      },
+      "id": "format-result",
+      "name": "Format Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1760, 0]
+    },
+    {
+      "parameters": { "respondWith": "json", "responseBody": "={{ JSON.stringify($json) }}", "options": {} },
+      "id": "respond",
+      "name": "Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1980, 0]
+    }
+  ],
+  "connections": {
+    "Webhook": { "main": [[{ "node": "Prepare Data", "type": "main", "index": 0 }]] },
+    "Prepare Data": { "main": [[{ "node": "IF Replace", "type": "main", "index": 0 }]] },
+    "IF Replace": { "main": [[{ "node": "Clear Sheet", "type": "main", "index": 0 }], [{ "node": "Merge", "type": "main", "index": 1 }]] },
+    "Clear Sheet": { "main": [[{ "node": "Restore Data", "type": "main", "index": 0 }]] },
+    "Restore Data": { "main": [[{ "node": "Merge", "type": "main", "index": 0 }]] },
+    "Merge": { "main": [[{ "node": "Split Rows", "type": "main", "index": 0 }]] },
+    "Split Rows": { "main": [[{ "node": "Write Data", "type": "main", "index": 0 }]] },
+    "Write Data": { "main": [[{ "node": "Format Result", "type": "main", "index": 0 }]] },
+    "Format Result": { "main": [[{ "node": "Respond", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" }
+}

@@ -8,6 +8,7 @@ import {
   Search,
   Download,
   FileText,
+  FileSpreadsheet,
   Globe,
   TrendingUp,
   Target,
@@ -56,6 +57,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils/cn';
 import { PageTransition } from '@/components/motion';
 import { groupKeywords, KeywordGroup, KeywordSubgroup } from '@/lib/keyword-grouping';
+import { SheetsExportModal } from '@/components/sheets/SheetsExportModal';
 
 interface PageProps {
   params: { projectId: string };
@@ -149,6 +151,9 @@ export default function KeywordResultsPage({ params }: PageProps) {
   const [aiCategorized, setAiCategorized] = useState(false);
   const categorizationStartedRef = useRef(false); // Prevent duplicate runs
 
+  // Sheets export state
+  const [showSheetsExportModal, setShowSheetsExportModal] = useState(false);
+
   // Fetch project, keywords, and categories (all in one - no separate effects)
   useEffect(() => {
     const fetchData = async () => {
@@ -165,24 +170,75 @@ export default function KeywordResultsPage({ params }: PageProps) {
 
         setProject(projectData.project);
 
-        // Fetch filtered keywords
-        const keywordsRes = await fetch(`/api/projects/${projectId}/keywords`);
-        const keywordsData = await keywordsRes.json();
+        // Fetch filtered keywords with retry logic (n8n may still be saving)
+        let keywordsData: any = { success: false, data: [] };
+        let retryCount = 0;
+        const maxRetries = 5;
+        const retryDelay = 1500; // 1.5 seconds between retries
 
-        if (keywordsData.success) {
-          setKeywords(keywordsData.data || []);
-          setStats(keywordsData.stats);
+        while (retryCount < maxRetries) {
+          const keywordsRes = await fetch(`/api/projects/${projectId}/keywords`);
+          keywordsData = await keywordsRes.json();
+
+          if (keywordsData.success && keywordsData.data && keywordsData.data.length > 0) {
+            break; // Keywords found, exit retry loop
+          }
+
+          retryCount++;
+          if (retryCount < maxRetries) {
+            console.log(`[Keywords] Retry ${retryCount}/${maxRetries} - waiting for data...`);
+            await new Promise(resolve => setTimeout(resolve, retryDelay));
+          }
         }
 
-        // Fetch raw keywords (all DataForSEO results)
-        const rawRes = await fetch(`/api/projects/${projectId}/keywords-raw`);
-        const rawData = await rawRes.json();
+        if (keywordsData.success && keywordsData.data && keywordsData.data.length > 0) {
+          setKeywords(keywordsData.data);
+          setStats(keywordsData.stats);
+          // Clear localStorage fallback since we got data from DB
+          try {
+            localStorage.removeItem(`keywords-fallback-${projectId}`);
+          } catch (e) {}
+        } else {
+          // Try localStorage fallback (n8n response saved during redirect)
+          try {
+            const fallbackStr = localStorage.getItem(`keywords-fallback-${projectId}`);
+            if (fallbackStr) {
+              const fallbackData = JSON.parse(fallbackStr);
+              // Only use fallback if it's less than 5 minutes old
+              if (fallbackData.keywords && Date.now() - fallbackData.savedAt < 5 * 60 * 1000) {
+                console.log(`[Keywords] Using localStorage fallback: ${fallbackData.keywords.length} keywords`);
+                setKeywords(fallbackData.keywords);
+                setStats(fallbackData.stats);
+                // Set as rawKeywords too for the "Diğer Kelimeler" section
+                setRawKeywords(fallbackData.keywords);
+              }
+            }
+          } catch (e) {
+            console.error('Failed to read localStorage fallback:', e);
+          }
+        }
 
+        // Fetch raw keywords (all DataForSEO results) with retry logic
         let rawKeywordsList: any[] = [];
-        if (rawData.success && rawData.data) {
-          rawKeywordsList = rawData.data || [];
-          setRawKeywords(rawKeywordsList);
-          setRawStats(rawData.stats);
+        let rawRetryCount = 0;
+        const rawMaxRetries = 3;
+
+        while (rawRetryCount < rawMaxRetries) {
+          const rawRes = await fetch(`/api/projects/${projectId}/keywords-raw`);
+          const rawData = await rawRes.json();
+
+          if (rawData.success && rawData.data && rawData.data.length > 0) {
+            rawKeywordsList = rawData.data;
+            setRawKeywords(rawKeywordsList);
+            setRawStats(rawData.stats);
+            break;
+          }
+
+          rawRetryCount++;
+          if (rawRetryCount < rawMaxRetries) {
+            console.log(`[Raw Keywords] Retry ${rawRetryCount}/${rawMaxRetries} - waiting for data...`);
+            await new Promise(resolve => setTimeout(resolve, 1500));
+          }
         }
 
         // Check for AI categorization (silently, no banner)
@@ -827,6 +883,15 @@ export default function KeywordResultsPage({ params }: PageProps) {
               <FileText className="h-4 w-4" />
               PDF
             </button>
+            <button
+              onClick={() => setShowSheetsExportModal(true)}
+              disabled={selectedKeywords.size === 0}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-green-500/10 hover:bg-green-500/20 text-green-400 text-sm font-medium transition-colors disabled:opacity-50"
+              title={selectedKeywords.size === 0 ? 'Önce keyword seçin' : `${selectedKeywords.size} keyword\'ü Sheets\'e aktar`}
+            >
+              <FileSpreadsheet className="h-4 w-4" />
+              Sheets
+            </button>
           </div>
         </motion.div>
       </section>
@@ -1308,6 +1373,17 @@ export default function KeywordResultsPage({ params }: PageProps) {
           </div>
         </motion.div>
       </section>
+
+      {/* Sheets Export Modal */}
+      <SheetsExportModal
+        open={showSheetsExportModal}
+        onOpenChange={setShowSheetsExportModal}
+        projectId={projectId}
+        clientId={project?.client_id ?? null}
+        selectedKeywords={filteredKeywords.filter((kw, idx) =>
+          selectedKeywords.has(kw.id || idx)
+        )}
+      />
     </PageTransition>
   );
 }

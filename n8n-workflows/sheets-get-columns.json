@@ -1,0 +1,57 @@
+{
+  "name": "WF-003 Sheets Get Columns",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "sheets-get-columns",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 0],
+      "webhookId": "sheets-get-columns"
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "documentId": { "__rl": true, "mode": "id", "value": "={{ $json.body.spreadsheet_id }}" },
+        "sheetName": { "__rl": true, "mode": "name", "value": "={{ $json.body.sheet_name }}" },
+        "options": { "range": "1:1" }
+      },
+      "id": "read-headers",
+      "name": "Read Headers",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [220, 0]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const row = $json;\nconst columns = [];\nlet colIndex = 0;\nfor (const [key, value] of Object.entries(row)) {\n  if (key !== 'row_number') {\n    const letter = String.fromCharCode(65 + colIndex);\n    columns.push({ letter, header: value || '' });\n    colIndex++;\n  }\n}\nreturn { json: { success: true, columns } };"
+      },
+      "id": "format",
+      "name": "Format",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [440, 0]
+    },
+    {
+      "parameters": { "respondWith": "json", "responseBody": "={{ JSON.stringify($json) }}", "options": {} },
+      "id": "respond",
+      "name": "Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [660, 0]
+    }
+  ],
+  "connections": {
+    "Webhook": { "main": [[{ "node": "Read Headers", "type": "main", "index": 0 }]] },
+    "Read Headers": { "main": [[{ "node": "Format", "type": "main", "index": 0 }]] },
+    "Format": { "main": [[{ "node": "Respond", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" }
+}

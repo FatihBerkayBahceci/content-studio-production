@@ -1,0 +1,350 @@
+{
+  "name": "WF-KEYWORD-RESEARCH: Keyword Discovery & Filter v2",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "keyword-research",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "c70468eb-0ac9-4c84-a3d5-02fd21be6d78",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [-2208, 96],
+      "webhookId": "keyword-research"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===========================================\n// INPUT VALIDATION\n// ===========================================\nconst body = $json.body || {};\nconst keyword = body.keyword || body.main_keyword;\nconst projectId = body.project_id;\nconst clientId = body.client_id;\nconst country = (body.country || 'TR').toUpperCase();\nconst language = body.language || 'tr';\nconst customRules = body.custom_rules || '';\n\nif (!keyword || keyword.trim().length < 2) {\n  return [{ json: { \n    isValid: false, \n    error: 'keyword parametresi zorunludur (min 2 karakter)', \n    errorCode: 400 \n  }}];\n}\n\nconst locationCodes = {\n  'TR': 2792, 'US': 2840, 'GB': 2826, 'DE': 2276, 'FR': 2250\n};\n\nreturn [{ json: { \n  isValid: true, \n  keyword: keyword.trim().toLowerCase(),\n  projectId: projectId ? parseInt(projectId) : null,\n  clientId: clientId ? parseInt(clientId) : null,\n  country: country,\n  language: language,\n  locationCode: locationCodes[country] || 2792,\n  customRules: customRules\n}}];"
+      },
+      "id": "8cc61de3-5455-4f4e-a9b1-9cf46e4218e8",
+      "name": "Validate Input",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-1984, 96]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [{ "id": "valid", "leftValue": "={{ $json.isValid }}", "rightValue": true, "operator": { "type": "boolean", "operation": "equals" } }],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "069f92c7-f75c-4475-bf71-2036f8f4ff93",
+      "name": "IF Valid",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [-1760, 96]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \"success\": false, \"error\": \"{{ $json.error }}\" }",
+        "options": { "responseCode": "={{ $json.errorCode }}" }
+      },
+      "id": "c5fd19e2-41c5-4ff2-a7fa-427b9182ef63",
+      "name": "Respond Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [-1536, 304]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=SELECT \n  COALESCE(cc.enable_ai_analysis, 1) as enable_ai_analysis,\n  cc.ai_model_preference,\n  cc.ai_temperature,\n  sp.prompt_text as filter_prompt\nFROM (SELECT 1 as dummy) d\nLEFT JOIN client_configurations cc ON cc.client_id = {{ $json.clientId || 0 }}\nLEFT JOIN system_prompts sp ON sp.slug = 'keyword-filter' AND sp.is_active = 1\nLIMIT 1",
+        "options": {}
+      },
+      "id": "91397e6d-df72-46c3-8e73-41e37ca6fd27",
+      "name": "Get Client Config & Prompt",
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.4,
+      "position": [-1536, 96],
+      "credentials": { "mySql": { "id": "1rDLBK64lV00T0am", "name": "SEO Suite MySQL" } }
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===========================================\n// PREPARE CONFIG FOR API CALLS\n// ===========================================\nconst input = $('Validate Input').first().json;\nconst config = $input.first().json;\n\nreturn [{ json: {\n  ...input,\n  enableAiAnalysis: config.enable_ai_analysis == 1 || config.enable_ai_analysis === null,\n  aiModel: config.ai_model_preference || 'gemini-2.0-flash',\n  aiTemperature: parseFloat(config.ai_temperature) || 0.3,\n  filterPromptTemplate: config.filter_prompt || ''\n}}];"
+      },
+      "id": "3016bb81-bc6e-4ea9-b214-c4be584a8299",
+      "name": "Prepare Config",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-1328, 96]
+    },
+    {
+      "parameters": {
+        "url": "=http://suggestqueries.google.com/complete/search?client=firefox&q={{ encodeURIComponent($json.keyword) }}&hl={{ $json.language }}&gl={{ $json.country.toLowerCase() }}",
+        "options": { "timeout": 15000 }
+      },
+      "id": "c7e39bc7-4492-4dd9-bedc-8b641998f9d9",
+      "name": "Google Suggestions",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [-1104, 96],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.dataforseo.com/v3/keywords_data/google_ads/keywords_for_keywords/live",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "Basic b2t0YXlAc2VvYXJ0LmNvbTo0ODk2ZGRhYzQ2OWUyZjIw" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "=[{\n  \"keywords\": [\"{{ $('Prepare Config').first().json.keyword }}\"],\n  \"location_code\": {{ $('Prepare Config').first().json.locationCode }},\n  \"language_code\": \"{{ $('Prepare Config').first().json.language }}\",\n  \"include_seed_keyword\": true,\n  \"sort_by\": \"search_volume\"\n}]",
+        "options": { "timeout": 60000 }
+      },
+      "id": "46a01c99-c1d5-4033-9f94-b74a1b97c107",
+      "name": "DataForSEO Keywords",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [-880, 96],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===========================================\n// MERGE ALL KEYWORD SOURCES + TURKISH NORMALIZATION\n// ===========================================\nconst config = $('Prepare Config').first().json;\nconst mainKeyword = config.keyword;\n\nfunction normalizeForComparison(str) {\n  return str.toLowerCase()\n    .replace(/ı/g, 'i').replace(/İ/g, 'i')\n    .replace(/ş/g, 's').replace(/Ş/g, 's')\n    .replace(/ö/g, 'o').replace(/Ö/g, 'o')\n    .replace(/ü/g, 'u').replace(/Ü/g, 'u')\n    .replace(/ç/g, 'c').replace(/Ç/g, 'c')\n    .replace(/ğ/g, 'g').replace(/Ğ/g, 'g')\n    .replace(/[^a-z0-9\\s]/g, '')\n    .replace(/\\s+/g, ' ')\n    .trim();\n}\n\nfunction hasTurkishChars(str) {\n  return /[ıİşŞöÖüÜçÇğĞ]/.test(str);\n}\n\nlet suggestions = [];\ntry {\n  const sugResponse = $('Google Suggestions').first().json;\n  if (Array.isArray(sugResponse) && Array.isArray(sugResponse[1])) {\n    suggestions = sugResponse[1].map(s => ({\n      keyword: String(s).toLowerCase(),\n      search_volume: null,\n      cpc: null,\n      competition: null,\n      source: 'google_suggest'\n    }));\n  }\n} catch (e) { console.log('Suggestions parse error:', e.message); }\n\nlet dataforseoKeywords = [];\ntry {\n  const dfsResponse = $('DataForSEO Keywords').first().json;\n  if (dfsResponse?.tasks?.[0]?.result && Array.isArray(dfsResponse.tasks[0].result)) {\n    dataforseoKeywords = dfsResponse.tasks[0].result.map(kw => ({\n      keyword: (kw.keyword || '').toLowerCase(),\n      search_volume: kw.search_volume || 0,\n      cpc: kw.cpc || 0,\n      competition: kw.competition || null,\n      competition_index: kw.competition_index || 0,\n      source: 'dataforseo'\n    })).filter(kw => kw.keyword);\n  }\n} catch (e) { console.log('DataForSEO parse error:', e.message); }\n\nconst allKeywords = [...dataforseoKeywords, ...suggestions];\nconst seen = new Map();\n\nallKeywords.forEach(kw => {\n  if (!kw.keyword || kw.keyword.length < 2) return;\n  const normalizedKey = normalizeForComparison(kw.keyword);\n  if (!normalizedKey || normalizedKey.length < 2) return;\n  \n  if (!seen.has(normalizedKey)) {\n    seen.set(normalizedKey, kw);\n  } else {\n    const existing = seen.get(normalizedKey);\n    if (hasTurkishChars(kw.keyword) && !hasTurkishChars(existing.keyword)) {\n      kw.search_volume = kw.search_volume || existing.search_volume;\n      kw.cpc = kw.cpc || existing.cpc;\n      kw.source = existing.source + ',' + kw.source;\n      seen.set(normalizedKey, kw);\n    } else if (kw.search_volume && !existing.search_volume) {\n      existing.search_volume = kw.search_volume;\n      existing.cpc = kw.cpc;\n    }\n  }\n});\n\nconst uniqueKeywords = Array.from(seen.values());\n\nconst mainNormalized = normalizeForComparison(mainKeyword);\nif (!seen.has(mainNormalized)) {\n  uniqueKeywords.unshift({\n    keyword: mainKeyword,\n    search_volume: null,\n    cpc: null,\n    competition: null,\n    source: 'seed'\n  });\n}\n\nreturn [{\n  json: {\n    mainKeyword: mainKeyword,\n    projectId: config.projectId,\n    clientId: config.clientId,\n    country: config.country,\n    language: config.language,\n    customRules: config.customRules,\n    enableAiAnalysis: config.enableAiAnalysis,\n    aiModel: config.aiModel,\n    aiTemperature: config.aiTemperature,\n    filterPromptTemplate: config.filterPromptTemplate,\n    keywords: uniqueKeywords,\n    stats: {\n      total_raw: allKeywords.length,\n      after_dedup: uniqueKeywords.length,\n      from_google_suggest: suggestions.length,\n      from_dataforseo: dataforseoKeywords.length\n    }\n  }\n}];"
+      },
+      "id": "086f545f-5460-4abb-b3a2-98c492852fc8",
+      "name": "Merge Keywords",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-656, 96]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===========================================\n// PREPARE FILTER PROMPT FROM DATABASE\n// Uses keyword-filter system prompt\n// ===========================================\nconst data = $input.first().json;\nconst keywords = data.keywords || [];\nconst mainKeyword = data.mainKeyword;\nconst country = data.country;\nconst language = data.language;\nconst customRules = data.customRules || '';\nlet promptTemplate = data.filterPromptTemplate || '';\n\nif (keywords.length === 0) {\n  return [{ json: { skip: true, message: 'No keywords to filter' } }];\n}\n\nif (!data.enableAiAnalysis) {\n  return [{ json: { skipAi: true, ...data } }];\n}\n\n// Sort by volume and limit to top 150 for AI processing\nconst sortedKeywords = [...keywords]\n  .sort((a, b) => (b.search_volume || 0) - (a.search_volume || 0))\n  .slice(0, 150);\n\n// Build keyword CSV\nconst keywordCsv = sortedKeywords.map((kw, i) => {\n  const vol = kw.search_volume || 0;\n  const cpc = kw.cpc ? kw.cpc.toFixed(2) : '0';\n  const comp = kw.competition || '';\n  const src = kw.source || '';\n  return `${i+1}|${kw.keyword}|${vol}|${cpc}|${comp}|${src}`;\n}).join('\\n');\n\n// Use DB prompt or fallback\nlet prompt = '';\nif (promptTemplate) {\n  prompt = promptTemplate\n    .replace(/\\{\\{main_keyword\\}\\}/g, mainKeyword)\n    .replace(/\\{\\{country\\}\\}/g, country)\n    .replace(/\\{\\{language\\}\\}/g, language)\n    .replace(/\\{\\{keyword_list\\}\\}/g, keywordCsv);\n} else {\n  // Fallback prompt if DB prompt not available\n  prompt = `Sen bir SEO uzmanisin. Keyword listesini analiz et, filtrele ve zenginlestir.\n\nAna Keyword: ${mainKeyword}\nUlke: ${country}\n\nKEYWORDS (No|Keyword|Volume|CPC|Competition|Source):\n${keywordCsv}\n\nGOREV:\n1. Alakasiz, spam, tarih iceren keywordleri REJECT et\n2. Her keyword icin intent belirle (informational, commercial, transactional, navigational)\n3. Semantik kumeleme yap (3-8 kume)\n4. Oncelik belirle (high, medium, low)\n5. Icerik tipi oner (pillar, cluster, landing, comparison, faq, guide)\n\nCIKTI FORMATI (sadece CSV):\nNo|status|intent|cluster|priority|content_type\n\nstatus: approved veya rejected\nrejected icin diger alanlar bos\n\nOrnek:\n1|approved|commercial|Fiyat Arastirmasi|high|comparison\n2|rejected|||||\n3|approved|informational|Baslangic Rehberi|medium|cluster`;\n}\n\n// Add custom rules if provided\nif (customRules) {\n  prompt += `\\n\\n---\\n\\n🎯 ÖZEL KURALLAR (Bu kurallara kesinlikle uy):\\n${customRules}`;\n}\n\nreturn [{\n  json: {\n    ...data,\n    skip: false,\n    skipAi: false,\n    filterPrompt: prompt,\n    processedKeywords: sortedKeywords\n  }\n}];"
+      },
+      "id": "prepare-filter-prompt-001",
+      "name": "Prepare Filter Prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-432, 96]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            { "id": "not-skip", "leftValue": "={{ $json.skip }}", "rightValue": true, "operator": { "type": "boolean", "operation": "notEquals" } },
+            { "id": "not-skip-ai", "leftValue": "={{ $json.skipAi }}", "rightValue": true, "operator": { "type": "boolean", "operation": "notEquals" } }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "96167e4d-f15d-47bb-9036-d8cf54b6b748",
+      "name": "IF Run Filter",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [-208, 96]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpQueryAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"contents\": [{\n    \"parts\": [{\n      \"text\": {{ JSON.stringify($json.filterPrompt) }}\n    }]\n  }],\n  \"generationConfig\": {\n    \"temperature\": {{ $json.aiTemperature || 0.3 }},\n    \"maxOutputTokens\": 8192\n  }\n}",
+        "options": { "timeout": 90000 }
+      },
+      "id": "47cb456e-2231-469c-973d-9d3772fce444",
+      "name": "Gemini Filter",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [16, 0],
+      "credentials": { "httpQueryAuth": { "id": "Hp8gTY1C1efbSfkx", "name": "Gemini API" } },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===========================================\n// PARSE FILTER RESPONSE (Approved/Rejected)\n// ===========================================\nconst prevData = $('Prepare Filter Prompt').first().json;\nconst geminiResponse = $input.first().json;\nconst processedKeywords = prevData.processedKeywords || [];\n\nconst approved = [];\nconst rejected = [];\n\ntry {\n  const text = geminiResponse?.candidates?.[0]?.content?.parts?.[0]?.text || '';\n  const lines = text.split('\\n').filter(l => /^\\d+\\|/.test(l.trim()));\n  \n  for (const line of lines) {\n    const parts = line.split('|').map(p => p.trim());\n    if (parts.length < 2) continue;\n    \n    const no = parseInt(parts[0]);\n    const status = (parts[1] || '').toLowerCase();\n    \n    if (isNaN(no) || no < 1 || no > processedKeywords.length) continue;\n    \n    const original = processedKeywords[no - 1];\n    \n    if (status === 'approved') {\n      approved.push({\n        ...original,\n        index: no,\n        intent: parts[2] && parts[2] !== '' ? parts[2].toLowerCase() : null,\n        cluster: parts[3] && parts[3] !== '' ? parts[3] : null,\n        priority: parts[4] && parts[4] !== '' ? parts[4].toLowerCase() : 'medium',\n        content_type: parts[5] && parts[5] !== '' ? parts[5].toLowerCase() : 'cluster'\n      });\n    } else if (status === 'rejected') {\n      rejected.push({\n        ...original,\n        index: no,\n        reject_reason: 'AI filtered'\n      });\n    }\n  }\n  \n  // If AI didn't process all keywords, approve remaining with defaults\n  const processedIndices = new Set([...approved, ...rejected].map(k => k.index));\n  processedKeywords.forEach((kw, idx) => {\n    if (!processedIndices.has(idx + 1)) {\n      approved.push({\n        ...kw,\n        index: idx + 1,\n        intent: null,\n        cluster: 'Genel',\n        priority: 'medium',\n        content_type: 'cluster'\n      });\n    }\n  });\n  \n} catch (e) { \n  console.log('Parse error:', e.message);\n  // Fallback: approve all with defaults\n  processedKeywords.forEach((kw, idx) => {\n    approved.push({\n      ...kw,\n      index: idx + 1,\n      intent: null,\n      cluster: 'Genel',\n      priority: 'medium',\n      content_type: 'cluster'\n    });\n  });\n}\n\n// Generate clusters\nconst clusters = {};\napproved.forEach(kw => {\n  const c = kw.cluster || 'Genel';\n  if (!clusters[c]) clusters[c] = [];\n  clusters[c].push(kw.keyword);\n});\n\nreturn [{\n  json: {\n    mainKeyword: prevData.mainKeyword,\n    projectId: prevData.projectId,\n    clientId: prevData.clientId,\n    stats: {\n      ...prevData.stats,\n      total_processed: processedKeywords.length,\n      approved_count: approved.length,\n      rejected_count: rejected.length\n    },\n    approved_keywords: approved,\n    rejected_keywords: rejected,\n    clusters: clusters,\n    ai_used: true\n  }\n}];"
+      },
+      "id": "3b2c287d-93ce-4624-be98-9c3d0081357a",
+      "name": "Parse Filter Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [240, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===========================================\n// SKIP AI - Use keywords as-is with defaults\n// ===========================================\nconst data = $input.first().json;\nconst keywords = data.keywords || [];\n\nconst approvedKeywords = keywords.slice(0, 50).map((kw, idx) => ({\n  ...kw,\n  index: idx + 1,\n  intent: null,\n  cluster: 'Genel',\n  priority: 'medium',\n  content_type: 'cluster'\n}));\n\nreturn [{\n  json: {\n    mainKeyword: data.mainKeyword,\n    projectId: data.projectId,\n    clientId: data.clientId,\n    stats: {\n      ...data.stats,\n      approved_count: approvedKeywords.length,\n      rejected_count: 0\n    },\n    approved_keywords: approvedKeywords,\n    rejected_keywords: [],\n    clusters: { 'Genel': approvedKeywords.map(k => k.keyword) },\n    ai_used: false\n  }\n}];"
+      },
+      "id": "8ce45f61-d49f-48bc-b1c4-6c62a83b7dd2",
+      "name": "Skip AI Filter",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [16, 208]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "loose" },
+          "conditions": [{ "id": "has-project", "leftValue": "={{ $json.projectId }}", "rightValue": true, "operator": { "type": "boolean", "operation": "exists" } }],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "f942b3a9-ffd6-4ba8-828b-cbaf1b569f09",
+      "name": "IF Save to DB",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [464, 96]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===========================================\n// PREPARE FOR DB INSERT - WITH SQL ESCAPE\n// ===========================================\nlet data = null;\ntry { data = $('Parse Filter Response').first().json; } catch(e) {}\nif (!data) { try { data = $('Skip AI Filter').first().json; } catch(e) {} }\nif (!data) { data = $input.first().json; }\n\nconst projectId = data.projectId;\nconst approvedKeywords = data.approved_keywords || [];\n\nif (approvedKeywords.length === 0) {\n  return [{ json: { skip: true } }];\n}\n\n// SQL escape function\nfunction esc(str) {\n  if (str === null || str === undefined) return null;\n  return String(str).replace(/\\\\/g, '\\\\\\\\').replace(/'/g, \"''\");\n}\n\nreturn approvedKeywords.map((kw, idx) => ({\n  json: {\n    project_id: projectId,\n    keyword: esc(kw.keyword),\n    keyword_type: kw.source?.includes('suggest') ? 'google_suggest' : 'related',\n    search_volume: kw.search_volume || null,\n    cpc: kw.cpc || null,\n    competition: kw.competition || null,\n    search_intent: esc(kw.intent),\n    keyword_cluster: esc(kw.cluster),\n    content_priority: kw.priority || 'medium',\n    page_type: kw.content_type || null,\n    source: kw.source || 'dataforseo'\n  }\n}));"
+      },
+      "id": "a705d34d-9e7f-41a5-9e59-a58422b077cc",
+      "name": "Split for DB",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [688, 0]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=INSERT INTO keyword_results \n  (project_id, keyword, keyword_type, search_volume, cpc, competition, search_intent, keyword_cluster, content_priority, page_type, source)\nVALUES \n  ({{ $json.project_id }}, '{{ $json.keyword }}', '{{ $json.keyword_type }}', {{ $json.search_volume || 'NULL' }}, {{ $json.cpc || 'NULL' }}, {{ $json.competition ? \"'\" + $json.competition + \"'\" : 'NULL' }}, {{ $json.search_intent ? \"'\" + $json.search_intent + \"'\" : 'NULL' }}, {{ $json.keyword_cluster ? \"'\" + $json.keyword_cluster + \"'\" : 'NULL' }}, '{{ $json.content_priority || 'medium' }}', {{ $json.page_type ? \"'\" + $json.page_type + \"'\" : 'NULL' }}, '{{ $json.source }}')\nON DUPLICATE KEY UPDATE\n  search_volume = COALESCE(VALUES(search_volume), search_volume),\n  cpc = COALESCE(VALUES(cpc), cpc),\n  search_intent = COALESCE(VALUES(search_intent), search_intent),\n  keyword_cluster = COALESCE(VALUES(keyword_cluster), keyword_cluster),\n  content_priority = COALESCE(VALUES(content_priority), content_priority),\n  page_type = COALESCE(VALUES(page_type), page_type)",
+        "options": {}
+      },
+      "id": "b27201df-77ce-4f60-9929-f3e8153b10f9",
+      "name": "Save to DB",
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.4,
+      "position": [912, 0],
+      "credentials": { "mySql": { "id": "1rDLBK64lV00T0am", "name": "SEO Suite MySQL" } },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===========================================\n// PREPARE FINAL RESPONSE\n// ===========================================\nlet data = null;\ntry { data = $('Parse Filter Response').first().json; } catch(e) {}\nif (!data) { try { data = $('Skip AI Filter').first().json; } catch(e) {} }\n\nif (!data) {\n  return [{ json: { success: false, error: 'Could not retrieve data' } }];\n}\n\nconst approvedKeywords = data.approved_keywords || [];\nconst rejectedKeywords = data.rejected_keywords || [];\nconst savedCount = $input.all().length;\n\nreturn [{\n  json: {\n    success: true,\n    message: `Keyword arastirmasi tamamlandi. ${approvedKeywords.length} keyword onaylandi, ${rejectedKeywords.length} reddedildi, ${savedCount} DB'ye kaydedildi.`,\n    main_keyword: data.mainKeyword,\n    project_id: data.projectId,\n    stats: {\n      ...data.stats,\n      saved_to_db: savedCount\n    },\n    keywords: approvedKeywords.map(kw => ({\n      keyword: kw.keyword,\n      search_volume: kw.search_volume,\n      cpc: kw.cpc,\n      competition: kw.competition,\n      intent: kw.intent,\n      cluster: kw.cluster,\n      priority: kw.priority,\n      content_type: kw.content_type,\n      source: kw.source\n    })),\n    rejected: rejectedKeywords.map(kw => ({\n      keyword: kw.keyword,\n      reason: kw.reject_reason\n    })),\n    clusters: data.clusters || {},\n    ai_used: data.ai_used\n  }\n}];"
+      },
+      "id": "4b958cdd-4380-4dae-9ed8-9a6d6cd52565",
+      "name": "Response (DB)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1136, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===========================================\n// PREPARE RESPONSE (NO DB SAVE)\n// ===========================================\nlet data = null;\ntry { data = $('Parse Filter Response').first().json; } catch(e) {}\nif (!data) { try { data = $('Skip AI Filter').first().json; } catch(e) {} }\nif (!data) { data = $input.first().json; }\n\nconst approvedKeywords = data.approved_keywords || [];\nconst rejectedKeywords = data.rejected_keywords || [];\n\nreturn [{\n  json: {\n    success: true,\n    message: `Keyword arastirmasi tamamlandi. ${approvedKeywords.length} keyword onaylandi, ${rejectedKeywords.length} reddedildi.`,\n    main_keyword: data.mainKeyword,\n    project_id: null,\n    stats: {\n      ...data.stats,\n      saved_to_db: 0\n    },\n    keywords: approvedKeywords.map(kw => ({\n      keyword: kw.keyword,\n      search_volume: kw.search_volume,\n      cpc: kw.cpc,\n      competition: kw.competition,\n      intent: kw.intent,\n      cluster: kw.cluster,\n      priority: kw.priority,\n      content_type: kw.content_type,\n      source: kw.source\n    })),\n    rejected: rejectedKeywords.map(kw => ({\n      keyword: kw.keyword,\n      reason: kw.reject_reason\n    })),\n    clusters: data.clusters || {},\n    ai_used: data.ai_used\n  }\n}];"
+      },
+      "id": "109901ce-a82d-46ef-8e0e-770d43d6ea5c",
+      "name": "Response (No DB)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [688, 208]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "id": "d4d8eaa6-7598-4234-ac10-e65fca9d7ff7",
+      "name": "Respond Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1360, 96]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \"success\": true, \"message\": \"Keyword bulunamadi\", \"keywords\": [], \"rejected\": [], \"stats\": {} }",
+        "options": {}
+      },
+      "id": "a4be9655-d483-41bd-b5eb-d784b3080a00",
+      "name": "Respond Empty",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [16, 400]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [[{ "node": "Validate Input", "type": "main", "index": 0 }]]
+    },
+    "Validate Input": {
+      "main": [[{ "node": "IF Valid", "type": "main", "index": 0 }]]
+    },
+    "IF Valid": {
+      "main": [
+        [{ "node": "Get Client Config & Prompt", "type": "main", "index": 0 }],
+        [{ "node": "Respond Error", "type": "main", "index": 0 }]
+      ]
+    },
+    "Get Client Config & Prompt": {
+      "main": [[{ "node": "Prepare Config", "type": "main", "index": 0 }]]
+    },
+    "Prepare Config": {
+      "main": [[{ "node": "Google Suggestions", "type": "main", "index": 0 }]]
+    },
+    "Google Suggestions": {
+      "main": [[{ "node": "DataForSEO Keywords", "type": "main", "index": 0 }]]
+    },
+    "DataForSEO Keywords": {
+      "main": [[{ "node": "Merge Keywords", "type": "main", "index": 0 }]]
+    },
+    "Merge Keywords": {
+      "main": [[{ "node": "Prepare Filter Prompt", "type": "main", "index": 0 }]]
+    },
+    "Prepare Filter Prompt": {
+      "main": [[{ "node": "IF Run Filter", "type": "main", "index": 0 }]]
+    },
+    "IF Run Filter": {
+      "main": [
+        [{ "node": "Gemini Filter", "type": "main", "index": 0 }],
+        [{ "node": "Skip AI Filter", "type": "main", "index": 0 }]
+      ]
+    },
+    "Gemini Filter": {
+      "main": [[{ "node": "Parse Filter Response", "type": "main", "index": 0 }]]
+    },
+    "Parse Filter Response": {
+      "main": [[{ "node": "IF Save to DB", "type": "main", "index": 0 }]]
+    },
+    "Skip AI Filter": {
+      "main": [[{ "node": "IF Save to DB", "type": "main", "index": 0 }]]
+    },
+    "IF Save to DB": {
+      "main": [
+        [{ "node": "Split for DB", "type": "main", "index": 0 }],
+        [{ "node": "Response (No DB)", "type": "main", "index": 0 }]
+      ]
+    },
+    "Split for DB": {
+      "main": [[{ "node": "Save to DB", "type": "main", "index": 0 }]]
+    },
+    "Save to DB": {
+      "main": [[{ "node": "Response (DB)", "type": "main", "index": 0 }]]
+    },
+    "Response (DB)": {
+      "main": [[{ "node": "Respond Success", "type": "main", "index": 0 }]]
+    },
+    "Response (No DB)": {
+      "main": [[{ "node": "Respond Success", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "versionId": "v2-keyword-filter",
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "tags": []
+}
