@@ -1,0 +1,278 @@
+// =====================================================================
+// SEO TOOL SUITE - SHEETS CONFIG API
+// =====================================================================
+
+import type { ApiResponse } from '@seo-tool-suite/shared/types';
+
+// ---------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------
+
+export interface SheetsConfig {
+  id: number;
+  client_id: number;
+  config_name: string;
+  spreadsheet_id: string;
+  spreadsheet_url: string;
+  spreadsheet_name: string | null;
+  sheet_name: string;
+  sheet_gid: string | null;
+  start_row: number;
+  column_mappings: Record<string, string>;
+  include_headers: boolean;
+  is_default: boolean;
+  is_active: boolean;
+  last_export_at: string | null;
+  last_export_count: number | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateSheetsConfigInput {
+  config_name: string;
+  spreadsheet_id: string;
+  spreadsheet_url: string;
+  spreadsheet_name?: string;
+  sheet_name: string;
+  sheet_gid?: string;
+  start_row?: number;
+  column_mappings: Record<string, string>;
+  include_headers?: boolean;
+  is_default?: boolean;
+}
+
+export interface UpdateSheetsConfigInput {
+  config_name?: string;
+  spreadsheet_id?: string;
+  spreadsheet_url?: string;
+  spreadsheet_name?: string;
+  sheet_name?: string;
+  sheet_gid?: string;
+  start_row?: number;
+  column_mappings?: Record<string, string>;
+  include_headers?: boolean;
+  is_default?: boolean;
+}
+
+export interface SheetsConnectResponse {
+  success: boolean;
+  spreadsheet_id: string;
+  spreadsheet_name: string;
+  sheets: { name: string; gid: string; row_count?: number }[];
+  error?: string;
+}
+
+export interface SheetsColumnsResponse {
+  success: boolean;
+  columns: { letter: string; header: string; index: number }[];
+  has_data: boolean;
+  first_empty_column: string;
+  error?: string;
+}
+
+export interface SheetsCheckResponse {
+  success: boolean;
+  has_existing_data: boolean;
+  existing_row_count: number;
+  first_empty_row: number;
+  error?: string;
+}
+
+export interface SheetsExportResponse {
+  success: boolean;
+  data?: {
+    rows_written: number;
+    spreadsheet_url: string;
+    sheet_name: string;
+    write_mode: 'append' | 'replace';
+  };
+  message?: string;
+  error?: string;
+}
+
+// ---------------------------------------------------------------------
+// Local API Helper
+// ---------------------------------------------------------------------
+
+async function localFetch<T>(path: string, options?: RequestInit): Promise<T> {
+  const response = await fetch(path, {
+    headers: {
+      'Content-Type': 'application/json',
+      ...options?.headers,
+    },
+    ...options,
+  });
+  return response.json();
+}
+
+// n8n API base URL
+const N8N_API_BASE = '/api/n8n';
+
+async function n8nFetch<T>(path: string, options?: RequestInit): Promise<T> {
+  const response = await fetch(`${N8N_API_BASE}${path}`, {
+    headers: {
+      'Content-Type': 'application/json',
+      ...options?.headers,
+    },
+    ...options,
+  });
+  return response.json();
+}
+
+// ---------------------------------------------------------------------
+// Config CRUD (Local API)
+// ---------------------------------------------------------------------
+
+/**
+ * List all sheets configs for a client
+ */
+export async function listSheetsConfigs(
+  clientId: number | string
+): Promise<ApiResponse<SheetsConfig[]>> {
+  return localFetch<ApiResponse<SheetsConfig[]>>(`/api/clients/${clientId}/sheets-config`);
+}
+
+/**
+ * Get a single sheets config
+ */
+export async function getSheetsConfig(
+  clientId: number | string,
+  configId: number
+): Promise<ApiResponse<SheetsConfig>> {
+  return localFetch<ApiResponse<SheetsConfig>>(
+    `/api/clients/${clientId}/sheets-config/${configId}`
+  );
+}
+
+/**
+ * Create a new sheets config
+ */
+export async function createSheetsConfig(
+  clientId: number | string,
+  data: CreateSheetsConfigInput
+): Promise<ApiResponse<SheetsConfig>> {
+  return localFetch<ApiResponse<SheetsConfig>>(`/api/clients/${clientId}/sheets-config`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+/**
+ * Update a sheets config
+ */
+export async function updateSheetsConfig(
+  clientId: number | string,
+  configId: number,
+  data: UpdateSheetsConfigInput
+): Promise<ApiResponse<SheetsConfig>> {
+  return localFetch<ApiResponse<SheetsConfig>>(
+    `/api/clients/${clientId}/sheets-config/${configId}`,
+    {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }
+  );
+}
+
+/**
+ * Delete a sheets config
+ */
+export async function deleteSheetsConfig(
+  clientId: number | string,
+  configId: number
+): Promise<ApiResponse<{ success: boolean }>> {
+  return localFetch<ApiResponse<{ success: boolean }>>(
+    `/api/clients/${clientId}/sheets-config/${configId}`,
+    {
+      method: 'DELETE',
+    }
+  );
+}
+
+// ---------------------------------------------------------------------
+// n8n Operations (via proxy)
+// ---------------------------------------------------------------------
+
+/**
+ * Connect to a Google Sheet and get sheet list
+ */
+export async function sheetsConnect(
+  spreadsheetUrl: string
+): Promise<SheetsConnectResponse> {
+  return n8nFetch<SheetsConnectResponse>('/sheets-connect', {
+    method: 'POST',
+    body: JSON.stringify({ spreadsheet_url: spreadsheetUrl }),
+  });
+}
+
+/**
+ * Get column headers from a sheet
+ */
+export async function sheetsGetColumns(
+  spreadsheetId: string,
+  sheetName: string
+): Promise<SheetsColumnsResponse> {
+  return n8nFetch<SheetsColumnsResponse>('/sheets-get-columns', {
+    method: 'POST',
+    body: JSON.stringify({
+      spreadsheet_id: spreadsheetId,
+      sheet_name: sheetName,
+    }),
+  });
+}
+
+/**
+ * Check if target columns have existing data
+ */
+export async function sheetsCheck(
+  spreadsheetId: string,
+  sheetName: string,
+  columnMappings: Record<string, string>,
+  startRow: number
+): Promise<SheetsCheckResponse> {
+  return n8nFetch<SheetsCheckResponse>('/sheets-check', {
+    method: 'POST',
+    body: JSON.stringify({
+      spreadsheet_id: spreadsheetId,
+      sheet_name: sheetName,
+      column_mappings: columnMappings,
+      start_row: startRow,
+    }),
+  });
+}
+
+/**
+ * Export keywords to Google Sheets
+ */
+export async function exportToSheets(
+  projectId: string,
+  configId: number,
+  keywordIds: number[],
+  writeMode: 'append' | 'replace'
+): Promise<SheetsExportResponse> {
+  return localFetch<SheetsExportResponse>(`/api/projects/${projectId}/export-sheets`, {
+    method: 'POST',
+    body: JSON.stringify({
+      config_id: configId,
+      keyword_ids: keywordIds,
+      write_mode: writeMode,
+    }),
+  });
+}
+
+// ---------------------------------------------------------------------
+// Available Keyword Fields for Mapping
+// ---------------------------------------------------------------------
+
+export const KEYWORD_FIELDS = [
+  { key: 'keyword', label: 'Anahtar Kelime', required: true },
+  { key: 'search_volume', label: 'Arama Hacmi', required: false },
+  { key: 'keyword_difficulty', label: 'Zorluk', required: false },
+  { key: 'cpc', label: 'CPC', required: false },
+  { key: 'competition', label: 'Rekabet', required: false },
+  { key: 'search_intent', label: 'Arama Niyeti', required: false },
+  { key: 'opportunity_score', label: 'Fırsat Skoru', required: false },
+  { key: 'ai_category', label: 'AI Kategorisi', required: false },
+] as const;
+
+export type KeywordFieldKey = typeof KEYWORD_FIELDS[number]['key'];

@@ -1,7 +1,9 @@
 'use client';
 
+import { useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import {
   LayoutDashboard,
   Search,
@@ -25,10 +27,12 @@ import {
   GitBranch,
   Target,
   Lightbulb,
+  X,
 } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import { useUIStore } from '@/lib/stores/ui-store';
 import { useClientStore } from '@/lib/stores/client-store';
+import { canAccessMenuItem, UserRole } from '@/lib/auth/role-menu';
 
 // Navigation items with UI Kit structure
 const menuItems = [
@@ -189,9 +193,53 @@ function MenuTitle({ label, collapsed }: { label: string; collapsed: boolean }) 
 
 export function Sidebar() {
   const pathname = usePathname();
-  const { sidebarCollapsed, toggleSidebarCollapse } = useUIStore();
+  const { data: session } = useSession();
+  const { sidebarCollapsed, toggleSidebarCollapse, mobileSidebarOpen, setMobileSidebarOpen } = useUIStore();
   const { getSelectedClient } = useClientStore();
   const selectedClient = getSelectedClient();
+  const userRole = (session?.user?.role || 'admin') as UserRole;
+
+  // Filter menu items based on user role
+  const filteredMenuItems = useMemo(() => {
+    return menuItems.filter(item => {
+      // Always show title items if any of their following items are visible
+      if (item.isTitle) return true;
+      // Check permission for regular items
+      if (item.key) {
+        return canAccessMenuItem(userRole, item.key);
+      }
+      return true;
+    }).filter((item, index, array) => {
+      // Remove title items that have no visible items after them
+      if (item.isTitle) {
+        const nextItem = array[index + 1];
+        // If next item is also a title or doesn't exist, hide this title
+        if (!nextItem || nextItem.isTitle) return false;
+      }
+      return true;
+    });
+  }, [userRole]);
+
+  // Close mobile sidebar when route changes
+  useEffect(() => {
+    setMobileSidebarOpen(false);
+  }, [pathname, setMobileSidebarOpen]);
+
+  // Close on escape key
+  useEffect(() => {
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setMobileSidebarOpen(false);
+    };
+    if (mobileSidebarOpen) {
+      document.addEventListener('keydown', handleEsc);
+      // Prevent body scroll when mobile menu is open
+      document.body.style.overflow = 'hidden';
+    }
+    return () => {
+      document.removeEventListener('keydown', handleEsc);
+      document.body.style.overflow = '';
+    };
+  }, [mobileSidebarOpen, setMobileSidebarOpen]);
 
   const isItemActive = (url?: string) => {
     if (!url) return false;
@@ -199,7 +247,20 @@ export function Sidebar() {
   };
 
   return (
-    <aside className={cn('app-sidebar', sidebarCollapsed && 'condensed')}>
+    <>
+      {/* Mobile Overlay */}
+      {mobileSidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden"
+          onClick={() => setMobileSidebarOpen(false)}
+        />
+      )}
+
+      <aside className={cn(
+        'app-sidebar',
+        sidebarCollapsed && 'condensed',
+        mobileSidebarOpen && 'mobile-open'
+      )}>
       {/* Logo Box */}
       <div className="logo-box">
         <Link href="/" className="logo-link">
@@ -216,7 +277,16 @@ export function Sidebar() {
           </div>
         </Link>
 
-        {/* Collapse Toggle Button */}
+        {/* Mobile Close Button */}
+        <button
+          onClick={() => setMobileSidebarOpen(false)}
+          className="lg:hidden p-2 rounded-lg hover:bg-[hsl(var(--glass-bg-2))] text-muted-foreground hover:text-foreground transition-colors"
+          aria-label="Menüyü kapat"
+        >
+          <X className="h-5 w-5" />
+        </button>
+
+        {/* Desktop Collapse Toggle Button */}
         <button
           onClick={toggleSidebarCollapse}
           className="button-sm-hover"
@@ -236,7 +306,7 @@ export function Sidebar() {
       <div className="scrollbar">
         <nav className="navbar-nav" id="navbar-nav">
           <ul className="nav-menu">
-            {menuItems.map((item, index) => {
+            {filteredMenuItems.map((item, index) => {
               if (item.isTitle) {
                 return (
                   <MenuTitle
@@ -306,16 +376,17 @@ export function Sidebar() {
         </div>
       </div>
     </aside>
+    </>
   );
 }
 
 // Mobile sidebar toggle button (for header)
 export function SidebarToggle() {
-  const { toggleSidebarCollapse } = useUIStore();
+  const { toggleMobileSidebar } = useUIStore();
 
   return (
     <button
-      onClick={toggleSidebarCollapse}
+      onClick={toggleMobileSidebar}
       className="sidebar-toggle lg:hidden"
       aria-label="Toggle sidebar"
     >

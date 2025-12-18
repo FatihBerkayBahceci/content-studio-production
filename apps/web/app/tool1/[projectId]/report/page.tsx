@@ -232,27 +232,27 @@ export default function ReportPage({ params }: PageProps) {
               <span className="text-muted-foreground">Müşteri:</span>
               <span className="text-foreground font-medium">{report.project?.client_name || project?.client_name || '-'}</span>
             </div>
-            {(report.project?.client_domain || project?.client_domain) && (
+            {(report.project?.clientDomain || (project as any)?.clientDomain || (project as any)?.client_domain) && (
               <div className="flex items-center gap-2 text-sm">
                 <Globe className="h-4 w-4 text-muted-foreground" />
                 <a
-                  href={report.project?.client_domain || project?.client_domain}
+                  href={report.project?.clientDomain || (project as any)?.clientDomain || (project as any)?.client_domain}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-primary hover:underline flex items-center gap-1"
                 >
-                  {(report.project?.client_domain || project?.client_domain || '').replace(/^https?:\/\//, '')}
+                  {(report.project?.clientDomain || (project as any)?.clientDomain || (project as any)?.client_domain || '').replace(/^https?:\/\//, '')}
                   <ArrowUpRight className="h-3 w-3" />
                 </a>
               </div>
             )}
             <div className="flex items-center gap-2 text-sm">
               <MapPin className="h-4 w-4 text-muted-foreground" />
-              <span className="text-foreground">{report.project?.target_country || project?.target_country || 'TR'}</span>
+              <span className="text-foreground">{report.project?.targetCountry || project?.targetCountry || 'TR'}</span>
             </div>
             <div className="flex items-center gap-2 text-sm">
               <Languages className="h-4 w-4 text-muted-foreground" />
-              <span className="text-foreground">{report.project?.target_language || project?.target_language || 'tr'}</span>
+              <span className="text-foreground">{report.project?.targetLanguage || project?.targetLanguage || 'tr'}</span>
             </div>
             <div className="ml-auto flex items-center gap-2">
               <span className={cn(

@@ -7,6 +7,7 @@ interface UIStore {
   // State
   sidebarOpen: boolean;
   sidebarCollapsed: boolean;
+  mobileSidebarOpen: boolean;
   theme: Theme;
 
   // Actions
@@ -14,6 +15,8 @@ interface UIStore {
   setSidebarOpen: (open: boolean) => void;
   toggleSidebarCollapse: () => void;
   setSidebarCollapsed: (collapsed: boolean) => void;
+  toggleMobileSidebar: () => void;
+  setMobileSidebarOpen: (open: boolean) => void;
   setTheme: (theme: Theme) => void;
 }
 
@@ -23,6 +26,7 @@ export const useUIStore = create<UIStore>()(
       // Initial State
       sidebarOpen: true,
       sidebarCollapsed: false,
+      mobileSidebarOpen: false,
       theme: 'system',
 
       // Actions
@@ -35,6 +39,11 @@ export const useUIStore = create<UIStore>()(
         set((state) => ({ sidebarCollapsed: !state.sidebarCollapsed })),
 
       setSidebarCollapsed: (collapsed) => set({ sidebarCollapsed: collapsed }),
+
+      toggleMobileSidebar: () =>
+        set((state) => ({ mobileSidebarOpen: !state.mobileSidebarOpen })),
+
+      setMobileSidebarOpen: (open) => set({ mobileSidebarOpen: open }),
 
       setTheme: (theme) => set({ theme }),
     }),

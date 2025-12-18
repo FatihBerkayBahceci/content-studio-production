@@ -15,11 +15,12 @@ const pageTitles: Record<string, string> = {
   '/tool3': 'Internal Linking',
   '/settings': 'Ayarlar',
   '/settings/system-prompts': 'System Prompts',
+  '/keywords': 'Hızlı Keyword',
 };
 
 export function Header() {
   const pathname = usePathname();
-  const { toggleSidebarCollapse } = useUIStore();
+  const { toggleMobileSidebar } = useUIStore();
 
   // Get current page title
   const getPageTitle = () => {
@@ -37,9 +38,9 @@ export function Header() {
         <div className="topbar-left">
           {/* Mobile Menu Toggle */}
           <button
-            onClick={toggleSidebarCollapse}
-            className="topbar-toggle"
-            aria-label="Toggle menu"
+            onClick={toggleMobileSidebar}
+            className="topbar-toggle lg:hidden"
+            aria-label="Menüyü aç"
           >
             <Menu className="h-5 w-5" />
           </button>

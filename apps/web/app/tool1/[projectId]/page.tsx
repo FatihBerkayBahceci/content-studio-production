@@ -386,7 +386,7 @@ export default function KeywordProjectDetailPage({ params }: PageProps) {
                 <span className="text-sm text-muted-foreground">Sonuçlar:</span>
                 <div className="flex items-center gap-2 flex-wrap">
                   <Link
-                    href={`/tool1/${projectId}/keywords`}
+                    href={`/keywords/${projectId}`}
                     className="px-3 py-1.5 rounded-lg text-sm font-medium bg-[hsl(var(--glass-bg-1))] hover:bg-[hsl(var(--glass-bg-interactive))] border border-[hsl(var(--glass-border-subtle))] transition-colors"
                   >
                     Keywords
@@ -487,7 +487,7 @@ function StepCard({
   };
 
   const detailLinks: Record<string, string> = {
-    discovery: `/tool1/${projectId}/keywords`,
+    discovery: `/keywords/${projectId}`,
     filter: `/tool1/${projectId}/filter`,
     competitors: `/tool1/${projectId}/competitors`,
     scraping: `/tool1/${projectId}/competitors`,

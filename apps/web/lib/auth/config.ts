@@ -8,7 +8,7 @@ declare module 'next-auth' {
     id: string;
     email: string;
     name: string;
-    role: 'admin' | 'client' | 'team';
+    role: 'admin' | 'client' | 'team' | 'test';
     accessibleClients: number[];
   }
 
@@ -17,7 +17,7 @@ declare module 'next-auth' {
       id: string;
       email: string;
       name: string;
-      role: 'admin' | 'client' | 'team';
+      role: 'admin' | 'client' | 'team' | 'test';
       accessibleClients: number[];
     };
   }
@@ -28,7 +28,7 @@ declare module 'next-auth/jwt' {
     id: string;
     email: string;
     name: string;
-    role: 'admin' | 'client' | 'team';
+    role: 'admin' | 'client' | 'team' | 'test';
     accessibleClients: number[];
   }
 }

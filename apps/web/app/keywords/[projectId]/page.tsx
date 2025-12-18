@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import {
   ArrowLeft,
   Search,
@@ -25,10 +25,37 @@ import {
   Sparkles,
   CheckCircle2,
   RefreshCw,
+  CheckSquare,
+  Square,
+  ClipboardList,
+  ChevronDown,
+  ChevronRight,
+  Tag,
+  Ruler,
+  DollarSign,
+  HelpCircle,
+  Package,
+  Database,
+  GitCompare,
+  Plus,
+  X,
+  Trash2,
+  // Additional icons for AI categorization
+  Car,
+  Star,
+  Zap,
+  Heart,
+  Shield,
+  Clock,
+  MapPin,
+  Users,
+  ShoppingCart,
+  Settings,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils/cn';
 import { PageTransition } from '@/components/motion';
+import { groupKeywords, KeywordGroup, KeywordSubgroup } from '@/lib/keyword-grouping';
 
 interface PageProps {
   params: { projectId: string };
@@ -60,13 +87,33 @@ interface Project {
   created_at: string;
 }
 
+// Turkish character normalization for keyword comparison
+const turkishCharMap: { [key: string]: string } = {
+  'ı': 'i', 'İ': 'i',
+  'ğ': 'g', 'Ğ': 'g',
+  'ü': 'u', 'Ü': 'u',
+  'ş': 's', 'Ş': 's',
+  'ö': 'o', 'Ö': 'o',
+  'ç': 'c', 'Ç': 'c'
+};
+
+function normalizeKeyword(keyword: string): string {
+  let normalized = keyword.toLowerCase().trim();
+  for (const [turkish, ascii] of Object.entries(turkishCharMap)) {
+    normalized = normalized.replace(new RegExp(turkish, 'g'), ascii);
+  }
+  return normalized.replace(/\s+/g, ' ');
+}
+
 export default function KeywordResultsPage({ params }: PageProps) {
   const { projectId } = params;
   const router = useRouter();
 
   const [project, setProject] = useState<Project | null>(null);
   const [keywords, setKeywords] = useState<KeywordResult[]>([]);
+  const [rawKeywords, setRawKeywords] = useState<KeywordResult[]>([]);
   const [stats, setStats] = useState<any>(null);
+  const [rawStats, setRawStats] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -76,7 +123,33 @@ export default function KeywordResultsPage({ params }: PageProps) {
   const [sortBy, setSortBy] = useState<'keyword' | 'volume' | 'cpc' | 'difficulty'>('volume');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
-  // Fetch project and keywords
+  // Selection state
+  const [selectedKeywords, setSelectedKeywords] = useState<Set<number>>(new Set());
+
+  // Grouped keywords state
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+  const [expandedSubgroups, setExpandedSubgroups] = useState<Set<string>>(new Set());
+
+  // Raw keywords filter state
+  const [rawSearchQuery, setRawSearchQuery] = useState('');
+  const [isAddingKeyword, setIsAddingKeyword] = useState<string | null>(null);
+  const [isDeletingKeyword, setIsDeletingKeyword] = useState<number | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+
+  // AI Categorization state
+  interface AICategory {
+    id: string;
+    name: string;
+    icon: string;
+    keywords: string[];
+    description?: string;
+  }
+  const [aiCategories, setAiCategories] = useState<AICategory[]>([]);
+  const [isAiCategorizing, setIsAiCategorizing] = useState(false);
+  const [aiCategorized, setAiCategorized] = useState(false);
+  const categorizationStartedRef = useRef(false); // Prevent duplicate runs
+
+  // Fetch project, keywords, and categories (all in one - no separate effects)
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -92,7 +165,7 @@ export default function KeywordResultsPage({ params }: PageProps) {
 
         setProject(projectData.project);
 
-        // Fetch keywords
+        // Fetch filtered keywords
         const keywordsRes = await fetch(`/api/projects/${projectId}/keywords`);
         const keywordsData = await keywordsRes.json();
 
@@ -100,11 +173,70 @@ export default function KeywordResultsPage({ params }: PageProps) {
           setKeywords(keywordsData.data || []);
           setStats(keywordsData.stats);
         }
+
+        // Fetch raw keywords (all DataForSEO results)
+        const rawRes = await fetch(`/api/projects/${projectId}/keywords-raw`);
+        const rawData = await rawRes.json();
+
+        let rawKeywordsList: any[] = [];
+        if (rawData.success && rawData.data) {
+          rawKeywordsList = rawData.data || [];
+          setRawKeywords(rawKeywordsList);
+          setRawStats(rawData.stats);
+        }
+
+        // Check for AI categorization (silently, no banner)
+        if (rawKeywordsList.length > 0) {
+          try {
+            const catCheckRes = await fetch(`/api/projects/${projectId}/keywords-categorize`);
+            const catCheckData = await catCheckRes.json();
+
+            if (catCheckData.success && catCheckData.categorization_done && catCheckData.categories) {
+              // Already categorized - just load from DB
+              setAiCategories(catCheckData.categories);
+              setAiCategorized(true);
+            } else {
+              // Not categorized yet - run AI silently in background
+              runAiCategorizationInBackground(rawKeywordsList);
+            }
+          } catch (catErr) {
+            console.error('Category check failed:', catErr);
+          }
+        }
       } catch (err) {
         console.error('Error fetching data:', err);
         setError('Veriler yüklenirken hata oluştu');
       } finally {
         setIsLoading(false);
+      }
+    };
+
+    // Background AI categorization (no loading banner)
+    const runAiCategorizationInBackground = async (keywords: any[]) => {
+      try {
+        const catResponse = await fetch(`/api/projects/${projectId}/keywords-categorize`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            keywords: keywords.slice(0, 500).map((kw: any) => ({
+              id: kw.id,
+              keyword: kw.keyword,
+              search_volume: kw.search_volume,
+              cpc: kw.cpc,
+              competition: kw.competition
+            }))
+          })
+        });
+
+        const catData = await catResponse.json();
+
+        if (catData.success && catData.categories) {
+          setAiCategories(catData.categories);
+          setAiCategorized(true);
+          console.log('[AI Categorize] Completed silently');
+        }
+      } catch (err) {
+        console.error('Background AI categorization failed:', err);
       }
     };
 
@@ -147,6 +279,218 @@ export default function KeywordResultsPage({ params }: PageProps) {
 
     return filtered;
   }, [keywords, searchQuery, sortBy, sortOrder]);
+
+  // Grouped keywords (for "Tüm Kelimeler" section) - uses RAW keywords or AI categories
+  const groupedKeywords = useMemo(() => {
+    // If AI categories are available, use them
+    if (aiCategorized && aiCategories.length > 0) {
+      return aiCategories.map(cat => ({
+        id: cat.id,
+        name: cat.name,
+        icon: cat.icon,
+        keywords: rawKeywords.filter(kw =>
+          cat.keywords.some(k => k.toLowerCase() === kw.keyword.toLowerCase())
+        ),
+        totalVolume: rawKeywords
+          .filter(kw => cat.keywords.some(k => k.toLowerCase() === kw.keyword.toLowerCase()))
+          .reduce((sum, kw) => sum + (kw.search_volume || 0), 0)
+      }));
+    }
+    // Otherwise use rule-based grouping
+    return groupKeywords(rawKeywords);
+  }, [rawKeywords, aiCategorized, aiCategories]);
+
+  // Filtered raw keywords - excludes main keywords and applies search + category filter
+  // Uses Turkish character normalization to catch duplicates like "bahçe" vs "bahce"
+  const filteredRawKeywords = useMemo(() => {
+    // Get main keyword strings for comparison (normalized for Turkish chars)
+    const mainKeywordSet = new Set(keywords.map(k => normalizeKeyword(k.keyword)));
+
+    // Get keywords in selected category (works with both AI and rule-based categories)
+    let categoryKeywords: Set<string> | null = null;
+    if (selectedCategory) {
+      const selectedGroup = groupedKeywords.find(g => g.id === selectedCategory);
+      if (selectedGroup) {
+        categoryKeywords = new Set(selectedGroup.keywords.map(k => normalizeKeyword(k.keyword)));
+      }
+    }
+
+    return rawKeywords
+      .filter(kw => {
+        const normalizedKw = normalizeKeyword(kw.keyword);
+        // Exclude if already in main keywords (Turkish char normalized)
+        if (mainKeywordSet.has(normalizedKw)) return false;
+        // Apply search filter
+        if (rawSearchQuery && !kw.keyword.toLowerCase().includes(rawSearchQuery.toLowerCase())) return false;
+        // Apply category filter
+        if (categoryKeywords && !categoryKeywords.has(normalizedKw)) return false;
+        return true;
+      })
+      .sort((a, b) => (b.search_volume || 0) - (a.search_volume || 0));
+  }, [rawKeywords, keywords, rawSearchQuery, selectedCategory, groupedKeywords]);
+
+  // Add keyword to main list
+  const addKeywordToMain = async (kw: KeywordResult) => {
+    if (!project) return;
+    setIsAddingKeyword(kw.keyword);
+
+    try {
+      const response = await fetch(`/api/projects/${projectId}/keywords`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          keyword: kw.keyword,
+          search_volume: kw.search_volume,
+          cpc: kw.cpc,
+          competition: kw.competition,
+          source: 'manual'
+        })
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        // Add to local state
+        setKeywords(prev => [...prev, { ...kw, id: data.id, source: 'manual' }]);
+      } else {
+        console.error('Failed to add keyword:', data.error);
+      }
+    } catch (err) {
+      console.error('Error adding keyword:', err);
+    } finally {
+      setIsAddingKeyword(null);
+    }
+  };
+
+  // Remove keyword from main list
+  const removeKeywordFromMain = async (kw: KeywordResult) => {
+    if (!project || !kw.id) return;
+    setIsDeletingKeyword(kw.id);
+
+    try {
+      const response = await fetch(`/api/projects/${projectId}/keywords?id=${kw.id}`, {
+        method: 'DELETE'
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        // Remove from local state
+        setKeywords(prev => prev.filter(k => k.id !== kw.id));
+        // Also deselect if selected
+        setSelectedKeywords(prev => {
+          const next = new Set(prev);
+          next.delete(kw.id!);
+          return next;
+        });
+      } else {
+        console.error('Failed to remove keyword:', data.error);
+      }
+    } catch (err) {
+      console.error('Error removing keyword:', err);
+    } finally {
+      setIsDeletingKeyword(null);
+    }
+  };
+
+  // Toggle category filter
+  const toggleCategoryFilter = (categoryId: string) => {
+    setSelectedCategory(prev => prev === categoryId ? null : categoryId);
+  };
+
+  // AI Categorization - dinamik kategori oluşturma
+  const runAiCategorization = async () => {
+    if (rawKeywords.length === 0 || isAiCategorizing) return;
+
+    setIsAiCategorizing(true);
+    setSelectedCategory(null);
+
+    try {
+      const response = await fetch(`/api/projects/${projectId}/keywords-categorize`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          keywords: rawKeywords.slice(0, 500).map(kw => ({
+            id: kw.id,
+            keyword: kw.keyword,
+            search_volume: kw.search_volume,
+            cpc: kw.cpc,
+            competition: kw.competition
+          }))
+        })
+      });
+
+      const data = await response.json();
+
+      if (data.success && data.categories) {
+        setAiCategories(data.categories);
+        setAiCategorized(true);
+      } else {
+        console.error('AI categorization failed:', data.error);
+      }
+    } catch (err) {
+      console.error('Error running AI categorization:', err);
+    } finally {
+      setIsAiCategorizing(false);
+    }
+  };
+
+  // Reset to rule-based categorization
+  const resetCategorization = () => {
+    setAiCategories([]);
+    setAiCategorized(false);
+    setSelectedCategory(null);
+  };
+
+  // Toggle group expansion
+  const toggleGroup = (groupId: string) => {
+    const newExpanded = new Set(expandedGroups);
+    if (newExpanded.has(groupId)) {
+      newExpanded.delete(groupId);
+    } else {
+      newExpanded.add(groupId);
+    }
+    setExpandedGroups(newExpanded);
+  };
+
+  // Toggle subgroup expansion
+  const toggleSubgroup = (subgroupKey: string) => {
+    const newExpanded = new Set(expandedSubgroups);
+    if (newExpanded.has(subgroupKey)) {
+      newExpanded.delete(subgroupKey);
+    } else {
+      newExpanded.add(subgroupKey);
+    }
+    setExpandedSubgroups(newExpanded);
+  };
+
+  // Get icon for group (supports both rule-based and AI categories)
+  const getGroupIcon = (iconName: string) => {
+    const iconMap: { [key: string]: any } = {
+      'tag': Tag,
+      'ruler': Ruler,
+      'dollar-sign': DollarSign,
+      'help-circle': HelpCircle,
+      'git-compare': GitCompare,
+      'package': Package,
+      'building-2': Building2,
+      'car': Car,
+      'star': Star,
+      'zap': Zap,
+      'heart': Heart,
+      'shield': Shield,
+      'clock': Clock,
+      'map-pin': MapPin,
+      'users': Users,
+      'shopping-cart': ShoppingCart,
+      'trending-up': TrendingUp,
+      'search': Search,
+      'settings': Settings,
+      'target': Target,
+      'globe': Globe,
+      'database': Database,
+      'sparkles': Sparkles,
+    };
+    return iconMap[iconName] || Package;
+  };
 
   // Export CSV
   const handleExportCSV = () => {
@@ -217,7 +561,7 @@ export default function KeywordResultsPage({ params }: PageProps) {
                 <td>${kw.keyword}</td>
                 <td>${kw.search_volume?.toLocaleString() || '-'}</td>
                 <td>${kw.keyword_difficulty || '-'}</td>
-                <td>${kw.cpc ? '$' + kw.cpc.toFixed(2) : '-'}</td>
+                <td>${kw.cpc ? '$' + (typeof kw.cpc === 'string' ? parseFloat(kw.cpc) : kw.cpc).toFixed(2) : '-'}</td>
                 <td>${kw.search_intent || '-'}</td>
               </tr>
             `).join('')}
@@ -237,6 +581,51 @@ export default function KeywordResultsPage({ params }: PageProps) {
 
   const copyKeyword = (kw: string) => {
     navigator.clipboard.writeText(kw);
+  };
+
+  // Selection functions
+  const toggleKeywordSelection = (id: number) => {
+    const newSelected = new Set(selectedKeywords);
+    if (newSelected.has(id)) {
+      newSelected.delete(id);
+    } else {
+      newSelected.add(id);
+    }
+    setSelectedKeywords(newSelected);
+  };
+
+  const selectAllKeywords = () => {
+    const allIds = new Set(filteredKeywords.map((kw, idx) => kw.id || idx));
+    setSelectedKeywords(allIds);
+  };
+
+  const deselectAllKeywords = () => {
+    setSelectedKeywords(new Set());
+  };
+
+  const copySelectedAsTable = () => {
+    const selected = filteredKeywords.filter((kw, idx) =>
+      selectedKeywords.has(kw.id || idx)
+    );
+
+    if (selected.length === 0) return;
+
+    // Tab-separated format (Excel/Sheets uyumlu)
+    const headers = ['Keyword', 'Hacim'];
+    const rows = selected.map(kw => [
+      kw.keyword,
+      kw.search_volume || ''
+    ].join('\t'));
+
+    const tableText = [headers.join('\t'), ...rows].join('\n');
+    navigator.clipboard.writeText(tableText);
+  };
+
+  // Helper function to safely format CPC
+  const formatCpc = (cpc: any) => {
+    if (cpc === null || cpc === undefined) return null;
+    const num = typeof cpc === 'string' ? parseFloat(cpc) : cpc;
+    return isNaN(num) ? null : num;
   };
 
   if (isLoading) {
@@ -340,25 +729,6 @@ export default function KeywordResultsPage({ params }: PageProps) {
         </div>
       </section>
 
-      {/* Stats */}
-      {stats && (
-        <section className="px-6 py-4">
-          <motion.div
-            className="grid grid-cols-3 md:grid-cols-6 gap-3"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-          >
-            <StatCard label="Toplam" value={stats.total || keywords.length} icon={FileText} color="primary" />
-            <StatCard label="Ort. Hacim" value={Math.round(stats.avg_volume || 0)} icon={TrendingUp} color="emerald" />
-            <StatCard label="Ort. Zorluk" value={Math.round(stats.avg_difficulty || 0)} icon={Target} color="amber" />
-            <StatCard label="Ort. Fırsat" value={Math.round(stats.avg_opportunity || 0)} icon={BarChart3} color="blue" />
-            <StatCard label="Yüksek Öncelik" value={stats.high_priority || 0} icon={Sparkles} color="red" />
-            <StatCard label="Intent Var" value={stats.with_intent || 0} icon={Globe} color="purple" />
-          </motion.div>
-        </section>
-      )}
-
       {/* Toolbar */}
       <section className="px-6">
         <motion.div
@@ -416,6 +786,31 @@ export default function KeywordResultsPage({ params }: PageProps) {
           </div>
 
           <div className="flex items-center gap-2">
+            {/* Seçim kontrolleri */}
+            <div className="flex items-center gap-2 border-r border-[hsl(var(--glass-border-subtle))] pr-3 mr-1">
+              <button
+                onClick={selectedKeywords.size === filteredKeywords.length && filteredKeywords.length > 0 ? deselectAllKeywords : selectAllKeywords}
+                className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-[hsl(var(--glass-bg-2))] hover:bg-[hsl(var(--glass-bg-3))] text-sm transition-colors"
+              >
+                {selectedKeywords.size === filteredKeywords.length && filteredKeywords.length > 0 ? (
+                  <CheckSquare className="h-4 w-4 text-primary" />
+                ) : (
+                  <Square className="h-4 w-4 text-muted-foreground" />
+                )}
+                {selectedKeywords.size > 0 ? `${selectedKeywords.size} seçili` : 'Tümünü Seç'}
+              </button>
+
+              {selectedKeywords.size > 0 && (
+                <button
+                  onClick={copySelectedAsTable}
+                  className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary text-sm font-medium transition-colors"
+                >
+                  <ClipboardList className="h-4 w-4" />
+                  Tablo Kopyala
+                </button>
+              )}
+            </div>
+
             <button
               onClick={handleExportCSV}
               disabled={!filteredKeywords.length}
@@ -461,69 +856,116 @@ export default function KeywordResultsPage({ params }: PageProps) {
           </motion.div>
         ) : viewMode === 'table' ? (
           <motion.div
-            className="rounded-2xl glass-2 overflow-hidden"
+            className="rounded-2xl glass-2 overflow-hidden flex flex-col"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
           >
-            <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
-              <table className="w-full">
-                <thead className="bg-[hsl(var(--glass-bg-3))] sticky top-0 z-10">
+            {/* Fixed Header */}
+            <div className="bg-[hsl(var(--glass-bg-3))] border-b border-[hsl(var(--glass-border-subtle))] flex-shrink-0">
+              <table className="w-full table-fixed">
+                <thead>
                   <tr>
-                    <th className="px-4 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Keyword</th>
-                    <th className="px-4 py-4 text-right text-xs font-semibold text-muted-foreground uppercase tracking-wider">Hacim</th>
-                    <th className="px-4 py-4 text-right text-xs font-semibold text-muted-foreground uppercase tracking-wider">Zorluk</th>
-                    <th className="px-4 py-4 text-center text-xs font-semibold text-muted-foreground uppercase tracking-wider">Rekabet</th>
-                    <th className="px-4 py-4 text-right text-xs font-semibold text-muted-foreground uppercase tracking-wider">CPC</th>
-                    <th className="px-4 py-4 text-center text-xs font-semibold text-muted-foreground uppercase tracking-wider">Intent</th>
-                    <th className="px-4 py-4 text-right text-xs font-semibold text-muted-foreground uppercase tracking-wider">Fırsat</th>
-                    <th className="px-4 py-4 text-center text-xs font-semibold text-muted-foreground uppercase tracking-wider w-12"></th>
+                    <th className="px-4 py-4 text-center w-14">
+                      <button
+                        onClick={selectedKeywords.size === filteredKeywords.length && filteredKeywords.length > 0 ? deselectAllKeywords : selectAllKeywords}
+                        className="p-1 rounded hover:bg-[hsl(var(--glass-bg-interactive))] transition-colors"
+                      >
+                        {selectedKeywords.size === filteredKeywords.length && filteredKeywords.length > 0 ? (
+                          <CheckSquare className="h-4 w-4 text-primary" />
+                        ) : (
+                          <Square className="h-4 w-4 text-muted-foreground" />
+                        )}
+                      </button>
+                    </th>
+                    <th className="px-4 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider w-[30%]">Keyword</th>
+                    <th className="px-4 py-4 text-right text-xs font-semibold text-muted-foreground uppercase tracking-wider w-[10%]">Hacim</th>
+                    <th className="px-4 py-4 text-right text-xs font-semibold text-muted-foreground uppercase tracking-wider w-[10%]">Zorluk</th>
+                    <th className="px-4 py-4 text-center text-xs font-semibold text-muted-foreground uppercase tracking-wider w-[10%]">Rekabet</th>
+                    <th className="px-4 py-4 text-right text-xs font-semibold text-muted-foreground uppercase tracking-wider w-[10%]">CPC</th>
+                    <th className="px-4 py-4 text-center text-xs font-semibold text-muted-foreground uppercase tracking-wider w-[10%]">Intent</th>
+                    <th className="px-4 py-4 text-right text-xs font-semibold text-muted-foreground uppercase tracking-wider w-[10%]">Fırsat</th>
+                    <th className="px-4 py-4 text-center text-xs font-semibold text-muted-foreground uppercase tracking-wider w-14"></th>
                   </tr>
                 </thead>
+              </table>
+            </div>
+            {/* Scrollable Body */}
+            <div className="overflow-y-auto max-h-[500px] scrollbar-thin scrollbar-thumb-[hsl(var(--glass-border-subtle))] scrollbar-track-transparent">
+              <table className="w-full table-fixed">
                 <tbody className="divide-y divide-[hsl(var(--glass-border-subtle))]">
                   {filteredKeywords.map((kw, index) => (
                     <motion.tr
                       key={kw.id || index}
-                      className="group hover:bg-[hsl(var(--glass-bg-interactive))] transition-colors"
+                      className={cn(
+                        "group hover:bg-[hsl(var(--glass-bg-interactive))] transition-colors",
+                        selectedKeywords.has(kw.id || index) && "bg-primary/5"
+                      )}
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       transition={{ delay: Math.min(0.02 * index, 0.3) }}
                     >
-                      <td className="px-4 py-3">
-                        <span className="font-medium text-foreground">{kw.keyword}</span>
+                      <td className="px-4 py-3 text-center w-14">
+                        <button
+                          onClick={() => toggleKeywordSelection(kw.id || index)}
+                          className="p-1 rounded hover:bg-[hsl(var(--glass-bg-interactive))] transition-colors"
+                        >
+                          {selectedKeywords.has(kw.id || index) ? (
+                            <CheckSquare className="h-4 w-4 text-primary" />
+                          ) : (
+                            <Square className="h-4 w-4 text-muted-foreground" />
+                          )}
+                        </button>
                       </td>
-                      <td className="px-4 py-3 text-right">
+                      <td className="px-4 py-3 w-[30%]">
+                        <span className="font-medium text-foreground truncate block">{kw.keyword}</span>
+                      </td>
+                      <td className="px-4 py-3 text-right w-[10%]">
                         <span className="font-semibold text-foreground">
                           {kw.search_volume?.toLocaleString() || '-'}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-right">
+                      <td className="px-4 py-3 text-right w-[10%]">
                         <DifficultyBadge value={kw.keyword_difficulty} />
                       </td>
-                      <td className="px-4 py-3 text-center">
+                      <td className="px-4 py-3 text-center w-[10%]">
                         <CompetitionBadge competition={kw.competition} />
                       </td>
-                      <td className="px-4 py-3 text-right">
-                        {kw.cpc ? (
-                          <span className="text-emerald-400 font-medium">${kw.cpc.toFixed(2)}</span>
+                      <td className="px-4 py-3 text-right w-[10%]">
+                        {formatCpc(kw.cpc) ? (
+                          <span className="text-emerald-400 font-medium">${formatCpc(kw.cpc)!.toFixed(2)}</span>
                         ) : (
                           <span className="text-muted-foreground">-</span>
                         )}
                       </td>
-                      <td className="px-4 py-3 text-center">
+                      <td className="px-4 py-3 text-center w-[10%]">
                         <IntentBadge intent={kw.search_intent} />
                       </td>
-                      <td className="px-4 py-3 text-right">
+                      <td className="px-4 py-3 text-right w-[10%]">
                         <OpportunityBadge value={kw.opportunity_score} />
                       </td>
-                      <td className="px-4 py-3 text-center">
-                        <button
-                          onClick={() => copyKeyword(kw.keyword)}
-                          className="opacity-0 group-hover:opacity-100 p-1.5 rounded-lg hover:bg-primary/10 text-muted-foreground hover:text-primary transition-all"
-                          title="Kopyala"
-                        >
-                          <Copy className="h-4 w-4" />
-                        </button>
+                      <td className="px-4 py-3 text-center w-14">
+                        <div className="flex items-center justify-center gap-1">
+                          <button
+                            onClick={() => copyKeyword(kw.keyword)}
+                            className="opacity-0 group-hover:opacity-100 p-1.5 rounded-lg hover:bg-primary/10 text-muted-foreground hover:text-primary transition-all"
+                            title="Kopyala"
+                          >
+                            <Copy className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() => removeKeywordFromMain(kw)}
+                            disabled={isDeletingKeyword === kw.id}
+                            className="opacity-0 group-hover:opacity-100 p-1.5 rounded-lg hover:bg-red-500/10 text-muted-foreground hover:text-red-400 transition-all disabled:opacity-50"
+                            title="Sil"
+                          >
+                            {isDeletingKeyword === kw.id ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Trash2 className="h-4 w-4" />
+                            )}
+                          </button>
+                        </div>
                       </td>
                     </motion.tr>
                   ))}
@@ -563,9 +1005,9 @@ export default function KeywordResultsPage({ params }: PageProps) {
                   {kw.keyword_difficulty && (
                     <DifficultyBadge value={kw.keyword_difficulty} />
                   )}
-                  {kw.cpc && (
+                  {formatCpc(kw.cpc) && (
                     <span className="text-emerald-400">
-                      ${kw.cpc.toFixed(2)}
+                      ${formatCpc(kw.cpc)!.toFixed(2)}
                     </span>
                   )}
                   <IntentBadge intent={kw.search_intent} />
@@ -574,7 +1016,271 @@ export default function KeywordResultsPage({ params }: PageProps) {
             ))}
           </motion.div>
         )}
+
+        {/* Table Footer Stats */}
+        {stats && (
+          <motion.div
+            className="mt-3 px-4 py-3 rounded-xl glass-1 flex items-center justify-between text-sm"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.25 }}
+          >
+            <div className="flex items-center gap-4 text-muted-foreground">
+              <span className="flex items-center gap-1.5">
+                <FileText className="h-3.5 w-3.5" />
+                <span className="text-foreground font-medium">{stats.total || keywords.length}</span> kelime
+              </span>
+              <span className="text-muted-foreground/40">•</span>
+              <span className="flex items-center gap-1.5">
+                <TrendingUp className="h-3.5 w-3.5" />
+                Ort. <span className="text-foreground font-medium">{(stats.avg_volume || 0).toLocaleString()}</span> hacim
+              </span>
+              <span className="text-muted-foreground/40">•</span>
+              <span className="flex items-center gap-1.5">
+                <Target className="h-3.5 w-3.5" />
+                Ort. <span className="text-foreground font-medium">{Math.round(stats.avg_difficulty || 0)}</span> zorluk
+              </span>
+            </div>
+            <div className="flex items-center gap-4 text-muted-foreground">
+              {(stats.high_priority || 0) > 0 && (
+                <span className="flex items-center gap-1.5 text-amber-400">
+                  <Sparkles className="h-3.5 w-3.5" />
+                  <span className="font-medium">{stats.high_priority}</span> öncelikli
+                </span>
+              )}
+              {(stats.with_intent || 0) > 0 && (
+                <span className="flex items-center gap-1.5 text-purple-400">
+                  <Globe className="h-3.5 w-3.5" />
+                  <span className="font-medium">{stats.with_intent}</span> intent
+                </span>
+              )}
+            </div>
+          </motion.div>
+        )}
       </section>
+
+      {/* Tüm Kelimeler - Tablo Görünümü (HAM DataForSEO verileri) */}
+      {rawKeywords.length > 0 && (
+        <section id="raw-keywords-section" className="px-6 py-4">
+          <motion.div
+            className="rounded-2xl glass-2 overflow-hidden"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+          >
+            {/* Header */}
+            <div className="p-4 border-b border-[hsl(var(--glass-border-subtle))]">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-primary/10">
+                    <Database className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h2 className="text-lg font-semibold text-foreground">Diğer DataForSEO Kelimeleri</h2>
+                      {aiCategorized && (
+                        <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-primary/20 text-primary flex items-center gap-1">
+                          <Sparkles className="h-3 w-3" />
+                          AI Kategorilendi
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      {filteredRawKeywords.length.toLocaleString()} kelime
+                      {rawSearchQuery && ` ("${rawSearchQuery}" için)`}
+                      {selectedCategory && (
+                        <span className="text-primary"> • {groupedKeywords.find(g => g.id === selectedCategory)?.name} filtresi aktif</span>
+                      )}
+                      <span className="text-muted-foreground/60"> • Ana listede olmayanlar</span>
+                    </p>
+                  </div>
+                </div>
+
+                {/* AI Categorization Status */}
+                <div className="flex items-center gap-2">
+                  {isAiCategorizing ? (
+                    <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium bg-primary/10 text-primary">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      AI Analiz Ediliyor...
+                    </div>
+                  ) : aiCategorized ? (
+                    <button
+                      onClick={resetCategorization}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium bg-[hsl(var(--glass-bg-3))] text-muted-foreground hover:text-foreground hover:bg-[hsl(var(--glass-bg-4))] transition-colors"
+                    >
+                      <RefreshCw className="h-4 w-4" />
+                      Varsayılana Dön
+                    </button>
+                  ) : (
+                    <button
+                      onClick={runAiCategorization}
+                      disabled={rawKeywords.length === 0}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium bg-primary/10 text-primary hover:bg-primary/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <Sparkles className="h-4 w-4" />
+                      AI ile Yeniden Kategorile
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between">
+                {/* Group Summary Chips - Clickable Filters */}
+                <div className="flex items-center gap-2 flex-wrap">
+                  {selectedCategory && (
+                    <button
+                      onClick={() => setSelectedCategory(null)}
+                      className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors"
+                    >
+                      <X className="h-3 w-3" />
+                      Filtreyi Kaldır
+                    </button>
+                  )}
+                  {groupedKeywords.slice(0, 5).map((group) => {
+                    const GroupIcon = getGroupIcon(group.icon);
+                    const isSelected = selectedCategory === group.id;
+                    return (
+                      <button
+                        key={group.id}
+                        onClick={() => toggleCategoryFilter(group.id)}
+                        className={cn(
+                          "flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium transition-all cursor-pointer",
+                          isSelected ? 'ring-2 ring-offset-2 ring-offset-background' : '',
+                          group.id === 'brands' ? cn('bg-blue-500/10 text-blue-400 hover:bg-blue-500/20', isSelected && 'ring-blue-400 bg-blue-500/30') :
+                          group.id === 'sizes' ? cn('bg-purple-500/10 text-purple-400 hover:bg-purple-500/20', isSelected && 'ring-purple-400 bg-purple-500/30') :
+                          group.id === 'price' ? cn('bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20', isSelected && 'ring-emerald-400 bg-emerald-500/30') :
+                          group.id === 'comparison' ? cn('bg-amber-500/10 text-amber-400 hover:bg-amber-500/20', isSelected && 'ring-amber-400 bg-amber-500/30') :
+                          group.id === 'questions' ? cn('bg-cyan-500/10 text-cyan-400 hover:bg-cyan-500/20', isSelected && 'ring-cyan-400 bg-cyan-500/30') :
+                          group.id === 'other' ? cn('bg-slate-500/10 text-slate-400 hover:bg-slate-500/20', isSelected && 'ring-slate-400 bg-slate-500/30') :
+                          cn('bg-[hsl(var(--glass-bg-3))] text-muted-foreground hover:bg-[hsl(var(--glass-bg-4))]', isSelected && 'ring-primary bg-primary/20')
+                        )}
+                      >
+                        <GroupIcon className="h-3 w-3" />
+                        {group.name}: {group.keywords.length}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Search Input */}
+              <div className="relative mt-3">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <input
+                  type="text"
+                  placeholder="Kelime ara..."
+                  value={rawSearchQuery}
+                  onChange={(e) => setRawSearchQuery(e.target.value)}
+                  className="w-full pl-10 pr-10 py-2 rounded-xl bg-[hsl(var(--glass-bg-2))] border border-[hsl(var(--glass-border-subtle))] text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+                />
+                {rawSearchQuery && (
+                  <button
+                    onClick={() => setRawSearchQuery('')}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded hover:bg-[hsl(var(--glass-bg-3))] text-muted-foreground"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Fixed Header */}
+            <div className="bg-[hsl(var(--glass-bg-3))] border-b border-[hsl(var(--glass-border-subtle))] flex-shrink-0">
+              <table className="w-full table-fixed">
+                <thead>
+                  <tr>
+                    <th className="px-4 py-3 text-center text-xs font-semibold text-muted-foreground uppercase tracking-wider w-14">Ekle</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider w-[40%]">Keyword</th>
+                    <th className="px-4 py-3 text-right text-xs font-semibold text-muted-foreground uppercase tracking-wider w-[15%]">Hacim</th>
+                    <th className="px-4 py-3 text-right text-xs font-semibold text-muted-foreground uppercase tracking-wider w-[12%]">CPC</th>
+                    <th className="px-4 py-3 text-center text-xs font-semibold text-muted-foreground uppercase tracking-wider w-[15%]">Rekabet</th>
+                    <th className="px-4 py-3 text-center text-xs font-semibold text-muted-foreground uppercase tracking-wider w-[15%]">Grup</th>
+                  </tr>
+                </thead>
+              </table>
+            </div>
+            {/* Scrollable Body */}
+            <div className="overflow-y-auto max-h-[400px] scrollbar-thin scrollbar-thumb-[hsl(var(--glass-border-subtle))] scrollbar-track-transparent">
+              <table className="w-full table-fixed">
+                <tbody className="divide-y divide-[hsl(var(--glass-border-subtle))]">
+                  {filteredRawKeywords.map((kw, index) => {
+                    // Find which group this keyword belongs to
+                    const kwGroup = groupedKeywords.find(g =>
+                      g.keywords.some(k => k.keyword === kw.keyword)
+                    );
+                    const groupLabel = kwGroup?.name || 'Diğer';
+                    const groupColor = kwGroup?.id === 'brands' ? 'text-blue-400' :
+                                       kwGroup?.id === 'sizes' ? 'text-purple-400' :
+                                       kwGroup?.id === 'price' ? 'text-emerald-400' :
+                                       kwGroup?.id === 'comparison' ? 'text-amber-400' :
+                                       kwGroup?.id === 'questions' ? 'text-cyan-400' :
+                                       'text-muted-foreground';
+                    const isAdding = isAddingKeyword === kw.keyword;
+
+                    return (
+                      <tr
+                        key={kw.id || index}
+                        className="group hover:bg-[hsl(var(--glass-bg-interactive))] transition-colors"
+                      >
+                        <td className="px-4 py-2.5 text-center w-14">
+                          <button
+                            onClick={() => addKeywordToMain(kw)}
+                            disabled={isAdding}
+                            className="p-1.5 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary transition-colors disabled:opacity-50"
+                            title="Ana listeye ekle"
+                          >
+                            {isAdding ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Plus className="h-4 w-4" />
+                            )}
+                          </button>
+                        </td>
+                        <td className="px-4 py-2.5 w-[40%]">
+                          <span className="text-sm text-foreground truncate block">{kw.keyword}</span>
+                        </td>
+                        <td className="px-4 py-2.5 text-right w-[15%]">
+                          <span className="text-sm font-medium text-foreground">
+                            {kw.search_volume?.toLocaleString() || '-'}
+                          </span>
+                        </td>
+                        <td className="px-4 py-2.5 text-right w-[12%]">
+                          {kw.cpc ? (
+                            <span className="text-sm text-emerald-400">${Number(kw.cpc).toFixed(2)}</span>
+                          ) : (
+                            <span className="text-sm text-muted-foreground">-</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-2.5 text-center w-[15%]">
+                          <span className={cn(
+                            "inline-flex px-2 py-0.5 rounded text-xs font-medium",
+                            kw.competition === 'LOW' ? 'bg-emerald-500/20 text-emerald-400' :
+                            kw.competition === 'MEDIUM' ? 'bg-amber-500/20 text-amber-400' :
+                            kw.competition === 'HIGH' ? 'bg-red-500/20 text-red-400' :
+                            'bg-[hsl(var(--glass-bg-3))] text-muted-foreground'
+                          )}>
+                            {kw.competition || '-'}
+                          </span>
+                        </td>
+                        <td className="px-4 py-2.5 text-center w-[15%]">
+                          <span className={cn("text-xs font-medium", groupColor)}>
+                            {groupLabel}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+              {filteredRawKeywords.length === 0 && (
+                <div className="p-8 text-center text-muted-foreground">
+                  {rawSearchQuery ? `"${rawSearchQuery}" için sonuç bulunamadı` : 'Tüm kelimeler ana listede'}
+                </div>
+              )}
+            </div>
+          </motion.div>
+        </section>
+      )}
 
       {/* Bottom Action Bar */}
       <section className="px-6 py-6">

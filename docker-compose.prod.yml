@@ -1,7 +1,7 @@
 version: '3.8'
 
 # SEO Tool Suite - Production Docker Configuration
-# n8n + MySQL + Redis + Nginx
+# n8n + PostgreSQL + MySQL + Redis + Nginx + Frontend
 
 services:
   # Nginx Reverse Proxy
@@ -19,6 +19,58 @@ services:
       - seo-suite-network
     depends_on:
       - n8n
+      - frontend
+
+  # Next.js Frontend
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/frontend/Dockerfile
+    container_name: seo-suite-frontend
+    restart: always
+    expose:
+      - "3000"
+    environment:
+      - NODE_ENV=production
+      - NEXT_TELEMETRY_DISABLED=1
+      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
+      - NEXTAUTH_URL=https://seo.dev
+      - NEXT_PUBLIC_N8N_WEBHOOK_URL=https://seo.dev/webhook
+      - N8N_WEBHOOK_URL=http://n8n:5678/webhook
+      - N8N_AUTH_ENABLED=false
+      - DATABASE_URL=mysql://${MYSQL_USER}:${MYSQL_PASSWORD}@mysql:3306/seo_tool_suite
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_USER=${MYSQL_USER}
+      - DB_PASSWORD=${MYSQL_PASSWORD}
+      - DB_NAME=seo_tool_suite
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+    networks:
+      - seo-suite-network
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  # PostgreSQL for n8n
+  postgres:
+    image: postgres:15-alpine
+    container_name: seo-suite-postgres
+    restart: always
+    expose:
+      - "5432"
+    environment:
+      - POSTGRES_USER=n8n
+      - POSTGRES_PASSWORD=${N8N_POSTGRES_PASSWORD}
+      - POSTGRES_DB=n8n
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - seo-suite-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U n8n -d n8n"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   # n8n Workflow Automation
   n8n:
@@ -32,12 +84,17 @@ services:
       - N8N_HOST=${N8N_HOST}
       - N8N_PORT=5678
       - N8N_PROTOCOL=https
+      - N8N_EDITOR_BASE_URL=https://n8n.seo.dev
       - WEBHOOK_URL=${WEBHOOK_URL}
       - GENERIC_TIMEZONE=Europe/Istanbul
 
-      # Database (n8n internal storage - can also use MySQL/PostgreSQL)
-      - DB_TYPE=sqlite
-      - DB_SQLITE_DATABASE=/home/node/.n8n/database.sqlite
+      # Database - PostgreSQL
+      - DB_TYPE=postgresdb
+      - DB_POSTGRESDB_HOST=postgres
+      - DB_POSTGRESDB_PORT=5432
+      - DB_POSTGRESDB_DATABASE=n8n
+      - DB_POSTGRESDB_USER=n8n
+      - DB_POSTGRESDB_PASSWORD=${N8N_POSTGRES_PASSWORD}
 
       # Execution
       - EXECUTIONS_MODE=regular
@@ -49,9 +106,6 @@ services:
       - EXECUTIONS_DATA_MAX_AGE=336
 
       # Security
-      - N8N_BASIC_AUTH_ACTIVE=true
-      - N8N_BASIC_AUTH_USER=${N8N_BASIC_AUTH_USER}
-      - N8N_BASIC_AUTH_PASSWORD=${N8N_BASIC_AUTH_PASSWORD}
       - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY}
 
       # Workflow settings
@@ -60,14 +114,13 @@ services:
       - N8N_TEMPLATES_ENABLED=false
     volumes:
       - n8n_data:/home/node/.n8n
-      - ./n8n/workflows:/home/node/workflows:ro
     networks:
       - seo-suite-network
     depends_on:
-      mysql:
+      postgres:
         condition: service_healthy
 
-  # MySQL Database
+  # MySQL Database (for application)
   mysql:
     image: mysql:8.0
     container_name: seo-suite-mysql
@@ -91,7 +144,13 @@ services:
       timeout: 20s
       retries: 10
       interval: 10s
-    command: --default-authentication-plugin=mysql_native_password --max_connections=500
+    command: >
+      --default-authentication-plugin=mysql_native_password
+      --max_connections=500
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_unicode_ci
+      --init-connect='SET NAMES utf8mb4'
+      --skip-character-set-client-handshake
 
   # Redis
   redis:
@@ -114,6 +173,8 @@ services:
 volumes:
   n8n_data:
     name: seo-suite-n8n-data-prod
+  postgres_data:
+    name: seo-suite-postgres-data-prod
   mysql_data:
     name: seo-suite-mysql-data-prod
   redis_data:

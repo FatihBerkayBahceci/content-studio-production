@@ -1,5 +1,6 @@
 // =====================================================================
 // SEO TOOL SUITE - CLIENTS API
+// Uses local Next.js API routes instead of n8n proxy
 // =====================================================================
 
 import { api } from './client';
@@ -11,7 +12,7 @@ import type { Client, ClientConfiguration, ApiResponse } from '@seo-tool-suite/s
 
 export interface CreateClientInput {
   name: string;
-  slug: string;
+  slug?: string;
   domain?: string;
   industry?: string;
   default_language?: string;
@@ -57,10 +58,10 @@ export interface UpdateClientInput {
 
 /**
  * Client with configuration fields.
- * Includes snake_case aliases for n8n API compatibility.
+ * Includes snake_case aliases for API compatibility.
  */
 export interface ClientWithConfig extends Client {
-  // n8n snake_case aliases
+  // snake_case aliases
   is_active?: boolean;
   default_language?: string;
   default_country?: string;
@@ -95,14 +96,29 @@ export interface ClientWithConfig extends Client {
 }
 
 // ---------------------------------------------------------------------
-// API Functions
+// Local API Helper (bypasses n8n proxy)
+// ---------------------------------------------------------------------
+
+async function localFetch<T>(path: string, options?: RequestInit): Promise<ApiResponse<T>> {
+  const response = await fetch(path, {
+    headers: {
+      'Content-Type': 'application/json',
+      ...options?.headers,
+    },
+    ...options,
+  });
+  return response.json();
+}
+
+// ---------------------------------------------------------------------
+// API Functions - Using Local Next.js Routes
 // ---------------------------------------------------------------------
 
 /**
  * List all clients
  */
 export async function listClients(): Promise<ApiResponse<Client[]>> {
-  return api.get('/clients/list');
+  return localFetch<Client[]>('/api/clients');
 }
 
 /**
@@ -111,7 +127,7 @@ export async function listClients(): Promise<ApiResponse<Client[]>> {
 export async function getClient(
   clientId: string | number
 ): Promise<ApiResponse<ClientWithConfig>> {
-  return api.get(`/clients-get/clients/${clientId}`);
+  return localFetch<ClientWithConfig>(`/api/clients/${clientId}`);
 }
 
 /**
@@ -120,7 +136,10 @@ export async function getClient(
 export async function createClient(
   data: CreateClientInput
 ): Promise<ApiResponse<Client>> {
-  return api.post('/clients/create', data);
+  return localFetch<Client>('/api/clients', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
 }
 
 /**
@@ -130,7 +149,10 @@ export async function updateClient(
   clientId: number,
   data: UpdateClientInput
 ): Promise<ApiResponse<Client>> {
-  return api.put(`/clients-update/clients/${clientId}/update`, data);
+  return localFetch<Client>(`/api/clients/${clientId}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
 }
 
 /**
@@ -139,7 +161,9 @@ export async function updateClient(
 export async function deleteClient(
   clientId: number
 ): Promise<ApiResponse<{ success: boolean }>> {
-  return api.delete(`/clients-delete/clients/${clientId}`);
+  return localFetch<{ success: boolean }>(`/api/clients/${clientId}`, {
+    method: 'DELETE',
+  });
 }
 
 /**

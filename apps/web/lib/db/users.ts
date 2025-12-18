@@ -7,7 +7,7 @@ export interface User {
   email: string;
   password_hash: string;
   name: string;
-  role: 'admin' | 'client' | 'team';
+  role: 'admin' | 'client' | 'team' | 'test';
   is_active: boolean;
   email_verified_at: Date | null;
   last_login_at: Date | null;
@@ -20,7 +20,7 @@ export interface UserWithoutPassword {
   uuid: string;
   email: string;
   name: string;
-  role: 'admin' | 'client' | 'team';
+  role: 'admin' | 'client' | 'team' | 'test';
   is_active: boolean;
   email_verified_at: Date | null;
   last_login_at: Date | null;
@@ -81,8 +81,8 @@ export async function getUserClients(userId: number): Promise<UserClient[]> {
 
 // Check if user can access a specific client
 export async function canUserAccessClient(userId: number, clientId: number, role: string): Promise<boolean> {
-  // Admins can access all clients
-  if (role === 'admin') return true;
+  // Admins and test users can access all clients
+  if (role === 'admin' || role === 'test') return true;
 
   const result = await query<{ count: number }[]>(
     `SELECT COUNT(*) as count FROM user_clients WHERE user_id = ? AND client_id = ?`,
@@ -93,8 +93,8 @@ export async function canUserAccessClient(userId: number, clientId: number, role
 
 // Check if user can edit a specific client
 export async function canUserEditClient(userId: number, clientId: number, role: string): Promise<boolean> {
-  // Admins can edit all clients
-  if (role === 'admin') return true;
+  // Admins and test users can edit all clients
+  if (role === 'admin' || role === 'test') return true;
 
   // Clients (customers) cannot edit
   if (role === 'client') return false;
@@ -108,8 +108,8 @@ export async function canUserEditClient(userId: number, clientId: number, role: 
 
 // Get all clients accessible by user
 export async function getAccessibleClients(userId: number, role: string): Promise<number[]> {
-  // Admins can access all clients
-  if (role === 'admin') {
+  // Admins and test users can access all clients
+  if (role === 'admin' || role === 'test') {
     const clients = await query<{ id: number }[]>(
       `SELECT id FROM clients WHERE is_active = 1 AND deleted_at IS NULL`
     );
@@ -128,7 +128,7 @@ export async function createUser(data: {
   email: string;
   password: string;
   name: string;
-  role?: 'admin' | 'client' | 'team';
+  role?: 'admin' | 'client' | 'team' | 'test';
 }): Promise<number> {
   const passwordHash = await hashPassword(data.password);
   const result = await query<{ insertId: number }>(

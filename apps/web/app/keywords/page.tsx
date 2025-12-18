@@ -1,8 +1,11 @@
 'use client';
 
-import { useState, useRef, useEffect, useMemo } from 'react';
+import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+
+// LocalStorage key for persisting search state
+const STORAGE_KEY = 'seo-keywords-search-state';
 import {
   Search,
   Loader2,
@@ -25,6 +28,7 @@ import {
   Clock,
   ArrowRight,
   ChevronRight,
+  ChevronDown,
   Plus,
   History,
   Star,
@@ -43,11 +47,19 @@ import {
   Pause,
   Upload,
   FileSpreadsheet,
+  Tag,
+  Ruler,
+  DollarSign,
+  HelpCircle,
+  Package,
+  GitCompare,
 } from 'lucide-react';
+import { groupKeywords, KeywordGroup, KeywordResult as GroupKeywordResult } from '@/lib/keyword-grouping';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils/cn';
 import { PageTransition, staggerContainer, staggerItem } from '@/components/motion';
 import { api } from '@/lib/api/client';
+import { useClientStore } from '@/lib/stores/client-store';
 
 // Loading steps configuration
 const LOADING_STEPS = [
@@ -66,16 +78,6 @@ const TIPS = [
   'Kümeleme (clustering) ile topic authority oluşturabilirsiniz',
   'Düşük hacimli keywordler daha hızlı sıralama şansı verir',
   'Her keyword için ayrı içerik yerine topic cluster yaklaşımı deneyin',
-];
-
-// Popular keyword suggestions
-const POPULAR_KEYWORDS = [
-  { keyword: 'dijital pazarlama', icon: '🎯' },
-  { keyword: 'e-ticaret', icon: '🛒' },
-  { keyword: 'SEO optimizasyonu', icon: '🔍' },
-  { keyword: 'sosyal medya yönetimi', icon: '📱' },
-  { keyword: 'içerik pazarlama', icon: '✍️' },
-  { keyword: 'email marketing', icon: '📧' },
 ];
 
 // Client type
@@ -160,6 +162,9 @@ export default function KeywordsPage() {
   const [isLoadingClients, setIsLoadingClients] = useState(true);
   const [createdProjectId, setCreatedProjectId] = useState<number | null>(null);
 
+  // Global store for cross-page client sync (so /tool1 can see projects created here)
+  const setGlobalClientId = useClientStore((state) => state.setSelectedClientId);
+
   // Loading animation state
   const [currentStep, setCurrentStep] = useState(0);
   const [currentTip, setCurrentTip] = useState(0);
@@ -178,6 +183,58 @@ export default function KeywordsPage() {
   // Fetch recent projects directly from API (not n8n)
   const [recentProjects, setRecentProjects] = useState<any[]>([]);
   const [isLoadingProjects, setIsLoadingProjects] = useState(true);
+
+  // Raw keywords for grouped view
+  const [rawKeywords, setRawKeywords] = useState<GroupKeywordResult[]>([]);
+  const [isLoadingRaw, setIsLoadingRaw] = useState(false);
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+  const [expandedSubgroups, setExpandedSubgroups] = useState<Set<string>>(new Set());
+  const [stateLoaded, setStateLoaded] = useState(false);
+
+  // Load persisted state from localStorage
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        const state = JSON.parse(saved);
+        if (state.results) setResults(state.results);
+        if (state.createdProjectId) setCreatedProjectId(state.createdProjectId);
+        if (state.rawKeywords) setRawKeywords(state.rawKeywords);
+        if (state.selectedClientId) setSelectedClientId(state.selectedClientId);
+        if (state.keyword) setKeyword(state.keyword);
+      }
+    } catch (err) {
+      console.error('Failed to load saved state:', err);
+    }
+    setStateLoaded(true);
+  }, []);
+
+  // Sync selectedClientId to global store (so /tool1 page can see projects created here)
+  useEffect(() => {
+    if (selectedClientId) {
+      setGlobalClientId(selectedClientId);
+    }
+  }, [selectedClientId, setGlobalClientId]);
+
+  // Save state to localStorage when it changes
+  useEffect(() => {
+    if (!stateLoaded) return; // Don't save until initial load is complete
+
+    const stateToSave = {
+      results,
+      createdProjectId,
+      rawKeywords,
+      selectedClientId,
+      keyword,
+      savedAt: Date.now(),
+    };
+
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(stateToSave));
+    } catch (err) {
+      console.error('Failed to save state:', err);
+    }
+  }, [results, createdProjectId, rawKeywords, selectedClientId, keyword, stateLoaded]);
 
   useEffect(() => {
     const fetchProjects = async () => {
@@ -204,7 +261,8 @@ export default function KeywordsPage() {
         const data = await response.json();
         if (data.success && data.clients) {
           setClients(data.clients);
-          if (data.clients.length > 0) {
+          // Only set default if no persisted selection
+          if (data.clients.length > 0 && !selectedClientId) {
             setSelectedClientId(data.clients[0].id);
           }
         }
@@ -214,8 +272,10 @@ export default function KeywordsPage() {
         setIsLoadingClients(false);
       }
     };
-    fetchClients();
-  }, []);
+    if (stateLoaded) {
+      fetchClients();
+    }
+  }, [stateLoaded]);
 
   // Loading animation effect
   useEffect(() => {
@@ -327,12 +387,14 @@ export default function KeywordsPage() {
                 total_keywords_found: response.keywords.length,
               }),
             });
+
           } catch (e) {
             console.error('Failed to update project status:', e);
           }
 
-          // Don't redirect - show results on this page
-          // User can click "Sonuçlara Git" button to see detailed results
+          // Redirect to project detail page
+          router.push(`/keywords/${projectId}`);
+          return;
         }
       } else {
         setError(response.error || 'Bir hata oluştu');
@@ -618,6 +680,66 @@ export default function KeywordsPage() {
     return keywords;
   }, [results?.keywords, searchQuery, sortBy, sortOrder]);
 
+  // Grouped raw keywords
+  const groupedKeywords = useMemo(() => {
+    return groupKeywords(rawKeywords);
+  }, [rawKeywords]);
+
+  // Toggle group expansion
+  const toggleGroup = (groupId: string) => {
+    setExpandedGroups(prev => {
+      const next = new Set(prev);
+      if (next.has(groupId)) {
+        next.delete(groupId);
+      } else {
+        next.add(groupId);
+      }
+      return next;
+    });
+  };
+
+  // Toggle subgroup expansion
+  const toggleSubgroup = (subgroupKey: string) => {
+    setExpandedSubgroups(prev => {
+      const next = new Set(prev);
+      if (next.has(subgroupKey)) {
+        next.delete(subgroupKey);
+      } else {
+        next.add(subgroupKey);
+      }
+      return next;
+    });
+  };
+
+  // Fetch raw keywords when project is created
+  const fetchRawKeywords = async (projectId: number) => {
+    setIsLoadingRaw(true);
+    try {
+      const response = await fetch(`/api/projects/${projectId}/keywords-raw`);
+      const data = await response.json();
+      if (data.success && data.data) {
+        setRawKeywords(data.data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch raw keywords:', err);
+    } finally {
+      setIsLoadingRaw(false);
+    }
+  };
+
+  // Get icon for group
+  const getGroupIcon = (iconName: string) => {
+    const icons: Record<string, React.ReactNode> = {
+      'tag': <Tag className="h-4 w-4" />,
+      'ruler': <Ruler className="h-4 w-4" />,
+      'dollar-sign': <DollarSign className="h-4 w-4" />,
+      'help-circle': <HelpCircle className="h-4 w-4" />,
+      'package': <Package className="h-4 w-4" />,
+      'git-compare': <GitCompare className="h-4 w-4" />,
+    };
+    return icons[iconName] || <Package className="h-4 w-4" />;
+  };
+
   // Export CSV
   const handleExportCSV = () => {
     if (!filteredKeywords.length) return;
@@ -688,7 +810,7 @@ export default function KeywordsPage() {
                 <td>${kw.source}</td>
                 <td>${kw.search_volume?.toLocaleString() || '-'}</td>
                 <td>${kw.competition || '-'}</td>
-                <td>${kw.cpc ? '$' + kw.cpc.toFixed(2) : '-'}</td>
+                <td>{kw.cpc ? '$' + Number(kw.cpc).toFixed(2) : '-'}</td>
                 <td>${kw.intent || '-'}</td>
               </tr>
             `).join('')}
@@ -796,44 +918,42 @@ export default function KeywordsPage() {
 
                 {/* Client Selection */}
                 <div className="flex items-center gap-3">
-                  <Building2 className="h-4 w-4 text-muted-foreground" />
-                  <div className="flex items-center gap-2 flex-wrap">
-                    {isLoadingClients ? (
-                      <div className="h-8 w-32 bg-muted/30 rounded-lg animate-pulse" />
-                    ) : clients.length === 0 ? (
-                      <Link href="/clients/new" className="text-sm text-primary hover:underline flex items-center gap-1">
-                        <Plus className="h-4 w-4" />
-                        Müşteri Ekle
-                      </Link>
-                    ) : (
-                      clients.slice(0, 5).map(client => (
-                        <button
-                          key={client.id}
-                          onClick={() => setSelectedClientId(client.id)}
-                          className={cn(
-                            'px-3 py-1.5 rounded-lg text-sm font-medium transition-all',
-                            selectedClientId === client.id
-                              ? 'bg-primary text-white'
-                              : 'bg-[hsl(var(--glass-bg-3))] text-muted-foreground hover:text-foreground hover:bg-[hsl(var(--glass-bg-interactive))]'
-                          )}
-                        >
-                          {client.name}
-                        </button>
-                      ))
-                    )}
-                    {clients.length > 5 && (
+                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary/10 text-primary">
+                    <Building2 className="h-4 w-4" />
+                    <span className="text-xs font-medium">Müşteri</span>
+                  </div>
+                  {isLoadingClients ? (
+                    <div className="h-10 w-48 bg-muted/30 rounded-xl animate-pulse" />
+                  ) : clients.length === 0 ? (
+                    <Link href="/clients/new" className="text-sm text-primary hover:underline flex items-center gap-1">
+                      <Plus className="h-4 w-4" />
+                      Müşteri Ekle
+                    </Link>
+                  ) : (
+                    <div className="relative">
                       <select
                         value={selectedClientId || ''}
-                        onChange={(e) => setSelectedClientId(Number(e.target.value))}
-                        className="px-3 py-1.5 rounded-lg text-sm bg-[hsl(var(--glass-bg-3))] border-none focus:ring-2 focus:ring-primary/50"
+                        onChange={(e) => setSelectedClientId(e.target.value ? Number(e.target.value) : null)}
+                        className={cn(
+                          "appearance-none cursor-pointer",
+                          "pl-4 pr-10 py-2.5 rounded-xl text-sm font-medium",
+                          "bg-[hsl(0,0%,8%)] text-white",
+                          "border border-[hsl(0,0%,20%)] hover:border-primary/50",
+                          "focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary",
+                          "min-w-[220px] transition-all duration-200",
+                          !selectedClientId && "text-gray-400"
+                        )}
                       >
-                        <option value="">Diğer...</option>
-                        {clients.slice(5).map(c => (
-                          <option key={c.id} value={c.id}>{c.name}</option>
+                        <option value="" className="bg-[hsl(0,0%,10%)] text-gray-400">Müşteri seçin...</option>
+                        {clients.map(client => (
+                          <option key={client.id} value={client.id} className="bg-[hsl(0,0%,10%)] text-white py-2">
+                            {client.name}
+                          </option>
                         ))}
                       </select>
-                    )}
-                  </div>
+                      <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -954,24 +1074,6 @@ export default function KeywordsPage() {
                       )}
                     </button>
                   </div>
-                </div>
-              )}
-
-              {/* Popular Keywords - Only in single mode */}
-              {inputMode === 'single' && !isLoading && !results && (
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-xs text-muted-foreground">Popüler:</span>
-                  {POPULAR_KEYWORDS.map((item, idx) => (
-                    <button
-                      key={idx}
-                      onClick={() => handleSearch(item.keyword)}
-                      disabled={!selectedClientId}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm bg-[hsl(var(--glass-bg-3))] hover:bg-primary/10 hover:text-primary transition-all disabled:opacity-50"
-                    >
-                      <span>{item.icon}</span>
-                      {item.keyword}
-                    </button>
-                  ))}
                 </div>
               )}
 
@@ -1346,196 +1448,7 @@ export default function KeywordsPage() {
               )}
             </AnimatePresence>
 
-            {/* Results Section */}
-            <AnimatePresence>
-              {results && !isLoading && (
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  className="space-y-4"
-                >
-                  {/* Stats Row */}
-                  <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
-                    <StatCard label="Toplam" value={results.stats?.total || results.keywords?.length || 0} icon={FileText} color="primary" />
-                    <StatCard label="Kaydedilen" value={createdProjectId ? (results.keywords?.length || 0) : 0} icon={Database} color="emerald" />
-                    <StatCard label="Google Ads" value={results.stats?.from_google_ads || 0} icon={Target} color="blue" />
-                    <StatCard label="Suggestions" value={results.stats?.from_google_suggest || 0} icon={TrendingUp} color="cyan" />
-                    <StatCard label="Trends" value={results.stats?.from_google_trends || 0} icon={BarChart3} color="purple" />
-                    <StatCard label="DataForSEO" value={results.stats?.from_dataforseo || 0} icon={Globe} color="amber" />
-                  </div>
 
-                  {/* Toolbar */}
-                  <div className="rounded-xl glass-1 p-3 flex items-center justify-between gap-4">
-                    <div className="flex items-center gap-3">
-                      <div className="relative">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <input
-                          type="text"
-                          value={searchQuery}
-                          onChange={(e) => setSearchQuery(e.target.value)}
-                          placeholder="Filtrele..."
-                          className="pl-9 pr-4 py-2 rounded-lg bg-[hsl(var(--glass-bg-2))] border-none text-sm focus:ring-2 focus:ring-primary/50 w-48"
-                        />
-                      </div>
-                      <div className="flex items-center gap-1 bg-[hsl(var(--glass-bg-2))] rounded-lg p-1">
-                        <button
-                          onClick={() => setViewMode('table')}
-                          className={cn('p-2 rounded-md transition-colors', viewMode === 'table' ? 'bg-primary text-white' : 'text-muted-foreground hover:text-foreground')}
-                        >
-                          <List className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={() => setViewMode('cards')}
-                          className={cn('p-2 rounded-md transition-colors', viewMode === 'cards' ? 'bg-primary text-white' : 'text-muted-foreground hover:text-foreground')}
-                        >
-                          <LayoutGrid className="h-4 w-4" />
-                        </button>
-                      </div>
-                      <select
-                        value={`${sortBy}-${sortOrder}`}
-                        onChange={(e) => {
-                          const [by, order] = e.target.value.split('-') as ['keyword' | 'volume' | 'cpc', 'asc' | 'desc'];
-                          setSortBy(by);
-                          setSortOrder(order);
-                        }}
-                        className="px-3 py-2 rounded-lg bg-[hsl(var(--glass-bg-2))] border-none text-sm"
-                      >
-                        <option value="volume-desc">Hacim (Yüksek)</option>
-                        <option value="volume-asc">Hacim (Düşük)</option>
-                        <option value="cpc-desc">CPC (Yüksek)</option>
-                        <option value="cpc-asc">CPC (Düşük)</option>
-                        <option value="keyword-asc">A-Z</option>
-                        <option value="keyword-desc">Z-A</option>
-                      </select>
-                      <span className="text-sm text-muted-foreground">
-                        {filteredKeywords.length} sonuç
-                      </span>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={handleExportCSV}
-                        disabled={!filteredKeywords.length}
-                        className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 text-sm font-medium transition-colors disabled:opacity-50"
-                      >
-                        <Download className="h-4 w-4" />
-                        CSV
-                      </button>
-                      <button
-                        onClick={handleExportPDF}
-                        disabled={!filteredKeywords.length}
-                        className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 text-sm font-medium transition-colors disabled:opacity-50"
-                      >
-                        <FileText className="h-4 w-4" />
-                        PDF
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Results Table/Cards */}
-                  {viewMode === 'table' ? (
-                    <div className="rounded-2xl glass-2 overflow-hidden" ref={tableRef}>
-                      <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
-                        <table className="w-full">
-                          <thead className="bg-[hsl(var(--glass-bg-3))] sticky top-0 z-10">
-                            <tr>
-                              <th className="px-4 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Keyword</th>
-                              <th className="px-4 py-4 text-center text-xs font-semibold text-muted-foreground uppercase tracking-wider">Kaynak</th>
-                              <th className="px-4 py-4 text-right text-xs font-semibold text-muted-foreground uppercase tracking-wider">Hacim</th>
-                              <th className="px-4 py-4 text-center text-xs font-semibold text-muted-foreground uppercase tracking-wider">Rekabet</th>
-                              <th className="px-4 py-4 text-right text-xs font-semibold text-muted-foreground uppercase tracking-wider">CPC</th>
-                              <th className="px-4 py-4 text-center text-xs font-semibold text-muted-foreground uppercase tracking-wider">Intent</th>
-                              <th className="px-4 py-4 text-center text-xs font-semibold text-muted-foreground uppercase tracking-wider w-12"></th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-[hsl(var(--glass-border-subtle))]">
-                            {filteredKeywords.map((kw, index) => (
-                              <motion.tr
-                                key={`${kw.keyword}-${index}`}
-                                className="group hover:bg-[hsl(var(--glass-bg-interactive))] transition-colors"
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                transition={{ delay: Math.min(0.02 * index, 0.3) }}
-                              >
-                                <td className="px-4 py-3">
-                                  <span className="font-medium text-foreground">{kw.keyword}</span>
-                                </td>
-                                <td className="px-4 py-3 text-center">
-                                  <SourceBadge source={kw.source} />
-                                </td>
-                                <td className="px-4 py-3 text-right">
-                                  <span className="font-semibold text-foreground">
-                                    {kw.search_volume?.toLocaleString() || '-'}
-                                  </span>
-                                </td>
-                                <td className="px-4 py-3 text-center">
-                                  <CompetitionBadge competition={kw.competition} />
-                                </td>
-                                <td className="px-4 py-3 text-right">
-                                  {kw.cpc ? (
-                                    <span className="text-emerald-400 font-medium">${kw.cpc.toFixed(2)}</span>
-                                  ) : (
-                                    <span className="text-muted-foreground">-</span>
-                                  )}
-                                </td>
-                                <td className="px-4 py-3 text-center">
-                                  <IntentBadge intent={kw.intent} />
-                                </td>
-                                <td className="px-4 py-3 text-center">
-                                  <button
-                                    onClick={() => copyKeyword(kw.keyword)}
-                                    className="opacity-0 group-hover:opacity-100 p-1.5 rounded-lg hover:bg-primary/10 text-muted-foreground hover:text-primary transition-all"
-                                    title="Kopyala"
-                                  >
-                                    <Copy className="h-4 w-4" />
-                                  </button>
-                                </td>
-                              </motion.tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      {filteredKeywords.slice(0, 50).map((kw, index) => (
-                        <motion.div
-                          key={`${kw.keyword}-${index}`}
-                          className="rounded-xl glass-1 p-4 hover:border-primary/30 transition-all group"
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: Math.min(0.02 * index, 0.3) }}
-                        >
-                          <div className="flex items-start justify-between mb-3">
-                            <h4 className="font-medium text-foreground">{kw.keyword}</h4>
-                            <button
-                              onClick={() => copyKeyword(kw.keyword)}
-                              className="opacity-0 group-hover:opacity-100 p-1.5 rounded-lg hover:bg-primary/10 text-muted-foreground hover:text-primary transition-all"
-                            >
-                              <Copy className="h-4 w-4" />
-                            </button>
-                          </div>
-                          <div className="flex items-center gap-3 text-sm">
-                            <span className="text-muted-foreground">
-                              <TrendingUp className="h-3.5 w-3.5 inline mr-1" />
-                              {kw.search_volume?.toLocaleString() || '-'}
-                            </span>
-                            {kw.cpc && (
-                              <span className="text-emerald-400">
-                                ${kw.cpc.toFixed(2)}
-                              </span>
-                            )}
-                            <SourceBadge source={kw.source} />
-                            <CompetitionBadge competition={kw.competition} />
-                          </div>
-                        </motion.div>
-                      ))}
-                    </div>
-                  )}
-                </motion.div>
-              )}
-            </AnimatePresence>
 
             {/* Empty State */}
             {!results && !isLoading && !error && (
@@ -1603,7 +1516,7 @@ export default function KeywordsPage() {
                   {recentProjects.map((project) => (
                     <Link
                       key={project.id}
-                      href={`/tool1/${project.uuid || project.id}`}
+                      href={`/keywords/${project.uuid || project.id}`}
                       className="group block p-3 rounded-xl hover:bg-[hsl(var(--glass-bg-interactive))] transition-all"
                     >
                       <div className="flex items-center justify-between">
@@ -1816,6 +1729,40 @@ function IntentBadge({ intent }: { intent?: string | null }) {
       colors[intent.toLowerCase()] || 'bg-[hsl(var(--glass-bg-3))] text-muted-foreground'
     )}>
       {labels[intent.toLowerCase()] || intent}
+    </span>
+  );
+}
+
+// Difficulty Badge Component
+function DifficultyBadge({ value }: { value?: number | null }) {
+  if (value === null || value === undefined) return <span className="text-muted-foreground text-xs">-</span>;
+
+  const getColor = () => {
+    if (value <= 30) return 'bg-emerald-500/20 text-emerald-400';
+    if (value <= 60) return 'bg-amber-500/20 text-amber-400';
+    return 'bg-red-500/20 text-red-400';
+  };
+
+  return (
+    <span className={cn('inline-flex px-2 py-0.5 rounded text-xs font-medium', getColor())}>
+      {value}
+    </span>
+  );
+}
+
+// Opportunity Badge Component
+function OpportunityBadge({ value }: { value?: number | null }) {
+  if (value === null || value === undefined) return <span className="text-muted-foreground text-xs">-</span>;
+
+  const getColor = () => {
+    if (value >= 70) return 'bg-emerald-500/20 text-emerald-400';
+    if (value >= 40) return 'bg-amber-500/20 text-amber-400';
+    return 'bg-red-500/20 text-red-400';
+  };
+
+  return (
+    <span className={cn('inline-flex px-2 py-0.5 rounded text-xs font-medium', getColor())}>
+      {value}
     </span>
   );
 }
