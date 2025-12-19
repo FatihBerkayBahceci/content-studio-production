@@ -1,0 +1,84 @@
+{
+  "name": "WF-006 Sheets Get Cell",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "sheets-get-cell",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 0],
+      "webhookId": "sheets-get-cell"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const body = $json.body || {};\nconst spreadsheetId = body.spreadsheet_id;\nconst sheetName = body.sheet_name;\nconst row = body.row || 1;\nconst column = body.column || 'A';\n\nif (!spreadsheetId || !sheetName) {\n  return { json: { success: false, error: 'spreadsheet_id ve sheet_name gerekli' } };\n}\n\nconst cellRange = `${sheetName}!${column}${row}`;\n\nreturn { json: {\n  spreadsheet_id: spreadsheetId,\n  sheet_name: sheetName,\n  row,\n  column,\n  cell_range: cellRange\n}};"
+      },
+      "id": "prepare",
+      "name": "Prepare",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [220, 0]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://sheets.googleapis.com/v4/spreadsheets/{{ $json.spreadsheet_id }}/values/{{ encodeURIComponent($json.cell_range) }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "options": {}
+      },
+      "id": "get-cell",
+      "name": "Get Cell",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [440, 0],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "FRUwxjFQM3dnpWm4",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const prepData = $('Prepare').item.json;\nconst response = $json;\nconst values = response.values || [['']];\nconst cellValue = values[0]?.[0] || '';\n\nreturn { json: {\n  success: true,\n  value: cellValue,\n  cell: prepData.cell_range\n}};"
+      },
+      "id": "format",
+      "name": "Format",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [660, 0]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {}
+      },
+      "id": "respond",
+      "name": "Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [880, 0]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": { "main": [[{ "node": "Prepare", "type": "main", "index": 0 }]] },
+    "Prepare": { "main": [[{ "node": "Get Cell", "type": "main", "index": 0 }]] },
+    "Get Cell": { "main": [[{ "node": "Format", "type": "main", "index": 0 }]] },
+    "Format": { "main": [[{ "node": "Respond", "type": "main", "index": 0 }]] }
+  },
+  "active": true,
+  "settings": { "executionOrder": "v1", "callerPolicy": "workflowsFromSameOwner", "availableInMCP": false },
+  "meta": { "templateCredsSetupCompleted": true },
+  "tags": []
+}

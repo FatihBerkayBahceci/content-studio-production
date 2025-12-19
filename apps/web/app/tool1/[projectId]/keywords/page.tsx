@@ -19,6 +19,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useKeywords, useKeywordProject } from '@/lib/hooks/use-tool1';
 import { cn } from '@/lib/utils/cn';
 import { PageTransition } from '@/components/motion';
+import { QuickExportButton } from '@/components/sheets/QuickExportButton';
 
 interface PageProps {
   params: { projectId: string };
@@ -74,6 +75,7 @@ export default function KeywordsPage({ params }: PageProps) {
   const [showFilters, setShowFilters] = useState(false);
 
   const project = projectData?.success ? projectData.data : null;
+  const clientId = (project as { client_id?: number })?.client_id || null;
 
   // n8n returns flat structure: { success, data: [...keywords], stats, by_cluster }
   // Type assertion to handle the actual API response structure
@@ -192,14 +194,35 @@ export default function KeywordsPage({ params }: PageProps) {
               </p>
             </div>
 
-            <button
-              onClick={handleExportCSV}
-              disabled={!filteredKeywords.length}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 text-sm font-medium transition-colors disabled:opacity-50"
-            >
-              <Download className="h-4 w-4" />
-              CSV İndir
-            </button>
+            <div className="flex items-center gap-2">
+              {/* Quick Export to Sheets */}
+              <QuickExportButton
+                projectId={projectId}
+                clientId={clientId}
+                selectedKeywords={filteredKeywords.map(kw => {
+                  const kwValues = getKeywordValue(kw);
+                  return {
+                    id: kw.id,
+                    keyword: kwValues.keyword || '',
+                    search_volume: kwValues.searchVolume,
+                    keyword_difficulty: kwValues.keywordDifficulty,
+                    search_intent: kwValues.searchIntent,
+                    opportunity_score: kwValues.opportunityScore,
+                  };
+                })}
+                disabled={!filteredKeywords.length}
+              />
+
+              {/* CSV Download */}
+              <button
+                onClick={handleExportCSV}
+                disabled={!filteredKeywords.length}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[hsl(var(--glass-bg-2))] hover:bg-[hsl(var(--glass-bg-3))] border border-[hsl(var(--glass-border-subtle))] text-muted-foreground hover:text-foreground text-sm font-medium transition-colors disabled:opacity-50"
+              >
+                <Download className="h-4 w-4" />
+                CSV
+              </button>
+            </div>
           </motion.div>
         </div>
       </section>
@@ -386,6 +409,7 @@ export default function KeywordsPage({ params }: PageProps) {
           </motion.div>
         </section>
       )}
+
     </PageTransition>
   );
 }

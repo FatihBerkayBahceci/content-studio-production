@@ -891,6 +891,16 @@ export default function ClientDetailPage({ params }: PageProps) {
                   <SheetsConfigList
                     clientId={client.id}
                     onEdit={(config) => setEditingSheetsConfig(config)}
+                    onDuplicate={(config) => {
+                      // Create a copy with modified name
+                      const duplicatedConfig = {
+                        ...config,
+                        id: undefined,
+                        config_name: `${config.config_name} (Kopya)`,
+                        is_default: false,
+                      };
+                      setEditingSheetsConfig(duplicatedConfig as any);
+                    }}
                   />
                 </>
               )}

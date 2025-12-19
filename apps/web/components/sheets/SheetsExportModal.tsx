@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   X, FileSpreadsheet, Loader2, Check, AlertCircle,
-  ExternalLink, ChevronRight, RefreshCw, Plus
+  ExternalLink, ChevronRight, RefreshCw, Plus, Eye, Table2,
+  ChevronLeft, Sparkles
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils/cn';
@@ -11,14 +12,24 @@ import {
   useSheetsConfigs,
   useSheetsCheck,
   useExportToSheets,
+  KEYWORD_FIELDS,
 } from '@/lib/hooks/use-sheets-config';
 import type { SheetsConfig } from '@/lib/api/sheets-config';
+import { setLastUsedConfig } from '@/lib/utils/sheets-preferences';
 
 interface KeywordData {
   id?: number;
   keyword: string;
   search_volume?: number | null;
-  [key: string]: any;
+  keyword_difficulty?: number | null;
+  cpc?: number | null;
+  competition?: string | null;
+  search_intent?: string | null;
+  opportunity_score?: number | null;
+  ai_category?: string | null;
+  source?: string;
+  keyword_cluster?: string | null;
+  content_priority?: string | null;
 }
 
 interface SheetsExportModalProps {
@@ -29,7 +40,7 @@ interface SheetsExportModalProps {
   selectedKeywords: KeywordData[];
 }
 
-type Step = 'select' | 'check' | 'confirm' | 'exporting' | 'success' | 'error';
+type Step = 'select' | 'preview' | 'check' | 'confirm' | 'exporting' | 'success' | 'error';
 
 export function SheetsExportModal({
   open,
@@ -58,6 +69,49 @@ export function SheetsExportModal({
 
   const configs = configsData?.success && configsData.data ? configsData.data : [];
 
+  // Get mapped columns for preview
+  const mappedColumns = useMemo(() => {
+    if (!selectedConfig) return [];
+
+    return Object.entries(selectedConfig.column_mappings)
+      .map(([field, column]) => {
+        const fieldInfo = KEYWORD_FIELDS.find(f => f.key === field);
+        return {
+          field,
+          column,
+          label: fieldInfo?.label || field,
+        };
+      })
+      .sort((a, b) => a.column.localeCompare(b.column));
+  }, [selectedConfig]);
+
+  // Get preview data (first 5 rows)
+  const previewData = useMemo(() => {
+    if (!selectedConfig) return [];
+
+    const getFieldValue = (kw: KeywordData, field: string): unknown => {
+      switch (field) {
+        case 'keyword': return kw.keyword;
+        case 'search_volume': return kw.search_volume;
+        case 'keyword_difficulty': return kw.keyword_difficulty;
+        case 'cpc': return kw.cpc;
+        case 'competition': return kw.competition;
+        case 'search_intent': return kw.search_intent;
+        case 'opportunity_score': return kw.opportunity_score;
+        case 'ai_category': return kw.ai_category;
+        default: return '';
+      }
+    };
+
+    return selectedKeywords.slice(0, 5).map(kw => {
+      const row: Record<string, unknown> = {};
+      for (const [field, column] of Object.entries(selectedConfig.column_mappings)) {
+        row[column] = getFieldValue(kw, field) ?? '';
+      }
+      return row;
+    });
+  }, [selectedConfig, selectedKeywords]);
+
   // Reset state when modal opens
   useEffect(() => {
     if (open) {
@@ -82,6 +136,13 @@ export function SheetsExportModal({
   const handleConfigSelect = (config: SheetsConfig) => {
     setSelectedConfigId(config.id);
     setSelectedConfig(config);
+  };
+
+  // Go to preview step
+  const handleGoToPreview = () => {
+    if (selectedConfig) {
+      setStep('preview');
+    }
   };
 
   // Handle check and proceed
@@ -186,7 +247,10 @@ export function SheetsExportModal({
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
-          className="relative w-full max-w-lg rounded-2xl glass-3 border border-[hsl(var(--glass-border-default))] shadow-2xl overflow-hidden"
+          className={cn(
+            "relative w-full rounded-2xl glass-3 border border-[hsl(var(--glass-border-default))] shadow-2xl overflow-hidden",
+            step === 'preview' ? 'max-w-2xl' : 'max-w-lg'
+          )}
         >
           {/* Header */}
           <div className="flex items-center justify-between px-6 py-4 border-b border-[hsl(var(--glass-border-subtle))]">
@@ -232,13 +296,15 @@ export function SheetsExportModal({
                       <p className="text-sm text-muted-foreground mb-4">
                         Önce müşteri ayarlarından bir Sheets konfigürasyonu ekleyin
                       </p>
-                      <button
-                        onClick={handleClose}
-                        className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-[hsl(var(--glass-bg-2))] hover:bg-[hsl(var(--glass-bg-3))] transition-colors"
-                      >
-                        <Plus className="h-4 w-4" />
-                        Konfigürasyon Ekle
-                      </button>
+                      {clientId && (
+                        <a
+                          href={`/clients/${clientId}`}
+                          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+                        >
+                          <Plus className="h-4 w-4" />
+                          Müşteri Ayarlarına Git
+                        </a>
+                      )}
                     </div>
                   ) : (
                     <>
@@ -285,6 +351,95 @@ export function SheetsExportModal({
                       </div>
                     </>
                   )}
+                </motion.div>
+              )}
+
+              {/* Step: Preview */}
+              {step === 'preview' && selectedConfig && (
+                <motion.div
+                  key="preview"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  className="space-y-4"
+                >
+                  {/* Summary */}
+                  <div className="flex items-center justify-between p-3 rounded-lg bg-[hsl(var(--glass-bg-1))]">
+                    <div className="flex items-center gap-3">
+                      <Eye className="h-5 w-5 text-primary" />
+                      <div>
+                        <p className="text-sm font-medium text-foreground">Veri Önizlemesi</p>
+                        <p className="text-xs text-muted-foreground">
+                          {selectedKeywords.length} satır → {selectedConfig.sheet_name}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-xs text-muted-foreground">Hedef</p>
+                      <p className="text-sm font-medium text-foreground">{selectedConfig.config_name}</p>
+                    </div>
+                  </div>
+
+                  {/* Column mapping info */}
+                  <div className="flex flex-wrap gap-2">
+                    {mappedColumns.map(({ field, column, label }) => (
+                      <span
+                        key={field}
+                        className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs bg-[hsl(var(--glass-bg-2))] text-muted-foreground"
+                      >
+                        <span className="font-medium text-foreground">{column}</span>
+                        <span>→</span>
+                        <span>{label}</span>
+                      </span>
+                    ))}
+                  </div>
+
+                  {/* Preview table */}
+                  <div className="border border-[hsl(var(--glass-border-subtle))] rounded-lg overflow-hidden">
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="bg-[hsl(var(--glass-bg-2))]">
+                            <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground">#</th>
+                            {mappedColumns.map(({ column, label }) => (
+                              <th
+                                key={column}
+                                className="px-3 py-2 text-left text-xs font-medium text-muted-foreground"
+                              >
+                                <div className="flex items-center gap-1">
+                                  <span className="text-foreground">{column}</span>
+                                  <span className="text-muted-foreground">({label})</span>
+                                </div>
+                              </th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {previewData.map((row, idx) => (
+                            <tr
+                              key={idx}
+                              className="border-t border-[hsl(var(--glass-border-subtle))]"
+                            >
+                              <td className="px-3 py-2 text-muted-foreground">{idx + 1}</td>
+                              {mappedColumns.map(({ column }) => (
+                                <td
+                                  key={column}
+                                  className="px-3 py-2 text-foreground truncate max-w-[150px]"
+                                >
+                                  {String(row[column] ?? '')}
+                                </td>
+                              ))}
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    {selectedKeywords.length > 5 && (
+                      <div className="px-3 py-2 text-xs text-muted-foreground text-center bg-[hsl(var(--glass-bg-1))] border-t border-[hsl(var(--glass-border-subtle))]">
+                        ... ve {selectedKeywords.length - 5} satır daha
+                      </div>
+                    )}
+                  </div>
                 </motion.div>
               )}
 
@@ -432,26 +587,50 @@ export function SheetsExportModal({
             </AnimatePresence>
           </div>
 
-          {/* Footer */}
-          {(step === 'select' || step === 'success' || step === 'error') && (
-            <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-[hsl(var(--glass-border-subtle))]">
-              <button
-                onClick={handleClose}
-                className="px-4 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-[hsl(var(--glass-bg-2))] transition-colors"
-              >
-                {step === 'success' || step === 'error' ? 'Kapat' : 'İptal'}
-              </button>
+          {/* Footer - hide during setup as form has its own buttons */}
+          {(step === 'select' || step === 'preview' || step === 'success' || step === 'error') && (
+            <div className="flex items-center justify-between gap-3 px-6 py-4 border-t border-[hsl(var(--glass-border-subtle))]">
+              <div>
+                {step === 'preview' && (
+                  <button
+                    onClick={() => setStep('select')}
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-[hsl(var(--glass-bg-2))] transition-colors"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                    Geri
+                  </button>
+                )}
+              </div>
 
-              {step === 'select' && configs.length > 0 && (
+              <div className="flex items-center gap-3">
                 <button
-                  onClick={handleCheck}
-                  disabled={!selectedConfigId}
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-green-500 hover:bg-green-500/90 text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  onClick={handleClose}
+                  className="px-4 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-[hsl(var(--glass-bg-2))] transition-colors"
                 >
-                  Aktar
-                  <ChevronRight className="h-4 w-4" />
+                  {step === 'success' || step === 'error' ? 'Kapat' : 'İptal'}
                 </button>
-              )}
+
+                {step === 'select' && configs.length > 0 && (
+                  <button
+                    onClick={handleGoToPreview}
+                    disabled={!selectedConfigId}
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-primary/10 text-primary hover:bg-primary/20 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    <Eye className="h-4 w-4" />
+                    Önizle
+                  </button>
+                )}
+
+                {step === 'preview' && (
+                  <button
+                    onClick={handleCheck}
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-green-500 hover:bg-green-500/90 text-white transition-colors"
+                  >
+                    Aktar
+                    <ChevronRight className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
             </div>
           )}
         </motion.div>

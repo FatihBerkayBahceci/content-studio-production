@@ -1,0 +1,84 @@
+{
+  "name": "WF-008 Sheets Test",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "sheets-test",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 0],
+      "webhookId": "sheets-test"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const body = $json.body || {};\nconst spreadsheetId = body.spreadsheet_id;\nconst sheetName = body.sheet_name;\n\nif (!spreadsheetId || !sheetName) {\n  return { json: { success: false, error: 'spreadsheet_id ve sheet_name gerekli' } };\n}\n\nreturn { json: {\n  spreadsheet_id: spreadsheetId,\n  sheet_name: sheetName\n}};"
+      },
+      "id": "prepare",
+      "name": "Prepare",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [220, 0]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://sheets.googleapis.com/v4/spreadsheets/{{ $json.spreadsheet_id }}?fields=properties.title,sheets(properties(sheetId,title,gridProperties.rowCount))",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "options": {}
+      },
+      "id": "get-metadata",
+      "name": "Get Metadata",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [440, 0],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "FRUwxjFQM3dnpWm4",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const prepData = $('Prepare').item.json;\nconst response = $json;\n\ntry {\n  const spreadsheetName = response.properties?.title || '';\n  const sheets = response.sheets || [];\n  \n  // Find the requested sheet\n  const targetSheet = sheets.find(s => s.properties?.title === prepData.sheet_name);\n  \n  if (!targetSheet) {\n    return { json: {\n      success: false,\n      error: `Sheet '${prepData.sheet_name}' bulunamadı`\n    }};\n  }\n  \n  const rowCount = targetSheet.properties?.gridProperties?.rowCount || 0;\n  \n  return { json: {\n    success: true,\n    spreadsheet_name: spreadsheetName,\n    sheet_name: prepData.sheet_name,\n    row_count: rowCount\n  }};\n} catch (err) {\n  return { json: {\n    success: false,\n    error: 'Sheet bilgileri alınamadı: ' + err.message\n  }};\n}"
+      },
+      "id": "format",
+      "name": "Format",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [660, 0]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {}
+      },
+      "id": "respond",
+      "name": "Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [880, 0]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": { "main": [[{ "node": "Prepare", "type": "main", "index": 0 }]] },
+    "Prepare": { "main": [[{ "node": "Get Metadata", "type": "main", "index": 0 }]] },
+    "Get Metadata": { "main": [[{ "node": "Format", "type": "main", "index": 0 }]] },
+    "Format": { "main": [[{ "node": "Respond", "type": "main", "index": 0 }]] }
+  },
+  "active": true,
+  "settings": { "executionOrder": "v1", "callerPolicy": "workflowsFromSameOwner", "availableInMCP": false },
+  "meta": { "templateCredsSetupCompleted": true },
+  "tags": []
+}

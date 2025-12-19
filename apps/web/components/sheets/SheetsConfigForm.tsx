@@ -1,12 +1,26 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   Link2, ChevronRight, ChevronLeft, Loader2, Check, X,
-  FileSpreadsheet, Table2, Settings2, AlertCircle
+  FileSpreadsheet, Table2, Settings2, AlertCircle, Clipboard,
+  Wand2, ChevronDown, AlertTriangle, Sparkles
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils/cn';
+import {
+  validateSheetsUrl,
+  getRecentSheetsUrls,
+  addRecentSheetsUrl,
+} from '@/lib/utils/sheets-url';
+import {
+  suggestColumnMappings,
+  findDuplicateMappings,
+  getConfidenceColor,
+  getConfidenceLabel,
+  type SheetColumn,
+  type MappingSuggestion,
+} from '@/lib/utils/column-matcher';
 import {
   useSheetsConnect,
   useSheetsGetColumns,
@@ -52,6 +66,8 @@ export function SheetsConfigForm({
   // Step 1: Connection
   const [spreadsheetUrl, setSpreadsheetUrl] = useState(editConfig?.spreadsheet_url || '');
   const [connectionError, setConnectionError] = useState<string | null>(null);
+  const [showRecentUrls, setShowRecentUrls] = useState(false);
+  const [recentUrls, setRecentUrls] = useState<string[]>([]);
 
   // Step 2: Sheet selection (populated after connect)
   const [spreadsheetId, setSpreadsheetId] = useState(editConfig?.spreadsheet_id || '');
@@ -61,10 +77,12 @@ export function SheetsConfigForm({
   const [selectedSheetGid, setSelectedSheetGid] = useState(editConfig?.sheet_gid || '');
 
   // Step 3: Column mapping
-  const [availableColumns, setAvailableColumns] = useState<{ letter: string; header: string }[]>([]);
+  const [availableColumns, setAvailableColumns] = useState<SheetColumn[]>([]);
   const [columnMappings, setColumnMappings] = useState<Record<string, string>>(
     editConfig?.column_mappings || { keyword: 'A' }
   );
+  const [autoMappingSuggestions, setAutoMappingSuggestions] = useState<MappingSuggestion[]>([]);
+  const [showAutoMappingResult, setShowAutoMappingResult] = useState(false);
 
   // Step 4: Settings
   const [configName, setConfigName] = useState(editConfig?.config_name || '');
@@ -81,19 +99,39 @@ export function SheetsConfigForm({
   const isLoading = sheetsConnect.isPending || sheetsGetColumns.isPending ||
     createConfig.isPending || updateConfig.isPending;
 
-  // Extract spreadsheet ID from URL
-  const extractSpreadsheetId = (url: string): string | null => {
-    const match = url.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
-    return match ? match[1] : null;
+  // Load recent URLs on mount
+  useEffect(() => {
+    setRecentUrls(getRecentSheetsUrls());
+  }, []);
+
+  // Real-time URL validation
+  const urlValidation = useMemo(() => {
+    return validateSheetsUrl(spreadsheetUrl);
+  }, [spreadsheetUrl]);
+
+  // Check for duplicate column mappings
+  const duplicateCheck = useMemo(() => {
+    return findDuplicateMappings(columnMappings);
+  }, [columnMappings]);
+
+  // Handle paste from clipboard
+  const handlePasteFromClipboard = async () => {
+    try {
+      const text = await navigator.clipboard.readText();
+      if (text) {
+        setSpreadsheetUrl(text.trim());
+      }
+    } catch (err) {
+      console.error('Failed to read clipboard:', err);
+    }
   };
 
   // Handle connect
   const handleConnect = async () => {
     setConnectionError(null);
 
-    const extractedId = extractSpreadsheetId(spreadsheetUrl);
-    if (!extractedId) {
-      setConnectionError('Geçersiz Google Sheets URL\'si');
+    if (!urlValidation.valid || !urlValidation.spreadsheetId) {
+      setConnectionError(urlValidation.error || 'Geçersiz URL');
       return;
     }
 
@@ -104,6 +142,9 @@ export function SheetsConfigForm({
         setConnectionError(result.error || 'Bağlantı hatası');
         return;
       }
+
+      // Save to recent URLs
+      addRecentSheetsUrl(spreadsheetUrl);
 
       setSpreadsheetId(result.spreadsheet_id);
       setSpreadsheetName(result.spreadsheet_name);
@@ -134,14 +175,45 @@ export function SheetsConfigForm({
         sheetName,
       });
 
-      if (result.success) {
-        setAvailableColumns(result.columns || []);
+      if (result.success && result.columns) {
+        const cols: SheetColumn[] = result.columns.map((c, i) => ({
+          letter: c.letter,
+          header: c.header,
+          index: i,
+        }));
+        setAvailableColumns(cols);
+
+        // Auto-suggest mappings if columns have headers
+        if (cols.some(c => c.header)) {
+          const { suggestions } = suggestColumnMappings(cols);
+          setAutoMappingSuggestions(suggestions);
+        }
       }
     } catch (error) {
       console.error('Failed to get columns:', error);
     }
 
     setStep(3);
+  };
+
+  // Handle auto-mapping
+  const handleAutoMapping = () => {
+    if (availableColumns.length === 0) return;
+
+    const { mappings, suggestions } = suggestColumnMappings(availableColumns);
+
+    // Merge with existing (keep keyword if not suggested)
+    const newMappings = { ...mappings };
+    if (!newMappings.keyword && columnMappings.keyword) {
+      newMappings.keyword = columnMappings.keyword;
+    }
+
+    setColumnMappings(newMappings);
+    setAutoMappingSuggestions(suggestions);
+    setShowAutoMappingResult(true);
+
+    // Hide result after 3 seconds
+    setTimeout(() => setShowAutoMappingResult(false), 3000);
   };
 
   // Handle column mapping change
@@ -158,6 +230,11 @@ export function SheetsConfigForm({
   // Handle save
   const handleSave = async () => {
     if (!configName.trim()) {
+      return;
+    }
+
+    // Check for duplicates
+    if (duplicateCheck.hasDuplicates) {
       return;
     }
 
@@ -197,16 +274,21 @@ export function SheetsConfigForm({
   const canProceed = () => {
     switch (step) {
       case 1:
-        return spreadsheetUrl.trim().length > 0;
+        return urlValidation.valid;
       case 2:
         return selectedSheet.length > 0;
       case 3:
-        return columnMappings.keyword?.length > 0;
+        return columnMappings.keyword?.length > 0 && !duplicateCheck.hasDuplicates;
       case 4:
         return configName.trim().length > 0;
       default:
         return false;
     }
+  };
+
+  // Get suggestion for a field
+  const getSuggestionForField = (fieldKey: string): MappingSuggestion | undefined => {
+    return autoMappingSuggestions.find(s => s.field === fieldKey);
   };
 
   return (
@@ -262,16 +344,83 @@ export function SheetsConfigForm({
                 <label className="text-sm font-medium text-foreground mb-2 block">
                   Google Sheets URL
                 </label>
-                <input
-                  type="url"
-                  value={spreadsheetUrl}
-                  onChange={(e) => setSpreadsheetUrl(e.target.value)}
-                  placeholder="https://docs.google.com/spreadsheets/d/..."
-                  className="form-input w-full"
-                />
-                <p className="text-xs text-muted-foreground mt-1">
-                  Google Sheets dosyanızın URL'sini yapıştırın
-                </p>
+                <div className="relative">
+                  <input
+                    type="url"
+                    value={spreadsheetUrl}
+                    onChange={(e) => setSpreadsheetUrl(e.target.value)}
+                    onFocus={() => recentUrls.length > 0 && setShowRecentUrls(true)}
+                    onBlur={() => setTimeout(() => setShowRecentUrls(false), 200)}
+                    placeholder="https://docs.google.com/spreadsheets/d/..."
+                    className={cn(
+                      'form-input w-full pr-20',
+                      urlValidation.valid && spreadsheetUrl && 'border-emerald-500/50 focus:ring-emerald-500/30',
+                      urlValidation.error && 'border-red-500/50 focus:ring-red-500/30'
+                    )}
+                  />
+                  <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                    {spreadsheetUrl && urlValidation.valid && (
+                      <span className="p-1 rounded bg-emerald-500/20">
+                        <Check className="h-3.5 w-3.5 text-emerald-400" />
+                      </span>
+                    )}
+                    <button
+                      type="button"
+                      onClick={handlePasteFromClipboard}
+                      className="p-1.5 rounded-lg hover:bg-[hsl(var(--glass-bg-2))] text-muted-foreground hover:text-foreground transition-colors"
+                      title="Panoya yapıştır"
+                    >
+                      <Clipboard className="h-4 w-4" />
+                    </button>
+                  </div>
+
+                  {/* Recent URLs dropdown */}
+                  <AnimatePresence>
+                    {showRecentUrls && recentUrls.length > 0 && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -5 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -5 }}
+                        className="absolute z-10 top-full left-0 right-0 mt-1 rounded-xl glass-3 border border-[hsl(var(--glass-border-default))] shadow-xl overflow-hidden"
+                      >
+                        <div className="p-2 border-b border-[hsl(var(--glass-border-subtle))]">
+                          <span className="text-xs text-muted-foreground">Son kullanılanlar</span>
+                        </div>
+                        {recentUrls.map((url, idx) => (
+                          <button
+                            key={idx}
+                            onClick={() => {
+                              setSpreadsheetUrl(url);
+                              setShowRecentUrls(false);
+                            }}
+                            className="w-full px-3 py-2 text-left text-sm truncate hover:bg-[hsl(var(--glass-bg-interactive))] transition-colors"
+                          >
+                            {url}
+                          </button>
+                        ))}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+
+                {/* Validation messages */}
+                {urlValidation.error && (
+                  <p className="text-xs text-red-400 mt-1.5 flex items-center gap-1">
+                    <AlertCircle className="h-3 w-3" />
+                    {urlValidation.error}
+                  </p>
+                )}
+                {urlValidation.warning && (
+                  <p className="text-xs text-amber-400 mt-1.5 flex items-center gap-1">
+                    <AlertTriangle className="h-3 w-3" />
+                    {urlValidation.warning}
+                  </p>
+                )}
+                {!urlValidation.error && !urlValidation.warning && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Google Sheets dosyanızın URL'sini yapıştırın
+                  </p>
+                )}
               </div>
 
               {connectionError && (
@@ -321,38 +470,104 @@ export function SheetsConfigForm({
           {/* Step 3: Column mapping */}
           {step === 3 && (
             <div className="space-y-4">
-              <p className="text-sm text-muted-foreground">
-                Her veri alanını hangi sütuna yazılacağını seçin
-              </p>
+              <div className="flex items-center justify-between">
+                <p className="text-sm text-muted-foreground">
+                  Her veri alanını hangi sütuna yazılacağını seçin
+                </p>
+                {availableColumns.some(c => c.header) && (
+                  <button
+                    onClick={handleAutoMapping}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+                  >
+                    <Wand2 className="h-4 w-4" />
+                    Otomatik Eşleştir
+                  </button>
+                )}
+              </div>
+
+              {/* Auto-mapping result notification */}
+              <AnimatePresence>
+                {showAutoMappingResult && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className="flex items-center gap-2 p-3 rounded-lg bg-primary/10 border border-primary/20"
+                  >
+                    <Sparkles className="h-4 w-4 text-primary" />
+                    <span className="text-sm text-primary">
+                      {autoMappingSuggestions.length} alan otomatik eşleştirildi
+                    </span>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Duplicate warning */}
+              {duplicateCheck.hasDuplicates && (
+                <div className="flex items-start gap-2 p-3 rounded-lg bg-red-500/10 border border-red-500/20">
+                  <AlertTriangle className="h-4 w-4 text-red-400 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-medium text-red-400">Çakışan sütunlar tespit edildi</p>
+                    <p className="text-xs text-red-400/80 mt-0.5">
+                      {duplicateCheck.duplicates.map(d =>
+                        `${d.column} sütunu birden fazla alana atanmış`
+                      ).join(', ')}
+                    </p>
+                  </div>
+                </div>
+              )}
 
               <div className="space-y-3">
-                {KEYWORD_FIELDS.map((field) => (
-                  <div
-                    key={field.key}
-                    className="flex items-center justify-between gap-4 p-3 rounded-lg bg-[hsl(var(--glass-bg-1))]"
-                  >
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium text-foreground">
-                        {field.label}
-                      </span>
-                      {field.required && (
-                        <span className="text-xs text-red-400">*</span>
+                {KEYWORD_FIELDS.map((field) => {
+                  const suggestion = getSuggestionForField(field.key);
+                  const isDuplicate = duplicateCheck.duplicates.some(
+                    d => d.column === columnMappings[field.key] && d.fields.includes(field.key)
+                  );
+
+                  return (
+                    <div
+                      key={field.key}
+                      className={cn(
+                        'flex items-center justify-between gap-4 p-3 rounded-lg',
+                        isDuplicate
+                          ? 'bg-red-500/10 border border-red-500/30'
+                          : 'bg-[hsl(var(--glass-bg-1))]'
                       )}
-                    </div>
-                    <select
-                      value={columnMappings[field.key] || ''}
-                      onChange={(e) => handleMappingChange(field.key, e.target.value)}
-                      className="form-input w-32"
                     >
-                      <option value="">Seçiniz</option>
-                      {(availableColumns.length > 0 ? availableColumns : COLUMN_LETTERS.slice(0, 26).map(l => ({ letter: l, header: '' }))).map((col) => (
-                        <option key={col.letter} value={col.letter}>
-                          {col.letter}{col.header ? `: ${col.header}` : ''}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                ))}
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="text-sm font-medium text-foreground">
+                          {field.label}
+                        </span>
+                        {field.required && (
+                          <span className="text-xs text-red-400">*</span>
+                        )}
+                        {suggestion && columnMappings[field.key] === suggestion.column && (
+                          <span className={cn(
+                            'px-1.5 py-0.5 rounded text-[10px] font-medium',
+                            getConfidenceColor(suggestion.confidence)
+                          )}>
+                            {getConfidenceLabel(suggestion.confidence)}
+                          </span>
+                        )}
+                      </div>
+                      <select
+                        value={columnMappings[field.key] || ''}
+                        onChange={(e) => handleMappingChange(field.key, e.target.value)}
+                        className={cn(
+                          'form-input w-40',
+                          isDuplicate && 'border-red-500/50'
+                        )}
+                      >
+                        <option value="">Seçiniz</option>
+                        {(availableColumns.length > 0 ? availableColumns : COLUMN_LETTERS.slice(0, 26).map((l, i) => ({ letter: l, header: '', index: i }))).map((col) => (
+                          <option key={col.letter} value={col.letter}>
+                            {col.letter}{col.header ? `: ${col.header}` : ''}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}

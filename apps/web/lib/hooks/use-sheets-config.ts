@@ -110,6 +110,36 @@ export function useDeleteSheetsConfig() {
   });
 }
 
+/**
+ * Set a config as default
+ */
+export function useSetDefaultConfig() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      clientId,
+      configId,
+    }: {
+      clientId: number | string;
+      configId: number;
+    }) => sheetsApi.updateSheetsConfig(clientId, configId, { is_default: true }),
+    onSuccess: (_, { clientId }) => {
+      queryClient.invalidateQueries({ queryKey: sheetsConfigKeys.list(clientId) });
+    },
+  });
+}
+
+/**
+ * Test connection to a sheet
+ */
+export function useTestConnection() {
+  return useMutation({
+    mutationFn: (params: { spreadsheetId: string; sheetName: string }) =>
+      sheetsApi.sheetsTestConnection(params.spreadsheetId, params.sheetName),
+  });
+}
+
 // ---------------------------------------------------------------------
 // Mutation Hooks - n8n Operations
 // ---------------------------------------------------------------------
@@ -159,7 +189,7 @@ export function useSheetsCheck() {
 }
 
 /**
- * Export keywords to Google Sheets
+ * Export keywords to Google Sheets (bulk operations)
  */
 export function useExportToSheets() {
   const queryClient = useQueryClient();
@@ -177,7 +207,7 @@ export function useExportToSheets() {
         params.keywordIds,
         params.writeMode
       ),
-    onSuccess: (_, { configId }) => {
+    onSuccess: () => {
       // Invalidate all config lists to refresh last_export info
       queryClient.invalidateQueries({ queryKey: sheetsConfigKeys.all });
     },
@@ -185,8 +215,80 @@ export function useExportToSheets() {
 }
 
 // ---------------------------------------------------------------------
+// Mutation Hooks - Advanced Write Operations
+// ---------------------------------------------------------------------
+
+/**
+ * Advanced write to Google Sheets - supports all 5 modes
+ * Modes: replace, append, update_cell, insert_row, update_row
+ */
+export function useAdvancedSheetsWrite() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (params: sheetsApi.AdvancedWriteParams) =>
+      sheetsApi.sheetsAdvancedWrite(params),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: sheetsConfigKeys.all });
+    },
+  });
+}
+
+/**
+ * Get current value of a specific cell
+ * Useful for previewing before update_cell operation
+ */
+export function useGetCellValue() {
+  return useMutation({
+    mutationFn: (params: {
+      spreadsheetId: string;
+      sheetName: string;
+      row: number;
+      column: string;
+    }) =>
+      sheetsApi.sheetsGetCellValue(
+        params.spreadsheetId,
+        params.sheetName,
+        params.row,
+        params.column
+      ),
+  });
+}
+
+/**
+ * Get data from a specific row
+ * Useful for previewing before update_row operation
+ */
+export function useGetRowData() {
+  return useMutation({
+    mutationFn: (params: {
+      spreadsheetId: string;
+      sheetName: string;
+      row: number;
+      columnMappings: Record<string, string>;
+    }) =>
+      sheetsApi.sheetsGetRowData(
+        params.spreadsheetId,
+        params.sheetName,
+        params.row,
+        params.columnMappings
+      ),
+  });
+}
+
+// ---------------------------------------------------------------------
 // Re-export types and constants
 // ---------------------------------------------------------------------
 
-export type { SheetsConfig, CreateSheetsConfigInput, UpdateSheetsConfigInput } from '@/lib/api/sheets-config';
+export type {
+  SheetsConfig,
+  CreateSheetsConfigInput,
+  UpdateSheetsConfigInput,
+  WriteMode,
+  AdvancedWriteParams,
+  AdvancedWriteResponse,
+  GetCellValueResponse,
+  GetRowDataResponse,
+} from '@/lib/api/sheets-config';
+
 export { KEYWORD_FIELDS } from '@/lib/api/sheets-config';

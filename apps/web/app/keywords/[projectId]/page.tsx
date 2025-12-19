@@ -57,7 +57,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils/cn';
 import { PageTransition } from '@/components/motion';
 import { groupKeywords, KeywordGroup, KeywordSubgroup } from '@/lib/keyword-grouping';
-import { SheetsExportModal } from '@/components/sheets/SheetsExportModal';
+import { SheetsExportModal, SheetsAdvancedModal } from '@/components/sheets';
 
 interface PageProps {
   params: { projectId: string };
@@ -153,6 +153,7 @@ export default function KeywordResultsPage({ params }: PageProps) {
 
   // Sheets export state
   const [showSheetsExportModal, setShowSheetsExportModal] = useState(false);
+  const [showSheetsAdvancedModal, setShowSheetsAdvancedModal] = useState(false);
 
   // Fetch project, keywords, and categories (all in one - no separate effects)
   useEffect(() => {
@@ -892,6 +893,15 @@ export default function KeywordResultsPage({ params }: PageProps) {
               <FileSpreadsheet className="h-4 w-4" />
               Sheets
             </button>
+            <button
+              onClick={() => setShowSheetsAdvancedModal(true)}
+              disabled={selectedKeywords.size === 0}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 text-sm font-medium transition-colors disabled:opacity-50"
+              title={selectedKeywords.size === 0 ? 'Önce keyword seçin' : 'Hassas Sheets işlemleri'}
+            >
+              <Settings className="h-4 w-4" />
+              Gelişmiş
+            </button>
           </div>
         </motion.div>
       </section>
@@ -1379,6 +1389,16 @@ export default function KeywordResultsPage({ params }: PageProps) {
         open={showSheetsExportModal}
         onOpenChange={setShowSheetsExportModal}
         projectId={projectId}
+        clientId={project?.client_id ?? null}
+        selectedKeywords={filteredKeywords.filter((kw, idx) =>
+          selectedKeywords.has(kw.id || idx)
+        )}
+      />
+
+      {/* Sheets Advanced Modal */}
+      <SheetsAdvancedModal
+        open={showSheetsAdvancedModal}
+        onOpenChange={setShowSheetsAdvancedModal}
         clientId={project?.client_id ?? null}
         selectedKeywords={filteredKeywords.filter((kw, idx) =>
           selectedKeywords.has(kw.id || idx)
