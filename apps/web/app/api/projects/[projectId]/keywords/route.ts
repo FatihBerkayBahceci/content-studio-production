@@ -56,6 +56,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     const pid = Number(project.id);
 
     // Get keywords with inline LIMIT/OFFSET to avoid prepared statement issues
+    // Only get approved keywords (Ana Liste)
     const keywordsSql = `
       SELECT
         id,
@@ -75,9 +76,10 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         page_type,
         content_format,
         recommended_word_count,
+        status,
         created_at
       FROM keyword_results
-      WHERE project_id = ${pid}
+      WHERE project_id = ${pid} AND (status = 'approved' OR status IS NULL)
       ORDER BY
         CASE WHEN content_priority = 'high' THEN 1 WHEN content_priority = 'medium' THEN 2 ELSE 3 END,
         opportunity_score DESC,
@@ -87,12 +89,12 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     const keywords = await query(keywordsSql, []);
     console.log('[Keywords API] Keywords query returned:', Array.isArray(keywords) ? keywords.length : 0, 'items for pid:', pid);
 
-    // Get total count
-    const countSql = `SELECT COUNT(*) as total FROM keyword_results WHERE project_id = ${pid}`;
+    // Get total count (approved only)
+    const countSql = `SELECT COUNT(*) as total FROM keyword_results WHERE project_id = ${pid} AND (status = 'approved' OR status IS NULL)`;
     const countResult = await query(countSql, []);
     const total = Array.isArray(countResult) && countResult.length > 0 ? countResult[0].total : 0;
 
-    // Calculate stats - use backticks for reserved words
+    // Calculate stats - use backticks for reserved words (approved only)
     const statsSql = `
       SELECT
         COUNT(*) as total_count,
@@ -105,16 +107,16 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         COUNT(CASE WHEN content_priority = 'medium' THEN 1 END) as cnt_medium,
         COUNT(CASE WHEN content_priority = 'low' THEN 1 END) as cnt_low
       FROM keyword_results
-      WHERE project_id = ${pid}
+      WHERE project_id = ${pid} AND (status = 'approved' OR status IS NULL)
     `;
     const statsResult = await query(statsSql, []);
     const statsRow = Array.isArray(statsResult) && statsResult.length > 0 ? statsResult[0] : null;
 
-    // Get cluster distribution
+    // Get cluster distribution (approved only)
     const clusterSql = `
       SELECT keyword_cluster, COUNT(*) as cnt
       FROM keyword_results
-      WHERE project_id = ${pid} AND keyword_cluster IS NOT NULL
+      WHERE project_id = ${pid} AND keyword_cluster IS NOT NULL AND (status = 'approved' OR status IS NULL)
       GROUP BY keyword_cluster
       ORDER BY cnt DESC
     `;
@@ -128,11 +130,11 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       }
     }
 
-    // Get type distribution
+    // Get type distribution (approved only)
     const typeSql = `
       SELECT keyword_type, COUNT(*) as cnt
       FROM keyword_results
-      WHERE project_id = ${pid}
+      WHERE project_id = ${pid} AND (status = 'approved' OR status IS NULL)
       GROUP BY keyword_type
     `;
     const typeResult = await query(typeSql, []);

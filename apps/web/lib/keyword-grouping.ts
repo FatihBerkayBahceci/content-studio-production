@@ -148,9 +148,57 @@ function calculateTotalVolume(keywords: KeywordResult[]): number {
 }
 
 /**
- * Keyword'leri gruplandır
+ * AI kategorisine göre ikon belirle
+ */
+function getIconForCategory(category: string): string {
+  const lowerCategory = category.toLowerCase();
+  if (lowerCategory.includes('marka') || lowerCategory.includes('brand')) return 'tag';
+  if (lowerCategory.includes('fiyat') || lowerCategory.includes('price')) return 'dollar-sign';
+  if (lowerCategory.includes('soru') || lowerCategory.includes('question')) return 'help-circle';
+  if (lowerCategory.includes('karşılaştır') || lowerCategory.includes('compar')) return 'git-compare';
+  if (lowerCategory.includes('ebat') || lowerCategory.includes('size')) return 'ruler';
+  if (lowerCategory.includes('bilgi') || lowerCategory.includes('info')) return 'info';
+  if (lowerCategory.includes('rehber') || lowerCategory.includes('guide')) return 'book-open';
+  return 'folder';
+}
+
+/**
+ * Keyword'leri gruplandır - AI kategorilerini veya kural tabanlı sistemi kullan
  */
 export function groupKeywords(keywords: KeywordResult[]): KeywordGroup[] {
+  // Önce AI kategorilerini kontrol et (keyword_cluster veya ai_category alanı)
+  const hasAICategories = keywords.some(kw =>
+    (kw.keyword_cluster && kw.keyword_cluster !== 'Genel') ||
+    (kw as any).ai_category
+  );
+
+  if (hasAICategories) {
+    // AI kategorilerine göre grupla
+    const categoryMap = new Map<string, KeywordResult[]>();
+
+    for (const kw of keywords) {
+      const category = kw.keyword_cluster || (kw as any).ai_category || 'Diğer';
+      if (!categoryMap.has(category)) {
+        categoryMap.set(category, []);
+      }
+      categoryMap.get(category)!.push(kw);
+    }
+
+    // Grupları oluştur
+    const groups: KeywordGroup[] = Array.from(categoryMap.entries())
+      .map(([category, kws]) => ({
+        id: category.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''),
+        name: category,
+        icon: getIconForCategory(category),
+        keywords: kws.sort((a, b) => (b.search_volume || 0) - (a.search_volume || 0)),
+        totalVolume: calculateTotalVolume(kws)
+      }))
+      .sort((a, b) => b.totalVolume - a.totalVolume);
+
+    return groups;
+  }
+
+  // AI kategorisi yoksa kural tabanlı gruplama yap
   const brandMap = new Map<string, KeywordResult[]>();
   const sizeMap = new Map<string, KeywordResult[]>();
   const priceKeywords: KeywordResult[] = [];

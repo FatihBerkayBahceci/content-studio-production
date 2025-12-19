@@ -42,6 +42,8 @@ interface RawKeyword {
   competition_index: number | null;
   source: string | null;
   ai_category: string | null;
+  status: 'approved' | 'rejected' | 'pending' | null;
+  reject_reason: string | null;
   created_at: string;
 }
 
@@ -121,7 +123,8 @@ export async function GET(
     const project = projects[0] as any;
     const pid = project.id;
 
-    // Get raw keywords with ai_category
+    // Get keywords from keyword_results table (workflow saves here)
+    // Only get rejected/pending keywords (not approved - these are "Diğer DataForSEO Kelimeleri")
     const [rawKeywords] = await connection.execute(
       `SELECT
         id,
@@ -129,12 +132,14 @@ export async function GET(
         search_volume,
         cpc,
         competition,
-        competition_index,
+        NULL as competition_index,
         source,
-        ai_category,
+        keyword_cluster as ai_category,
+        status,
+        reject_reason,
         created_at
-      FROM keyword_results_raw
-      WHERE project_id = ?
+      FROM keyword_results
+      WHERE project_id = ? AND status IN ('rejected', 'pending')
       ORDER BY search_volume DESC`,
       [pid]
     );
