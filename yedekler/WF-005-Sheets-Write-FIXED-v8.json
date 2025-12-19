@@ -1,0 +1,389 @@
+{
+  "name": "WF-005 Sheets Write",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "sheets-write",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 0],
+      "webhookId": "sheets-write"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const body = $json.body || {};\nconst mappings = body.column_mappings || {};\nconst data = body.data || [];\nconst writeMode = body.write_mode || 'append';\nconst includeHeaders = body.include_headers !== false;\nconst targetRow = body.target_row || 2;\nconst targetColumn = body.target_column || 'A';\nconst appendSeparator = body.append_separator || ', ';\nconst sheetGid = body.sheet_gid || 0;\n\n// Get column letters sorted\nconst columns = Object.entries(mappings).sort((a, b) => a[1].localeCompare(b[1]));\nconst firstCol = columns[0]?.[1] || 'A';\nconst lastCol = columns[columns.length - 1]?.[1] || 'A';\n\n// Build values array for Sheets API\nconst values = [];\n\n// Add headers if needed (only for replace mode)\nif (includeHeaders && writeMode === 'replace') {\n  const headerRow = [];\n  const labels = {\n    keyword: 'Anahtar Kelime',\n    search_volume: 'Arama Hacmi',\n    keyword_difficulty: 'Zorluk',\n    cpc: 'CPC',\n    competition: 'Rekabet',\n    search_intent: 'Arama Niyeti',\n    opportunity_score: 'Fırsat Skoru',\n    ai_category: 'AI Kategori'\n  };\n  for (const [field, col] of columns) {\n    headerRow.push(labels[field] || field);\n  }\n  values.push(headerRow);\n}\n\n// Add data rows\nfor (const item of data) {\n  const row = [];\n  for (const [field, col] of columns) {\n    const val = item[field];\n    row.push(val !== null && val !== undefined ? String(val) : '');\n  }\n  values.push(row);\n}\n\n// Calculate ranges\nconst dataEndRow = values.length;\nconst exactRange = `${body.sheet_name}!${firstCol}1:${lastCol}${dataEndRow}`;\nconst targetCellRange = `${body.sheet_name}!${targetColumn}${targetRow}`;\nconst targetRowRange = `${body.sheet_name}!${firstCol}${targetRow}:${lastCol}${targetRow}`;\n\nreturn { json: {\n  spreadsheet_id: body.spreadsheet_id,\n  sheet_name: body.sheet_name,\n  sheet_gid: sheetGid,\n  exact_range: exactRange,\n  target_cell_range: targetCellRange,\n  target_row_range: targetRowRange,\n  target_row: targetRow,\n  target_column: targetColumn,\n  append_separator: appendSeparator,\n  values: values,\n  single_row_values: values.length > 0 ? [values[0]] : [],\n  new_cell_value: data[0] ? String(data[0][Object.keys(data[0])[0]] || '') : '',\n  write_mode: writeMode,\n  row_count: data.length\n}};"
+      },
+      "id": "prepare",
+      "name": "Prepare Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [220, 0]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+                "conditions": [{ "leftValue": "={{ $json.write_mode }}", "rightValue": "replace", "operator": { "type": "string", "operation": "equals" } }],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputLabel": "Replace"
+            },
+            {
+              "conditions": {
+                "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+                "conditions": [{ "leftValue": "={{ $json.write_mode }}", "rightValue": "append", "operator": { "type": "string", "operation": "equals" } }],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputLabel": "Append"
+            },
+            {
+              "conditions": {
+                "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+                "conditions": [{ "leftValue": "={{ $json.write_mode }}", "rightValue": "update_cell", "operator": { "type": "string", "operation": "equals" } }],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputLabel": "UpdateCell"
+            },
+            {
+              "conditions": {
+                "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+                "conditions": [{ "leftValue": "={{ $json.write_mode }}", "rightValue": "insert_row", "operator": { "type": "string", "operation": "equals" } }],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputLabel": "InsertRow"
+            },
+            {
+              "conditions": {
+                "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+                "conditions": [{ "leftValue": "={{ $json.write_mode }}", "rightValue": "update_row", "operator": { "type": "string", "operation": "equals" } }],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputLabel": "UpdateRow"
+            }
+          ]
+        },
+        "options": { "fallbackOutput": "none" }
+      },
+      "id": "switch",
+      "name": "Switch",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [440, 0]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://sheets.googleapis.com/v4/spreadsheets/{{ $json.spreadsheet_id }}/values/{{ encodeURIComponent($json.sheet_name) }}!A:Z:clear",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "options": {}
+      },
+      "id": "clear-sheet",
+      "name": "Clear Sheet",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [660, -200],
+      "credentials": { "googleSheetsOAuth2Api": { "id": "FRUwxjFQM3dnpWm4", "name": "Google Sheets account" } }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "return { json: $('Prepare Data').item.json };"
+      },
+      "id": "restore-replace",
+      "name": "Restore (Replace)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [880, -200]
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "=https://sheets.googleapis.com/v4/spreadsheets/{{ $json.spreadsheet_id }}/values/{{ encodeURIComponent($json.exact_range) }}?valueInputOption=USER_ENTERED",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ range: $json.exact_range, values: $json.values }) }}",
+        "options": {}
+      },
+      "id": "write-replace",
+      "name": "Write (Replace)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1100, -200],
+      "credentials": { "googleSheetsOAuth2Api": { "id": "FRUwxjFQM3dnpWm4", "name": "Google Sheets account" } }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://sheets.googleapis.com/v4/spreadsheets/{{ $json.spreadsheet_id }}/values/{{ encodeURIComponent($json.sheet_name) }}:append?valueInputOption=USER_ENTERED",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ values: $json.values }) }}",
+        "options": {}
+      },
+      "id": "write-append",
+      "name": "Write (Append)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [660, -80],
+      "credentials": { "googleSheetsOAuth2Api": { "id": "FRUwxjFQM3dnpWm4", "name": "Google Sheets account" } }
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://sheets.googleapis.com/v4/spreadsheets/{{ $json.spreadsheet_id }}/values/{{ encodeURIComponent($json.target_cell_range) }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "options": {}
+      },
+      "id": "get-cell",
+      "name": "Get Cell",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [660, 40],
+      "credentials": { "googleSheetsOAuth2Api": { "id": "FRUwxjFQM3dnpWm4", "name": "Google Sheets account" } }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const prepData = $('Prepare Data').item.json;\nconst currentValues = $json.values || [['']];\nconst currentValue = currentValues[0]?.[0] || '';\nconst newValue = prepData.new_cell_value;\nconst separator = prepData.append_separator;\n\nconst updatedValue = currentValue ? `${currentValue}${separator}${newValue}` : newValue;\n\nreturn { json: {\n  ...prepData,\n  updated_cell_value: updatedValue\n}};"
+      },
+      "id": "merge-cell-value",
+      "name": "Merge Cell Value",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [880, 40]
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "=https://sheets.googleapis.com/v4/spreadsheets/{{ $json.spreadsheet_id }}/values/{{ encodeURIComponent($json.target_cell_range) }}?valueInputOption=USER_ENTERED",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ values: [[$json.updated_cell_value]] }) }}",
+        "options": {}
+      },
+      "id": "write-cell",
+      "name": "Write Cell",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1100, 40],
+      "credentials": { "googleSheetsOAuth2Api": { "id": "FRUwxjFQM3dnpWm4", "name": "Google Sheets account" } }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://sheets.googleapis.com/v4/spreadsheets/{{ $json.spreadsheet_id }}:batchUpdate",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ requests: [{ insertDimension: { range: { sheetId: $json.sheet_gid, dimension: 'ROWS', startIndex: $json.target_row - 1, endIndex: $json.target_row }, inheritFromBefore: false } }] }) }}",
+        "options": {}
+      },
+      "id": "insert-row",
+      "name": "Insert Row",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [660, 160],
+      "credentials": { "googleSheetsOAuth2Api": { "id": "FRUwxjFQM3dnpWm4", "name": "Google Sheets account" } }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "return { json: $('Prepare Data').item.json };"
+      },
+      "id": "restore-insert",
+      "name": "Restore (Insert)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [880, 160]
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "=https://sheets.googleapis.com/v4/spreadsheets/{{ $json.spreadsheet_id }}/values/{{ encodeURIComponent($json.target_row_range) }}?valueInputOption=USER_ENTERED",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ values: $json.single_row_values }) }}",
+        "options": {}
+      },
+      "id": "write-inserted-row",
+      "name": "Write Inserted Row",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1100, 160],
+      "credentials": { "googleSheetsOAuth2Api": { "id": "FRUwxjFQM3dnpWm4", "name": "Google Sheets account" } }
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "=https://sheets.googleapis.com/v4/spreadsheets/{{ $json.spreadsheet_id }}/values/{{ encodeURIComponent($json.target_row_range) }}?valueInputOption=USER_ENTERED",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ values: $json.single_row_values }) }}",
+        "options": {}
+      },
+      "id": "write-update-row",
+      "name": "Write (Update Row)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [660, 280],
+      "credentials": { "googleSheetsOAuth2Api": { "id": "FRUwxjFQM3dnpWm4", "name": "Google Sheets account" } }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const prepData = $('Prepare Data').item.json;\nreturn { json: { success: true, mode: prepData.write_mode, rows_written: prepData.row_count, spreadsheet_url: `https://docs.google.com/spreadsheets/d/${prepData.spreadsheet_id}` }};"
+      },
+      "id": "format-replace",
+      "name": "Format (Replace)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1320, -200]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const prepData = $('Prepare Data').item.json;\nreturn { json: { success: true, mode: prepData.write_mode, rows_written: prepData.row_count, spreadsheet_url: `https://docs.google.com/spreadsheets/d/${prepData.spreadsheet_id}` }};"
+      },
+      "id": "format-append",
+      "name": "Format (Append)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [880, -80]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const prepData = $('Prepare Data').item.json;\nreturn { json: { success: true, mode: prepData.write_mode, cell: prepData.target_cell_range, new_value: $json.updated_cell_value || prepData.updated_cell_value, spreadsheet_url: `https://docs.google.com/spreadsheets/d/${prepData.spreadsheet_id}` }};"
+      },
+      "id": "format-cell",
+      "name": "Format (Cell)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1320, 40]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const prepData = $('Prepare Data').item.json;\nreturn { json: { success: true, mode: prepData.write_mode, inserted_at_row: prepData.target_row, spreadsheet_url: `https://docs.google.com/spreadsheets/d/${prepData.spreadsheet_id}` }};"
+      },
+      "id": "format-insert",
+      "name": "Format (Insert)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1320, 160]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const prepData = $('Prepare Data').item.json;\nreturn { json: { success: true, mode: prepData.write_mode, updated_row: prepData.target_row, spreadsheet_url: `https://docs.google.com/spreadsheets/d/${prepData.spreadsheet_id}` }};"
+      },
+      "id": "format-update-row",
+      "name": "Format (Update Row)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [880, 280]
+    },
+    {
+      "parameters": { "respondWith": "json", "responseBody": "={{ JSON.stringify($json) }}", "options": {} },
+      "id": "respond-replace",
+      "name": "Respond (Replace)",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1540, -200]
+    },
+    {
+      "parameters": { "respondWith": "json", "responseBody": "={{ JSON.stringify($json) }}", "options": {} },
+      "id": "respond-append",
+      "name": "Respond (Append)",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1100, -80]
+    },
+    {
+      "parameters": { "respondWith": "json", "responseBody": "={{ JSON.stringify($json) }}", "options": {} },
+      "id": "respond-cell",
+      "name": "Respond (Cell)",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1540, 40]
+    },
+    {
+      "parameters": { "respondWith": "json", "responseBody": "={{ JSON.stringify($json) }}", "options": {} },
+      "id": "respond-insert",
+      "name": "Respond (Insert)",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1540, 160]
+    },
+    {
+      "parameters": { "respondWith": "json", "responseBody": "={{ JSON.stringify($json) }}", "options": {} },
+      "id": "respond-update-row",
+      "name": "Respond (Update Row)",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1100, 280]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": { "main": [[{ "node": "Prepare Data", "type": "main", "index": 0 }]] },
+    "Prepare Data": { "main": [[{ "node": "Switch", "type": "main", "index": 0 }]] },
+    "Switch": {
+      "main": [
+        [{ "node": "Clear Sheet", "type": "main", "index": 0 }],
+        [{ "node": "Write (Append)", "type": "main", "index": 0 }],
+        [{ "node": "Get Cell", "type": "main", "index": 0 }],
+        [{ "node": "Insert Row", "type": "main", "index": 0 }],
+        [{ "node": "Write (Update Row)", "type": "main", "index": 0 }]
+      ]
+    },
+    "Clear Sheet": { "main": [[{ "node": "Restore (Replace)", "type": "main", "index": 0 }]] },
+    "Restore (Replace)": { "main": [[{ "node": "Write (Replace)", "type": "main", "index": 0 }]] },
+    "Write (Replace)": { "main": [[{ "node": "Format (Replace)", "type": "main", "index": 0 }]] },
+    "Format (Replace)": { "main": [[{ "node": "Respond (Replace)", "type": "main", "index": 0 }]] },
+    "Write (Append)": { "main": [[{ "node": "Format (Append)", "type": "main", "index": 0 }]] },
+    "Format (Append)": { "main": [[{ "node": "Respond (Append)", "type": "main", "index": 0 }]] },
+    "Get Cell": { "main": [[{ "node": "Merge Cell Value", "type": "main", "index": 0 }]] },
+    "Merge Cell Value": { "main": [[{ "node": "Write Cell", "type": "main", "index": 0 }]] },
+    "Write Cell": { "main": [[{ "node": "Format (Cell)", "type": "main", "index": 0 }]] },
+    "Format (Cell)": { "main": [[{ "node": "Respond (Cell)", "type": "main", "index": 0 }]] },
+    "Insert Row": { "main": [[{ "node": "Restore (Insert)", "type": "main", "index": 0 }]] },
+    "Restore (Insert)": { "main": [[{ "node": "Write Inserted Row", "type": "main", "index": 0 }]] },
+    "Write Inserted Row": { "main": [[{ "node": "Format (Insert)", "type": "main", "index": 0 }]] },
+    "Format (Insert)": { "main": [[{ "node": "Respond (Insert)", "type": "main", "index": 0 }]] },
+    "Write (Update Row)": { "main": [[{ "node": "Format (Update Row)", "type": "main", "index": 0 }]] },
+    "Format (Update Row)": { "main": [[{ "node": "Respond (Update Row)", "type": "main", "index": 0 }]] }
+  },
+  "active": true,
+  "settings": { "executionOrder": "v1", "callerPolicy": "workflowsFromSameOwner", "availableInMCP": false },
+  "meta": { "templateCredsSetupCompleted": true },
+  "tags": []
+}

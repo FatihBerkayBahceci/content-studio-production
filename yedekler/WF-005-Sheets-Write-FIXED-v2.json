@@ -1,0 +1,217 @@
+{
+  "name": "WF-005 Sheets Write",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "sheets-write",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 0],
+      "webhookId": "sheets-write"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const body = $json.body || {};\nconst mappings = body.column_mappings || {};\nconst data = body.data || [];\nconst startRow = body.start_row || 2;\nconst writeMode = body.write_mode || 'append';\nconst includeHeaders = body.include_headers !== false;\n\n// Get column letters sorted\nconst columns = Object.entries(mappings).sort((a, b) => a[1].localeCompare(b[1]));\nconst firstCol = columns[0]?.[1] || 'A';\nconst lastCol = columns[columns.length - 1]?.[1] || 'A';\n\n// Build values array for Sheets API\nconst values = [];\n\n// Add headers if needed\nif (includeHeaders) {\n  const headerRow = [];\n  const labels = {\n    keyword: 'Anahtar Kelime',\n    search_volume: 'Arama Hacmi',\n    keyword_difficulty: 'Zorluk',\n    cpc: 'CPC',\n    competition: 'Rekabet',\n    search_intent: 'Arama Niyeti',\n    opportunity_score: 'Fırsat Skoru',\n    ai_category: 'AI Kategori'\n  };\n  for (const [field, col] of columns) {\n    headerRow.push(labels[field] || field);\n  }\n  values.push(headerRow);\n}\n\n// Add data rows\nfor (const item of data) {\n  const row = [];\n  for (const [field, col] of columns) {\n    const val = item[field];\n    row.push(val !== null && val !== undefined ? String(val) : '');\n  }\n  values.push(row);\n}\n\n// Calculate range\nconst rangeStart = includeHeaders ? startRow - 1 : startRow;\nconst range = `${body.sheet_name}!${firstCol}${rangeStart}:${lastCol}`;\n\nreturn { json: {\n  spreadsheet_id: body.spreadsheet_id,\n  sheet_name: body.sheet_name,\n  range: range,\n  values: values,\n  write_mode: writeMode,\n  row_count: data.length\n}};"
+      },
+      "id": "prepare",
+      "name": "Prepare Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [224, 0]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true },
+          "conditions": [
+            {
+              "id": "c1",
+              "leftValue": "={{ $json.write_mode }}",
+              "rightValue": "replace",
+              "operator": { "type": "string", "operation": "equals" }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "if-replace",
+      "name": "IF Replace",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [448, 0]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://sheets.googleapis.com/v4/spreadsheets/{{ $json.spreadsheet_id }}/values/{{ encodeURIComponent($json.sheet_name) }}!A:Z:clear",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "options": {}
+      },
+      "id": "clear-sheet",
+      "name": "Clear Sheet",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [672, -80],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "FRUwxjFQM3dnpWm4",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "return { json: $('Prepare Data').item.json };"
+      },
+      "id": "restore-replace",
+      "name": "Restore (Replace)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [896, -80]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://sheets.googleapis.com/v4/spreadsheets/{{ $json.spreadsheet_id }}/values/{{ encodeURIComponent($json.range) }}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ values: $json.values }) }}",
+        "options": {}
+      },
+      "id": "write-replace",
+      "name": "Write (Replace)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1120, -80],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "FRUwxjFQM3dnpWm4",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://sheets.googleapis.com/v4/spreadsheets/{{ $json.spreadsheet_id }}/values/{{ encodeURIComponent($json.range) }}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ values: $json.values }) }}",
+        "options": {}
+      },
+      "id": "write-append",
+      "name": "Write (Append)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [672, 80],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "FRUwxjFQM3dnpWm4",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const prepData = $('Prepare Data').item.json;\nconst response = $json;\nconst updatedRows = response.updates?.updatedRows || prepData.row_count;\n\nreturn { json: {\n  success: true,\n  rows_written: updatedRows,\n  spreadsheet_url: `https://docs.google.com/spreadsheets/d/${prepData.spreadsheet_id}`\n}};"
+      },
+      "id": "format-replace",
+      "name": "Format (Replace)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1344, -80]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const prepData = $('Prepare Data').item.json;\nconst response = $json;\nconst updatedRows = response.updates?.updatedRows || prepData.row_count;\n\nreturn { json: {\n  success: true,\n  rows_written: updatedRows,\n  spreadsheet_url: `https://docs.google.com/spreadsheets/d/${prepData.spreadsheet_id}`\n}};"
+      },
+      "id": "format-append",
+      "name": "Format (Append)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [896, 80]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {}
+      },
+      "id": "respond-replace",
+      "name": "Respond (Replace)",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1568, -80]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {}
+      },
+      "id": "respond-append",
+      "name": "Respond (Append)",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1120, 80]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [[{ "node": "Prepare Data", "type": "main", "index": 0 }]]
+    },
+    "Prepare Data": {
+      "main": [[{ "node": "IF Replace", "type": "main", "index": 0 }]]
+    },
+    "IF Replace": {
+      "main": [
+        [{ "node": "Clear Sheet", "type": "main", "index": 0 }],
+        [{ "node": "Write (Append)", "type": "main", "index": 0 }]
+      ]
+    },
+    "Clear Sheet": {
+      "main": [[{ "node": "Restore (Replace)", "type": "main", "index": 0 }]]
+    },
+    "Restore (Replace)": {
+      "main": [[{ "node": "Write (Replace)", "type": "main", "index": 0 }]]
+    },
+    "Write (Replace)": {
+      "main": [[{ "node": "Format (Replace)", "type": "main", "index": 0 }]]
+    },
+    "Write (Append)": {
+      "main": [[{ "node": "Format (Append)", "type": "main", "index": 0 }]]
+    },
+    "Format (Replace)": {
+      "main": [[{ "node": "Respond (Replace)", "type": "main", "index": 0 }]]
+    },
+    "Format (Append)": {
+      "main": [[{ "node": "Respond (Append)", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "tags": []
+}

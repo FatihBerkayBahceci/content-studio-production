@@ -77,6 +77,11 @@ n8n_5679_database.sqlite
 # Large database files
 *.sqlite
 n8n_*.sqlite
-*.sql.gz
 *_backup.sql
+
+# Yedekler - keep compressed SQL backups, ignore large files
+yedekler/*.tar.gz
+yedekler/*.sql
+yedekler/n8n_postgres_latest.sql
+yedekler/*Zone.Identifier
 
