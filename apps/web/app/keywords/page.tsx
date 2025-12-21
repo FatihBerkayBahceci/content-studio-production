@@ -1,65 +1,45 @@
 'use client';
 
-import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-
-// LocalStorage key for persisting search state
-const STORAGE_KEY = 'seo-keywords-search-state';
 import {
   Search,
   Loader2,
-  Download,
-  FileText,
   Globe,
   TrendingUp,
-  Target,
-  BarChart3,
-  Sparkles,
   AlertCircle,
   Building2,
   CheckCircle2,
-  Database,
   Zap,
   Brain,
   Filter,
   Save,
   Wand2,
-  Clock,
   ArrowRight,
-  ChevronRight,
   ChevronDown,
+  ChevronRight,
   Plus,
   History,
-  Star,
-  ExternalLink,
-  Copy,
-  MoreHorizontal,
   Trash2,
-  Eye,
   RefreshCw,
   SlidersHorizontal,
-  LayoutGrid,
-  List,
-  ArrowUpDown,
   Layers,
   XCircle,
   Pause,
   Upload,
   FileSpreadsheet,
-  Tag,
-  Ruler,
-  DollarSign,
-  HelpCircle,
-  Package,
-  GitCompare,
+  Clock,
+  Sparkles,
 } from 'lucide-react';
-import { groupKeywords, KeywordGroup, KeywordResult as GroupKeywordResult } from '@/lib/keyword-grouping';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils/cn';
-import { PageTransition, staggerContainer, staggerItem } from '@/components/motion';
+import { PageTransition } from '@/components/motion';
 import { api } from '@/lib/api/client';
 import { useClientStore } from '@/lib/stores/client-store';
+
+// LocalStorage key for persisting search state
+const STORAGE_KEY = 'seo-keywords-search-state';
 
 // Loading steps configuration
 const LOADING_STEPS = [
@@ -80,14 +60,13 @@ const TIPS = [
   'Her keyword için ayrı içerik yerine topic cluster yaklaşımı deneyin',
 ];
 
-// Client type
+// Types
 interface Client {
   id: number;
   name: string;
   website?: string;
 }
 
-// Keyword result type from API
 interface KeywordResult {
   keyword: string;
   source: string;
@@ -122,6 +101,14 @@ interface KeywordResearchResponse {
   error?: string;
 }
 
+interface BulkKeywordStatus {
+  keyword: string;
+  status: 'pending' | 'processing' | 'completed' | 'error';
+  projectId?: number;
+  keywordsFound?: number;
+  error?: string;
+}
+
 // Country options
 const countries = [
   { code: 'TR', name: 'Türkiye', flag: '🇹🇷' },
@@ -131,38 +118,279 @@ const countries = [
   { code: 'FR', name: 'France', flag: '🇫🇷' },
 ];
 
-// Bulk operation types
-interface BulkKeywordStatus {
-  keyword: string;
-  status: 'pending' | 'processing' | 'completed' | 'error';
-  projectId?: number;
-  keywordsFound?: number;
-  error?: string;
-}
-
 const MAX_BULK_KEYWORDS = 100;
 const MAX_CONCURRENT_REQUESTS = 3;
 
+// ============================================
+// SUB-COMPONENTS
+// ============================================
+
+// Mode Toggle - Modern Segmented Control
+interface ModeToggleProps {
+  mode: 'single' | 'bulk' | 'import';
+  onModeChange: (mode: 'single' | 'bulk' | 'import') => void;
+  disabled?: boolean;
+  bulkCount: number;
+}
+
+function ModeToggle({ mode, onModeChange, disabled, bulkCount }: ModeToggleProps) {
+  const modes = [
+    { id: 'single' as const, label: 'Tekli', icon: Search, description: 'Tek keyword ara' },
+    { id: 'bulk' as const, label: 'Toplu', icon: Layers, description: 'Birden fazla keyword' },
+    { id: 'import' as const, label: 'İçe Aktar', icon: Upload, description: 'CSV veya Excel' },
+  ];
+
+  return (
+    <div className="inline-flex items-center gap-2 p-1 rounded-2xl bg-[hsl(var(--glass-bg-1))] border border-[hsl(var(--glass-border-subtle))]">
+      {modes.map((m) => {
+        const Icon = m.icon;
+        const isActive = mode === m.id;
+
+        return (
+          <motion.button
+            key={m.id}
+            onClick={() => onModeChange(m.id)}
+            disabled={disabled}
+            className={cn(
+              'relative flex items-center gap-2.5 px-5 py-3 rounded-xl text-sm font-medium transition-all duration-200',
+              isActive
+                ? 'bg-primary text-white shadow-lg shadow-primary/30'
+                : 'text-muted-foreground hover:text-foreground hover:bg-[hsl(var(--glass-bg-2))]',
+              disabled && 'opacity-50 cursor-not-allowed'
+            )}
+            whileHover={!disabled && !isActive ? { scale: 1.02 } : {}}
+            whileTap={!disabled ? { scale: 0.98 } : {}}
+          >
+            <Icon className={cn('h-4 w-4', isActive && 'text-white')} />
+            <span>{m.label}</span>
+            {m.id === 'bulk' && bulkCount > 0 && (
+              <span className={cn(
+                'px-2 py-0.5 rounded-md text-xs font-bold',
+                isActive ? 'bg-white/20 text-white' : 'bg-primary/15 text-primary'
+              )}>
+                {bulkCount}
+              </span>
+            )}
+          </motion.button>
+        );
+      })}
+    </div>
+  );
+}
+
+// Loading Overlay
+interface LoadingOverlayProps {
+  currentStep: number;
+  currentTip: number;
+}
+
+function LoadingOverlay({ currentStep, currentTip }: LoadingOverlayProps) {
+  const StepIcon = LOADING_STEPS[currentStep]?.icon || Loader2;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="absolute inset-0 z-20 rounded-3xl overflow-hidden"
+    >
+      <div className="absolute inset-0 bg-background/90 backdrop-blur-md" />
+
+      <div className="relative h-full flex flex-col items-center justify-center p-8">
+        {/* Animated Icon */}
+        <div className="relative mb-8">
+          <motion.div
+            className="absolute inset-0 bg-primary/20 rounded-full"
+            animate={{ scale: [1, 1.5, 1], opacity: [0.5, 0, 0.5] }}
+            transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+          />
+          <motion.div
+            className="absolute inset-0 bg-primary/30 rounded-full"
+            animate={{ scale: [1, 1.3, 1], opacity: [0.6, 0, 0.6] }}
+            transition={{ duration: 2, repeat: Infinity, delay: 0.3 }}
+          />
+
+          <motion.div
+            className="relative h-24 w-24 rounded-full bg-gradient-to-br from-primary to-orange-500 flex items-center justify-center shadow-2xl shadow-primary/40"
+            animate={{ rotate: 360 }}
+            transition={{ duration: 10, repeat: Infinity, ease: 'linear' }}
+          >
+            <motion.div
+              animate={{ rotate: -360 }}
+              transition={{ duration: 10, repeat: Infinity, ease: 'linear' }}
+            >
+              <StepIcon className="h-10 w-10 text-white" />
+            </motion.div>
+          </motion.div>
+        </div>
+
+        {/* Step Label */}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={currentStep}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="text-center mb-6"
+          >
+            <p className="text-xl font-semibold text-foreground">
+              {LOADING_STEPS[currentStep]?.label}
+            </p>
+            <p className="text-sm text-muted-foreground mt-1">
+              Adım {currentStep + 1} / {LOADING_STEPS.length}
+            </p>
+          </motion.div>
+        </AnimatePresence>
+
+        {/* Progress Dots */}
+        <div className="flex items-center gap-2 mb-8">
+          {LOADING_STEPS.map((_, index) => (
+            <motion.div
+              key={index}
+              className={cn(
+                'h-2 rounded-full transition-all duration-300',
+                index < currentStep
+                  ? 'w-8 bg-primary'
+                  : index === currentStep
+                  ? 'w-8 bg-primary/60'
+                  : 'w-2 bg-[hsl(var(--glass-bg-3))]'
+              )}
+              animate={index === currentStep ? { scale: [1, 1.1, 1] } : {}}
+              transition={{ duration: 1, repeat: Infinity }}
+            />
+          ))}
+        </div>
+
+        {/* Tip */}
+        <div className="max-w-sm">
+          <div className="rounded-xl bg-primary/5 border border-primary/20 p-4">
+            <div className="flex items-start gap-3">
+              <div className="p-2 rounded-lg bg-primary/10 flex-shrink-0">
+                <Zap className="h-4 w-4 text-primary" />
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-primary uppercase tracking-wider mb-1">
+                  SEO İpucu
+                </p>
+                <AnimatePresence mode="wait">
+                  <motion.p
+                    key={currentTip}
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -20 }}
+                    className="text-sm text-muted-foreground"
+                  >
+                    {TIPS[currentTip]}
+                  </motion.p>
+                </AnimatePresence>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
+// Recent Projects Bar
+function RecentProjectsBar({ projects, isLoading }: { projects: any[]; isLoading: boolean }) {
+  if (isLoading) {
+    return (
+      <div className="rounded-xl glass-1 p-4">
+        <div className="space-y-2">
+          {[1, 2, 3].map(i => (
+            <div key={i} className="h-10 rounded-lg bg-muted/20 animate-pulse" />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (!projects.length) return null;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.3 }}
+      className="rounded-xl glass-1 p-4"
+    >
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <History className="h-4 w-4 text-muted-foreground" />
+          <span className="text-sm font-medium text-foreground">Son Projeler</span>
+        </div>
+        <Link href="/tool1" className="text-xs text-primary hover:underline flex items-center gap-1">
+          Tümünü Gör
+          <ChevronRight className="h-3 w-3" />
+        </Link>
+      </div>
+
+      <div className="overflow-hidden rounded-lg border border-[hsl(var(--glass-border-subtle))]">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="bg-[hsl(var(--glass-bg-2))] border-b border-[hsl(var(--glass-border-subtle))]">
+              <th className="text-left px-3 py-2 font-medium text-muted-foreground">Keyword</th>
+              <th className="text-left px-3 py-2 font-medium text-muted-foreground">Müşteri</th>
+              <th className="text-right px-3 py-2 font-medium text-muted-foreground">Sonuç</th>
+            </tr>
+          </thead>
+          <tbody>
+            {projects.map((project, index) => (
+              <tr
+                key={project.id}
+                className={cn(
+                  'hover:bg-[hsl(var(--glass-bg-1))] transition-colors',
+                  index !== projects.length - 1 && 'border-b border-[hsl(var(--glass-border-subtle))]'
+                )}
+              >
+                <td className="px-3 py-2">
+                  <Link
+                    href={`/keywords/${project.uuid || project.id}`}
+                    className="text-foreground hover:text-primary transition-colors font-medium"
+                  >
+                    {project.main_keyword}
+                  </Link>
+                </td>
+                <td className="px-3 py-2 text-muted-foreground">
+                  {project.client?.name || '-'}
+                </td>
+                <td className="px-3 py-2 text-right text-muted-foreground">
+                  {project.total_keywords_found || 0}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </motion.div>
+  );
+}
+
+// ============================================
+// MAIN PAGE COMPONENT
+// ============================================
+
 export default function KeywordsPage() {
   const router = useRouter();
+
+  // Search state
   const [keyword, setKeyword] = useState('');
   const [country, setCountry] = useState('TR');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [results, setResults] = useState<KeywordResearchResponse | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [viewMode, setViewMode] = useState<'table' | 'cards'>('table');
-  const [sortBy, setSortBy] = useState<'keyword' | 'volume' | 'cpc'>('volume');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
-  const tableRef = useRef<HTMLDivElement>(null);
+  const [stateLoaded, setStateLoaded] = useState(false);
 
   // Client & Project state
   const [clients, setClients] = useState<Client[]>([]);
   const [selectedClientId, setSelectedClientId] = useState<number | null>(null);
   const [isLoadingClients, setIsLoadingClients] = useState(true);
   const [createdProjectId, setCreatedProjectId] = useState<number | null>(null);
+  const [recentProjects, setRecentProjects] = useState<any[]>([]);
+  const [isLoadingProjects, setIsLoadingProjects] = useState(true);
 
-  // Global store for cross-page client sync (so /tool1 can see projects created here)
+  // Global store sync
   const setGlobalClientId = useClientStore((state) => state.setSelectedClientId);
 
   // Loading animation state
@@ -171,12 +399,12 @@ export default function KeywordsPage() {
   const loadingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const tipIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Custom rules for AI selection
+  // Custom rules
   const [customRules, setCustomRules] = useState('');
   const [showRulesPanel, setShowRulesPanel] = useState(false);
 
-  // Bulk mode state
-  const [inputMode, setInputMode] = useState<'single' | 'bulk'>('single');
+  // Mode state
+  const [inputMode, setInputMode] = useState<'single' | 'bulk' | 'import'>('single');
   const [bulkKeywords, setBulkKeywords] = useState('');
   const [isBulkProcessing, setIsBulkProcessing] = useState(false);
   const [bulkStatus, setBulkStatus] = useState<BulkKeywordStatus[]>([]);
@@ -184,18 +412,28 @@ export default function KeywordsPage() {
   const bulkCancelledRef = useRef(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Fetch recent projects directly from API (not n8n)
-  const [recentProjects, setRecentProjects] = useState<any[]>([]);
-  const [isLoadingProjects, setIsLoadingProjects] = useState(true);
+  // Parse bulk keywords
+  const parseBulkKeywords = (text: string): string[] => {
+    return text
+      .split(/[\n,]+/)
+      .map(k => k.trim())
+      .filter(k => k.length >= 2)
+      .slice(0, MAX_BULK_KEYWORDS);
+  };
 
-  // Raw keywords for grouped view
-  const [rawKeywords, setRawKeywords] = useState<GroupKeywordResult[]>([]);
-  const [isLoadingRaw, setIsLoadingRaw] = useState(false);
-  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
-  const [expandedSubgroups, setExpandedSubgroups] = useState<Set<string>>(new Set());
-  const [stateLoaded, setStateLoaded] = useState(false);
+  const bulkKeywordList = useMemo(() => parseBulkKeywords(bulkKeywords), [bulkKeywords]);
 
-  // Load persisted state from localStorage
+  // Bulk stats
+  const bulkStats = useMemo(() => {
+    const completed = bulkStatus.filter(s => s.status === 'completed').length;
+    const errors = bulkStatus.filter(s => s.status === 'error').length;
+    const processing = bulkStatus.filter(s => s.status === 'processing').length;
+    const pending = bulkStatus.filter(s => s.status === 'pending').length;
+    const totalKeywords = bulkStatus.reduce((sum, s) => sum + (s.keywordsFound || 0), 0);
+    return { completed, errors, processing, pending, totalKeywords };
+  }, [bulkStatus]);
+
+  // Load persisted state
   useEffect(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
@@ -203,7 +441,6 @@ export default function KeywordsPage() {
         const state = JSON.parse(saved);
         if (state.results) setResults(state.results);
         if (state.createdProjectId) setCreatedProjectId(state.createdProjectId);
-        if (state.rawKeywords) setRawKeywords(state.rawKeywords);
         if (state.selectedClientId) setSelectedClientId(state.selectedClientId);
         if (state.keyword) setKeyword(state.keyword);
       }
@@ -213,40 +450,38 @@ export default function KeywordsPage() {
     setStateLoaded(true);
   }, []);
 
-  // Sync selectedClientId to global store (so /tool1 page can see projects created here)
+  // Sync client to global store
   useEffect(() => {
     if (selectedClientId) {
       setGlobalClientId(selectedClientId);
     }
   }, [selectedClientId, setGlobalClientId]);
 
-  // Save state to localStorage when it changes
+  // Save state to localStorage
   useEffect(() => {
-    if (!stateLoaded) return; // Don't save until initial load is complete
-
+    if (!stateLoaded) return;
     const stateToSave = {
       results,
       createdProjectId,
-      rawKeywords,
       selectedClientId,
       keyword,
       savedAt: Date.now(),
     };
-
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(stateToSave));
     } catch (err) {
       console.error('Failed to save state:', err);
     }
-  }, [results, createdProjectId, rawKeywords, selectedClientId, keyword, stateLoaded]);
+  }, [results, createdProjectId, selectedClientId, keyword, stateLoaded]);
 
+  // Fetch projects
   useEffect(() => {
     const fetchProjects = async () => {
       try {
         const response = await fetch('/api/projects');
         const data = await response.json();
         if (data.success && data.projects) {
-          setRecentProjects(data.projects.slice(0, 5));
+          setRecentProjects(data.projects.slice(0, 6));
         }
       } catch (err) {
         console.error('Failed to fetch projects:', err);
@@ -255,9 +490,9 @@ export default function KeywordsPage() {
       }
     };
     fetchProjects();
-  }, [createdProjectId]); // Refetch when new project created
+  }, [createdProjectId]);
 
-  // Fetch clients on mount
+  // Fetch clients
   useEffect(() => {
     const fetchClients = async () => {
       try {
@@ -266,7 +501,6 @@ export default function KeywordsPage() {
         if (data.success && (data.data || data.clients)) {
           const clientList = data.data || data.clients;
           setClients(clientList);
-          // Only set default if no persisted selection
           if (clientList.length > 0 && !selectedClientId) {
             setSelectedClientId(clientList[0].id);
           }
@@ -282,7 +516,7 @@ export default function KeywordsPage() {
     }
   }, [stateLoaded]);
 
-  // Loading animation effect
+  // Loading animation
   useEffect(() => {
     if (isLoading) {
       setCurrentStep(0);
@@ -318,6 +552,14 @@ export default function KeywordsPage() {
     };
   }, [isLoading]);
 
+  // Auto-trigger file input when import mode selected
+  useEffect(() => {
+    if (inputMode === 'import' && fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  }, [inputMode]);
+
+  // Handle search
   const handleSearch = async (searchKeyword?: string) => {
     const keywordToSearch = searchKeyword || keyword;
 
@@ -383,7 +625,6 @@ export default function KeywordsPage() {
         }
         setResults(response);
 
-        // Update project status to 'keywords_discovered' and total_keywords_found
         if (response.keywords && response.keywords.length > 0) {
           try {
             await fetch(`/api/projects/${projectId}`, {
@@ -395,13 +636,6 @@ export default function KeywordsPage() {
               }),
             });
 
-          } catch (e) {
-            console.error('Failed to update project status:', e);
-          }
-
-          // Save keywords to localStorage for fallback (in case DB save is slow)
-          // Use UUID for localStorage key since URL uses UUID
-          try {
             const fallbackData = {
               projectId: projectId,
               projectUuid: projectUuid,
@@ -410,12 +644,10 @@ export default function KeywordsPage() {
               savedAt: Date.now(),
             };
             localStorage.setItem(`keywords-fallback-${projectUuid}`, JSON.stringify(fallbackData));
-            console.log(`[Keywords] Saved ${response.keywords.length} keywords to localStorage fallback (uuid: ${projectUuid})`);
           } catch (e) {
-            console.error('Failed to save keywords to localStorage:', e);
+            console.error('Failed to update project status:', e);
           }
 
-          // Redirect to project detail page using UUID
           router.push(`/keywords/${projectUuid}`);
           return;
         }
@@ -429,27 +661,16 @@ export default function KeywordsPage() {
     }
   };
 
+  // Handle key press
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !isLoading) {
       handleSearch();
     }
   };
 
-  // Parse bulk keywords from textarea
-  const parseBulkKeywords = (text: string): string[] => {
-    return text
-      .split(/[\n,]+/)
-      .map(k => k.trim())
-      .filter(k => k.length >= 2)
-      .slice(0, MAX_BULK_KEYWORDS);
-  };
-
-  const bulkKeywordList = useMemo(() => parseBulkKeywords(bulkKeywords), [bulkKeywords]);
-
-  // Process single keyword in bulk mode
+  // Process single keyword in bulk
   const processKeyword = async (kw: string): Promise<BulkKeywordStatus> => {
     try {
-      // Create project
       const projectResponse = await fetch('/api/projects', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -469,7 +690,6 @@ export default function KeywordsPage() {
 
       const projectId = projectData.project.id;
 
-      // Run keyword research
       const response = await api.post<KeywordResearchResponse>('/keyword-research', {
         keyword: kw,
         country: country,
@@ -480,7 +700,6 @@ export default function KeywordsPage() {
       }, { timeout: 300000 });
 
       if (response.success && response.keywords?.length) {
-        // Update project status
         await fetch(`/api/projects/${projectId}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
@@ -508,7 +727,7 @@ export default function KeywordsPage() {
     }
   };
 
-  // Bulk search with concurrency control
+  // Bulk search
   const handleBulkSearch = async () => {
     if (isBulkProcessing || bulkKeywordList.length === 0 || !selectedClientId) return;
 
@@ -518,14 +737,12 @@ export default function KeywordsPage() {
     setResults(null);
     setError(null);
 
-    // Initialize status for all keywords
     const initialStatus: BulkKeywordStatus[] = bulkKeywordList.map(kw => ({
       keyword: kw,
       status: 'pending',
     }));
     setBulkStatus(initialStatus);
 
-    // Process keywords with concurrency limit
     const queue = [...bulkKeywordList];
     const processing: Promise<void>[] = [];
 
@@ -534,25 +751,21 @@ export default function KeywordsPage() {
 
       const kw = queue.shift()!;
 
-      // Update status to processing
       setBulkStatus(prev => prev.map(s =>
         s.keyword === kw ? { ...s, status: 'processing' } : s
       ));
 
       const result = await processKeyword(kw);
 
-      // Update status with result
       setBulkStatus(prev => prev.map(s =>
         s.keyword === kw ? result : s
       ));
 
-      // Process next in queue
       if (!bulkCancelledRef.current && queue.length > 0) {
         await processNext();
       }
     };
 
-    // Start concurrent workers
     for (let i = 0; i < Math.min(MAX_CONCURRENT_REQUESTS, bulkKeywordList.length); i++) {
       processing.push(processNext());
     }
@@ -561,24 +774,26 @@ export default function KeywordsPage() {
 
     setIsBulkProcessing(false);
 
-    // Refresh recent projects
     const response = await fetch('/api/projects');
     const data = await response.json();
     if (data.success && data.projects) {
-      setRecentProjects(data.projects.slice(0, 5));
+      setRecentProjects(data.projects.slice(0, 6));
     }
   };
 
-  // Cancel bulk processing
+  // Cancel bulk
   const handleCancelBulk = () => {
     setBulkCancelled(true);
     bulkCancelledRef.current = true;
   };
 
-  // Handle file import (Excel/CSV)
+  // File import
   const handleFileImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return;
+    if (!file) {
+      setInputMode('single');
+      return;
+    }
 
     const fileName = file.name.toLowerCase();
     const isCSV = fileName.endsWith('.csv');
@@ -586,20 +801,18 @@ export default function KeywordsPage() {
 
     if (!isCSV && !isExcel) {
       setError('Sadece CSV veya Excel (.xlsx, .xls) dosyaları destekleniyor');
+      setInputMode('single');
       return;
     }
 
     try {
       if (isCSV) {
-        // Parse CSV
         const text = await file.text();
         const lines = text.split(/\r?\n/);
         const keywords: string[] = [];
 
         for (const line of lines) {
-          // Handle both comma and semicolon separators
           const cells = line.split(/[,;]/);
-          // Take first column as keyword (skip header if it looks like one)
           const firstCell = cells[0]?.trim();
           if (firstCell && firstCell.length >= 2 &&
               !firstCell.toLowerCase().includes('keyword') &&
@@ -610,6 +823,7 @@ export default function KeywordsPage() {
 
         if (keywords.length === 0) {
           setError('Dosyada geçerli keyword bulunamadı');
+          setInputMode('single');
           return;
         }
 
@@ -617,22 +831,15 @@ export default function KeywordsPage() {
         setBulkKeywords(uniqueKeywords.join('\n'));
         setInputMode('bulk');
       } else {
-        // Parse Excel using SheetJS (xlsx)
-        // Dynamic import to avoid bundling if not needed
         const XLSX = await import('xlsx');
         const data = await file.arrayBuffer();
         const workbook = XLSX.read(data, { type: 'array' });
-
-        // Get first sheet
         const firstSheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[firstSheetName];
-
-        // Convert to JSON
         const jsonData = XLSX.utils.sheet_to_json<any>(worksheet, { header: 1 });
 
         const keywords: string[] = [];
         for (const row of jsonData) {
-          // Take first column
           const firstCell = row[0]?.toString()?.trim();
           if (firstCell && firstCell.length >= 2 &&
               !firstCell.toLowerCase().includes('keyword') &&
@@ -643,6 +850,7 @@ export default function KeywordsPage() {
 
         if (keywords.length === 0) {
           setError('Excel dosyasında geçerli keyword bulunamadı');
+          setInputMode('single');
           return;
         }
 
@@ -653,425 +861,172 @@ export default function KeywordsPage() {
     } catch (err: any) {
       console.error('File import error:', err);
       setError('Dosya okunamadı: ' + (err.message || 'Bilinmeyen hata'));
+      setInputMode('single');
     }
 
-    // Reset file input
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
   };
 
-  // Bulk stats
-  const bulkStats = useMemo(() => {
-    const completed = bulkStatus.filter(s => s.status === 'completed').length;
-    const errors = bulkStatus.filter(s => s.status === 'error').length;
-    const processing = bulkStatus.filter(s => s.status === 'processing').length;
-    const pending = bulkStatus.filter(s => s.status === 'pending').length;
-    const totalKeywords = bulkStatus.reduce((sum, s) => sum + (s.keywordsFound || 0), 0);
-    return { completed, errors, processing, pending, totalKeywords };
-  }, [bulkStatus]);
-
-  // Filter and sort keywords
-  const filteredKeywords = useMemo(() => {
-    let keywords = results?.keywords?.filter(kw =>
-      !searchQuery || kw.keyword.toLowerCase().includes(searchQuery.toLowerCase())
-    ) || [];
-
-    // Sort
-    keywords = [...keywords].sort((a, b) => {
-      let aVal: any, bVal: any;
-
-      switch (sortBy) {
-        case 'volume':
-          aVal = a.search_volume || 0;
-          bVal = b.search_volume || 0;
-          break;
-        case 'cpc':
-          aVal = a.cpc || 0;
-          bVal = b.cpc || 0;
-          break;
-        default:
-          aVal = a.keyword.toLowerCase();
-          bVal = b.keyword.toLowerCase();
-      }
-
-      if (sortOrder === 'asc') {
-        return aVal > bVal ? 1 : -1;
-      }
-      return aVal < bVal ? 1 : -1;
-    });
-
-    return keywords;
-  }, [results?.keywords, searchQuery, sortBy, sortOrder]);
-
-  // Grouped raw keywords
-  const groupedKeywords = useMemo(() => {
-    return groupKeywords(rawKeywords);
-  }, [rawKeywords]);
-
-  // Toggle group expansion
-  const toggleGroup = (groupId: string) => {
-    setExpandedGroups(prev => {
-      const next = new Set(prev);
-      if (next.has(groupId)) {
-        next.delete(groupId);
-      } else {
-        next.add(groupId);
-      }
-      return next;
-    });
-  };
-
-  // Toggle subgroup expansion
-  const toggleSubgroup = (subgroupKey: string) => {
-    setExpandedSubgroups(prev => {
-      const next = new Set(prev);
-      if (next.has(subgroupKey)) {
-        next.delete(subgroupKey);
-      } else {
-        next.add(subgroupKey);
-      }
-      return next;
-    });
-  };
-
-  // Fetch raw keywords when project is created
-  const fetchRawKeywords = async (projectId: number) => {
-    setIsLoadingRaw(true);
-    try {
-      const response = await fetch(`/api/projects/${projectId}/keywords-raw`);
-      const data = await response.json();
-      if (data.success && data.data) {
-        setRawKeywords(data.data);
-      }
-    } catch (err) {
-      console.error('Failed to fetch raw keywords:', err);
-    } finally {
-      setIsLoadingRaw(false);
-    }
-  };
-
-  // Get icon for group
-  const getGroupIcon = (iconName: string) => {
-    const icons: Record<string, React.ReactNode> = {
-      'tag': <Tag className="h-4 w-4" />,
-      'ruler': <Ruler className="h-4 w-4" />,
-      'dollar-sign': <DollarSign className="h-4 w-4" />,
-      'help-circle': <HelpCircle className="h-4 w-4" />,
-      'package': <Package className="h-4 w-4" />,
-      'git-compare': <GitCompare className="h-4 w-4" />,
-    };
-    return icons[iconName] || <Package className="h-4 w-4" />;
-  };
-
-  // Export CSV
-  const handleExportCSV = () => {
-    if (!filteredKeywords.length) return;
-
-    const headers = ['Keyword', 'Source', 'Search Volume', 'Competition', 'CPC', 'Intent', 'Cluster'];
-    const rows = filteredKeywords.map(kw => [
-      kw.keyword,
-      kw.source,
-      kw.search_volume || '',
-      kw.competition || '',
-      kw.cpc || '',
-      kw.intent || '',
-      kw.cluster || '',
-    ]);
-
-    const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
-    const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `keywords-${keyword}-${new Date().toISOString().split('T')[0]}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
-  // Export PDF
-  const handleExportPDF = () => {
-    if (!filteredKeywords.length) return;
-
-    const printContent = `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <title>Keyword Research - ${keyword}</title>
-        <style>
-          body { font-family: Arial, sans-serif; padding: 20px; }
-          h1 { color: #333; border-bottom: 2px solid #f97316; padding-bottom: 10px; }
-          .meta { color: #666; margin-bottom: 20px; }
-          table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-          th { background: #f97316; color: white; padding: 12px 8px; text-align: left; }
-          td { padding: 10px 8px; border-bottom: 1px solid #eee; }
-          tr:nth-child(even) { background: #f9f9f9; }
-          @media print { body { -webkit-print-color-adjust: exact; } }
-        </style>
-      </head>
-      <body>
-        <h1>Keyword Research Report</h1>
-        <div class="meta">
-          <strong>Ana Keyword:</strong> ${keyword}<br>
-          <strong>Tarih:</strong> ${new Date().toLocaleDateString('tr-TR')}<br>
-          <strong>Toplam Keyword:</strong> ${filteredKeywords.length}
-        </div>
-        <table>
-          <thead>
-            <tr>
-              <th>Keyword</th>
-              <th>Kaynak</th>
-              <th>Hacim</th>
-              <th>Rekabet</th>
-              <th>CPC</th>
-              <th>Intent</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${filteredKeywords.map(kw => `
-              <tr>
-                <td>${kw.keyword}</td>
-                <td>${kw.source}</td>
-                <td>${kw.search_volume?.toLocaleString() || '-'}</td>
-                <td>${kw.competition || '-'}</td>
-                <td>{kw.cpc ? '$' + Number(kw.cpc).toFixed(2) : '-'}</td>
-                <td>${kw.intent || '-'}</td>
-              </tr>
-            `).join('')}
-          </tbody>
-        </table>
-      </body>
-      </html>
-    `;
-
-    const printWindow = window.open('', '_blank');
-    if (printWindow) {
-      printWindow.document.write(printContent);
-      printWindow.document.close();
-      setTimeout(() => printWindow.print(), 250);
-    }
-  };
-
-  const copyKeyword = (kw: string) => {
-    navigator.clipboard.writeText(kw);
-  };
-
   return (
-    <PageTransition className="min-h-screen">
+    <PageTransition className="min-h-screen font-sans">
       {/* Hero Section */}
-      <section className="relative overflow-hidden">
+      <section className="relative pt-12 pb-8 overflow-hidden">
+        {/* Background Effects */}
         <div className="absolute inset-0 -z-10">
-          <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-primary/10 rounded-full blur-[150px]" />
-          <div className="absolute bottom-0 right-1/4 w-[400px] h-[400px] bg-orange-500/8 rounded-full blur-[120px]" />
+          <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[800px] h-[800px] bg-primary/8 rounded-full blur-[150px]" />
+          <div className="absolute bottom-0 left-1/4 w-[400px] h-[400px] bg-orange-500/6 rounded-full blur-[100px]" />
         </div>
 
-        <div className="px-6 py-8">
+        <div className="max-w-6xl mx-auto px-6 text-center font-sans">
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
-            className="max-w-4xl"
+            transition={{ duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] }}
           >
-            <div className="flex items-center gap-3 mb-4">
-              <motion.div
-                className="relative"
-                initial={{ scale: 0.8, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                transition={{ delay: 0.1 }}
-              >
-                <div className="absolute inset-0 bg-primary/40 rounded-2xl blur-xl" />
-                <div className="relative p-3 rounded-xl bg-gradient-to-br from-primary to-orange-500">
-                  <Search className="h-6 w-6 text-white" />
-                </div>
-              </motion.div>
-              <div>
-                <h1 className="text-3xl font-bold text-foreground">Keyword Research</h1>
-                <p className="text-muted-foreground">
-                  Google Ads, Suggestions, Trends ve DataForSEO — tek aramayla
-                </p>
-              </div>
-            </div>
+            <h1 className="text-4xl md:text-5xl font-bold text-foreground tracking-tight font-sans">
+              Keyword Research
+            </h1>
           </motion.div>
         </div>
       </section>
 
-      <div className="px-6 pb-8">
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          {/* Main Content */}
-          <div className="lg:col-span-3 space-y-6">
-            {/* Search Card */}
-            <motion.div
-              className="rounded-2xl glass-2 p-6"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
-            >
-              {/* Mode Toggle & Client Selection Row */}
-              <div className="flex items-center justify-between mb-5">
-                {/* Input Mode Toggle */}
-                <div className="flex items-center gap-2 bg-[hsl(var(--glass-bg-3))] p-1 rounded-lg">
-                  <button
-                    onClick={() => setInputMode('single')}
-                    disabled={isBulkProcessing}
-                    className={cn(
-                      'flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-all',
-                      inputMode === 'single'
-                        ? 'bg-primary text-white'
-                        : 'text-muted-foreground hover:text-foreground'
-                    )}
-                  >
-                    <Search className="h-4 w-4" />
-                    Tekli
-                  </button>
-                  <button
-                    onClick={() => setInputMode('bulk')}
-                    disabled={isLoading}
-                    className={cn(
-                      'flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-all',
-                      inputMode === 'bulk'
-                        ? 'bg-primary text-white'
-                        : 'text-muted-foreground hover:text-foreground'
-                    )}
-                  >
-                    <Layers className="h-4 w-4" />
-                    Toplu
-                    <span className="px-1.5 py-0.5 rounded bg-primary/20 text-xs">
-                      {inputMode === 'bulk' ? bulkKeywordList.length : 0}/{MAX_BULK_KEYWORDS}
-                    </span>
-                  </button>
-                </div>
+      {/* Main Search Card */}
+      <section className="px-6 pb-8">
+        <div className="max-w-6xl mx-auto">
+          <motion.div
+            className="relative rounded-3xl glass-2 p-8 md:p-10 overflow-hidden"
+            initial={{ opacity: 0, y: 20, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ delay: 0.2, duration: 0.5 }}
+          >
+            {/* Top Highlight */}
+            <div className="absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
 
-                {/* Client Selection */}
-                <div className="flex items-center gap-3">
-                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary/10 text-primary">
-                    <Building2 className="h-4 w-4" />
-                    <span className="text-xs font-medium">Müşteri</span>
-                  </div>
-                  {isLoadingClients ? (
-                    <div className="h-10 w-48 bg-muted/30 rounded-xl animate-pulse" />
-                  ) : clients.length === 0 ? (
-                    <Link href="/clients/new" className="text-sm text-primary hover:underline flex items-center gap-1">
-                      <Plus className="h-4 w-4" />
-                      Müşteri Ekle
-                    </Link>
-                  ) : (
-                    <div className="relative">
-                      <select
-                        value={selectedClientId || ''}
-                        onChange={(e) => setSelectedClientId(e.target.value ? Number(e.target.value) : null)}
-                        className={cn(
-                          "appearance-none cursor-pointer",
-                          "pl-4 pr-10 py-2.5 rounded-xl text-sm font-medium",
-                          "bg-[hsl(0,0%,8%)] text-white",
-                          "border border-[hsl(0,0%,20%)] hover:border-primary/50",
-                          "focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary",
-                          "min-w-[220px] transition-all duration-200",
-                          !selectedClientId && "text-gray-400"
-                        )}
-                      >
-                        <option value="" className="bg-[hsl(0,0%,10%)] text-gray-400">Müşteri seçin...</option>
-                        {clients.map(client => (
-                          <option key={client.id} value={client.id} className="bg-[hsl(0,0%,10%)] text-white py-2">
-                            {client.name}
-                          </option>
-                        ))}
-                      </select>
-                      <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
-                    </div>
-                  )}
-                </div>
-              </div>
+            {/* Mode Toggle */}
+            <div className="flex justify-center mb-8">
+              <ModeToggle
+                mode={inputMode}
+                onModeChange={setInputMode}
+                disabled={isLoading || isBulkProcessing}
+                bulkCount={bulkKeywordList.length}
+              />
+            </div>
 
-              {/* Input Area - Single or Bulk */}
-              {inputMode === 'single' ? (
-                /* Single Keyword Input */
-                <div className="relative mb-4">
-                  <div className="absolute left-4 top-1/2 -translate-y-1/2 p-2 rounded-lg bg-primary/10">
-                    <Search className="h-5 w-5 text-primary" />
-                  </div>
-                  <input
-                    type="text"
-                    value={keyword}
-                    onChange={(e) => setKeyword(e.target.value)}
-                    onKeyPress={handleKeyPress}
-                    placeholder="Ana keyword'ünüzü yazın..."
-                    className="w-full pl-16 pr-36 py-4 rounded-xl bg-[hsl(var(--glass-bg-1))] border-2 border-[hsl(var(--glass-border-subtle))] text-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50 focus:ring-4 focus:ring-primary/10 transition-all"
-                    disabled={isLoading}
-                  />
-                  <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-2">
+            {/* Client & Country Selection */}
+            <div className="flex flex-wrap items-center justify-center gap-4 mb-6">
+              {/* Client Selector */}
+              {isLoadingClients ? (
+                <div className="h-12 w-48 rounded-xl bg-muted/20 animate-pulse" />
+              ) : clients.length === 0 ? (
+                <Link
+                  href="/clients/new"
+                  className="flex items-center gap-2 px-4 py-3 rounded-xl bg-primary/10 border border-primary/20 text-primary hover:bg-primary/20 transition-colors"
+                >
+                  <Plus className="h-4 w-4" />
+                  Müşteri Ekle
+                </Link>
+              ) : (
+                <div className="relative">
+                  <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-[hsl(var(--glass-bg-1))] border border-[hsl(var(--glass-border-subtle))]">
+                    <Building2 className="h-4 w-4 text-primary" />
                     <select
-                      value={country}
-                      onChange={(e) => setCountry(e.target.value)}
-                      className="px-3 py-2 rounded-lg bg-[hsl(var(--glass-bg-3))] border-none text-sm focus:ring-2 focus:ring-primary/50"
-                      disabled={isLoading}
+                      value={selectedClientId || ''}
+                      onChange={(e) => setSelectedClientId(e.target.value ? Number(e.target.value) : null)}
+                      className="appearance-none bg-transparent text-sm font-medium text-foreground focus:outline-none cursor-pointer pr-6 min-w-[150px] [&>option]:bg-zinc-900 [&>option]:text-white"
+                      disabled={isLoading || isBulkProcessing}
                     >
-                      {countries.map(c => (
-                        <option key={c.code} value={c.code}>
-                          {c.flag} {c.code}
-                        </option>
+                      <option value="">Müşteri seç...</option>
+                      {clients.map(c => (
+                        <option key={c.id} value={c.id}>{c.name}</option>
                       ))}
                     </select>
-                    <button
-                      onClick={() => handleSearch()}
-                      disabled={isLoading || !keyword.trim() || !selectedClientId}
-                      className="px-5 py-2 rounded-xl bg-primary hover:bg-primary/90 text-white font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                    >
-                      {isLoading ? (
-                        <Loader2 className="h-5 w-5 animate-spin" />
-                      ) : (
-                        <>
-                          <Sparkles className="h-4 w-4" />
-                          Ara
-                        </>
-                      )}
-                    </button>
+                    <ChevronDown className="absolute right-3 h-4 w-4 text-muted-foreground pointer-events-none" />
                   </div>
                 </div>
-              ) : (
-                /* Bulk Keywords Input */
-                <div className="mb-4">
+              )}
+
+              {/* Country Selector */}
+              <div className="relative">
+                <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-[hsl(var(--glass-bg-1))] border border-[hsl(var(--glass-border-subtle))]">
+                  <span className="text-lg">{countries.find(c => c.code === country)?.flag}</span>
+                  <select
+                    value={country}
+                    onChange={(e) => setCountry(e.target.value)}
+                    className="appearance-none bg-transparent text-sm font-medium text-foreground focus:outline-none cursor-pointer pr-6 [&>option]:bg-zinc-900 [&>option]:text-white"
+                    disabled={isLoading || isBulkProcessing}
+                  >
+                    {countries.map(c => (
+                      <option key={c.code} value={c.code}>{c.name}</option>
+                    ))}
+                  </select>
+                  <ChevronDown className="absolute right-3 h-4 w-4 text-muted-foreground pointer-events-none" />
+                </div>
+              </div>
+            </div>
+
+            {/* Hidden File Input */}
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileImport}
+              accept=".csv,.xlsx,.xls"
+              className="hidden"
+            />
+
+            {/* Input Area */}
+            <AnimatePresence mode="wait">
+              {inputMode === 'single' ? (
+                <motion.div
+                  key="single"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  className="mb-6"
+                >
                   <div className="relative">
-                    <textarea
-                      value={bulkKeywords}
-                      onChange={(e) => setBulkKeywords(e.target.value)}
-                      placeholder={`Her satıra bir keyword yazın (max ${MAX_BULK_KEYWORDS})...\n\ndijital pazarlama\nseo optimizasyonu\ne-ticaret sitesi\n...`}
-                      className="w-full h-40 p-4 rounded-xl bg-[hsl(var(--glass-bg-1))] border-2 border-[hsl(var(--glass-border-subtle))] text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50 focus:ring-4 focus:ring-primary/10 transition-all resize-none"
-                      disabled={isBulkProcessing}
-                    />
-                    <div className="absolute top-3 right-3 flex items-center gap-2">
-                      <select
-                        value={country}
-                        onChange={(e) => setCountry(e.target.value)}
-                        className="px-3 py-2 rounded-lg bg-[hsl(var(--glass-bg-3))] border-none text-sm focus:ring-2 focus:ring-primary/50"
-                        disabled={isBulkProcessing}
-                      >
-                        {countries.map(c => (
-                          <option key={c.code} value={c.code}>
-                            {c.flag} {c.code}
-                          </option>
-                        ))}
-                      </select>
+                    <div className="absolute left-4 top-1/2 -translate-y-1/2 p-2 rounded-lg bg-primary/10">
+                      <Search className="h-5 w-5 text-primary" />
                     </div>
+                    <input
+                      type="text"
+                      value={keyword}
+                      onChange={(e) => setKeyword(e.target.value)}
+                      onKeyPress={handleKeyPress}
+                      placeholder="Hedef keyword'ünüzü yazın..."
+                      className="w-full pl-16 pr-6 py-4 rounded-xl bg-[hsl(var(--glass-bg-1))] border-2 border-[hsl(var(--glass-border-subtle))] text-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50 focus:ring-4 focus:ring-primary/10 transition-all"
+                      disabled={isLoading}
+                    />
                   </div>
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="bulk"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  className="mb-6"
+                >
+                  <textarea
+                    value={bulkKeywords}
+                    onChange={(e) => setBulkKeywords(e.target.value)}
+                    placeholder={`Her satıra bir keyword yazın (max ${MAX_BULK_KEYWORDS})...\n\ndijital pazarlama\nseo optimizasyonu\ne-ticaret sitesi`}
+                    className="w-full h-40 p-4 rounded-xl bg-[hsl(var(--glass-bg-1))] border-2 border-[hsl(var(--glass-border-subtle))] text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50 focus:ring-4 focus:ring-primary/10 transition-all resize-none"
+                    disabled={isBulkProcessing}
+                  />
                   <div className="flex items-center justify-between mt-3">
                     <div className="flex items-center gap-4 text-sm">
                       <span className="text-muted-foreground">
                         {bulkKeywordList.length} keyword tanımlandı
                       </span>
-                      {/* File Import Button */}
-                      <input
-                        type="file"
-                        ref={fileInputRef}
-                        onChange={handleFileImport}
-                        accept=".csv,.xlsx,.xls"
-                        className="hidden"
-                      />
                       <button
                         onClick={() => fileInputRef.current?.click()}
                         disabled={isBulkProcessing}
                         className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[hsl(var(--glass-bg-3))] hover:bg-emerald-500/10 hover:text-emerald-400 text-muted-foreground transition-colors"
                       >
                         <FileSpreadsheet className="h-3.5 w-3.5" />
-                        Excel/CSV İçe Aktar
+                        Dosya Ekle
                       </button>
                       {bulkKeywordList.length > 0 && (
                         <button
@@ -1083,775 +1038,263 @@ export default function KeywordsPage() {
                         </button>
                       )}
                     </div>
-                    <button
-                      onClick={handleBulkSearch}
-                      disabled={isBulkProcessing || bulkKeywordList.length === 0 || !selectedClientId}
-                      className="px-6 py-2.5 rounded-xl bg-primary hover:bg-primary/90 text-white font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                    >
-                      {isBulkProcessing ? (
-                        <Loader2 className="h-5 w-5 animate-spin" />
-                      ) : (
-                        <>
-                          <Layers className="h-4 w-4" />
-                          {bulkKeywordList.length} Keyword Araştır
-                        </>
-                      )}
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* Custom Rules Panel */}
-              <div className="mt-4">
-                <button
-                  onClick={() => setShowRulesPanel(!showRulesPanel)}
-                  className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  <SlidersHorizontal className="h-4 w-4" />
-                  <span>Özel Kurallar</span>
-                  <ChevronDown className={cn(
-                    "h-4 w-4 transition-transform",
-                    showRulesPanel && "rotate-180"
-                  )} />
-                  {customRules.trim() && (
-                    <span className="px-2 py-0.5 rounded-full bg-primary/20 text-primary text-xs">
-                      Aktif
-                    </span>
-                  )}
-                </button>
-
-                <AnimatePresence>
-                  {showRulesPanel && (
-                    <motion.div
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: 'auto' }}
-                      exit={{ opacity: 0, height: 0 }}
-                      transition={{ duration: 0.2 }}
-                      className="overflow-hidden"
-                    >
-                      <div className="mt-3 p-4 rounded-xl bg-[hsl(var(--glass-bg-1))] border border-[hsl(var(--glass-border-subtle))]">
-                        <div className="flex items-start gap-2 mb-3">
-                          <Brain className="h-4 w-4 text-purple-400 mt-0.5" />
-                          <div>
-                            <p className="text-sm font-medium text-foreground">AI Seçim Kuralları</p>
-                            <p className="text-xs text-muted-foreground">
-                              Doğal dilde kurallar yazın. AI keyword seçerken bu kurallara uyacaktır.
-                            </p>
-                          </div>
-                        </div>
-                        <textarea
-                          value={customRules}
-                          onChange={(e) => setCustomRules(e.target.value)}
-                          placeholder={`Örnek kurallar:\n• Marka isimleri olmasın\n• Sadece B2B odaklı keywordler\n• Minimum 3 kelimelik long-tail tercih et\n• Fiyat içeren keywordleri dahil etme\n• Teknik terimler kullan`}
-                          className="w-full h-28 p-3 rounded-lg bg-[hsl(var(--glass-bg-3))] border border-[hsl(var(--glass-border-subtle))] text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:border-purple-500/50 focus:ring-2 focus:ring-purple-500/10 transition-all resize-none"
-                          disabled={isLoading || isBulkProcessing}
-                        />
-                        {customRules.trim() && (
-                          <div className="flex items-center justify-between mt-2">
-                            <span className="text-xs text-muted-foreground">
-                              {customRules.trim().split('\n').filter(l => l.trim()).length} kural tanımlı
-                            </span>
-                            <button
-                              onClick={() => setCustomRules('')}
-                              className="text-xs text-red-400 hover:text-red-300 flex items-center gap-1"
-                            >
-                              <Trash2 className="h-3 w-3" />
-                              Temizle
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-
-              {/* Error Message */}
-              <AnimatePresence>
-                {error && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    className="mt-4 p-4 rounded-xl bg-red-500/10 border border-red-500/30 flex items-center gap-3"
-                  >
-                    <AlertCircle className="h-5 w-5 text-red-400" />
-                    <p className="text-red-400">{error}</p>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-
-              {/* Success Message */}
-              <AnimatePresence>
-                {results && results.keywords && results.keywords.length > 0 && createdProjectId && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    className="mt-4 p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <CheckCircle2 className="h-5 w-5 text-emerald-400" />
-                        <div>
-                          <p className="text-emerald-400 font-medium">
-                            {results.keywords.length} keyword bulundu ve kaydedildi
-                          </p>
-                          <p className="text-emerald-400/70 text-sm">
-                            {clients.find(c => c.id === selectedClientId)?.name}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Link
-                          href={`/keywords/${results.project_id || createdProjectId}`}
-                          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-500/20 text-emerald-400 text-sm font-medium hover:bg-emerald-500/30 transition-colors"
-                        >
-                          Sonuçlara Git
-                          <ArrowRight className="h-4 w-4" />
-                        </Link>
-                        <Link
-                          href={`/tool1/${results.project_id || createdProjectId}`}
-                          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary/20 text-primary text-sm font-medium hover:bg-primary/30 transition-colors"
-                        >
-                          Tam Pipeline
-                          <ExternalLink className="h-4 w-4" />
-                        </Link>
-                      </div>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-
-              {/* Bulk Processing Progress */}
-              <AnimatePresence>
-                {(isBulkProcessing || (bulkStatus.length > 0 && !isBulkProcessing && bulkStats.completed > 0)) && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    className="mt-4 rounded-xl glass-2 p-6"
-                  >
-                    {/* Header */}
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="flex items-center gap-3">
-                        <div className={cn(
-                          "p-2 rounded-lg",
-                          isBulkProcessing ? "bg-primary/10" : "bg-emerald-500/10"
-                        )}>
-                          {isBulkProcessing ? (
-                            <Loader2 className="h-5 w-5 text-primary animate-spin" />
-                          ) : (
-                            <CheckCircle2 className="h-5 w-5 text-emerald-400" />
-                          )}
-                        </div>
-                        <div>
-                          <h3 className="font-semibold text-foreground">
-                            {isBulkProcessing ? 'Toplu İşlem Devam Ediyor' : 'Toplu İşlem Tamamlandı'}
-                          </h3>
-                          <p className="text-sm text-muted-foreground">
-                            {bulkStats.completed + bulkStats.errors}/{bulkStatus.length} keyword işlendi
-                            {bulkStats.totalKeywords > 0 && ` • ${bulkStats.totalKeywords} toplam keyword`}
-                          </p>
-                        </div>
-                      </div>
-                      {isBulkProcessing && (
-                        <button
-                          onClick={handleCancelBulk}
-                          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors text-sm font-medium"
-                        >
-                          <Pause className="h-4 w-4" />
-                          Durdur
-                        </button>
-                      )}
-                      {!isBulkProcessing && (
-                        <button
-                          onClick={() => setBulkStatus([])}
-                          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[hsl(var(--glass-bg-3))] text-muted-foreground hover:text-foreground transition-colors text-sm"
-                        >
-                          <XCircle className="h-4 w-4" />
-                          Kapat
-                        </button>
-                      )}
-                    </div>
-
-                    {/* Progress Bar */}
-                    <div className="mb-4">
-                      <div className="h-2 rounded-full bg-[hsl(var(--glass-bg-3))] overflow-hidden">
-                        <motion.div
-                          className="h-full rounded-full bg-gradient-to-r from-primary to-orange-500"
-                          initial={{ width: 0 }}
-                          animate={{ width: `${((bulkStats.completed + bulkStats.errors) / bulkStatus.length) * 100}%` }}
-                          transition={{ duration: 0.3 }}
-                        />
-                      </div>
-                    </div>
-
-                    {/* Stats */}
-                    <div className="grid grid-cols-4 gap-3 mb-4">
-                      <div className="flex items-center gap-2 p-2 rounded-lg bg-[hsl(var(--glass-bg-3))]">
-                        <div className="w-2 h-2 rounded-full bg-muted-foreground" />
-                        <span className="text-sm text-muted-foreground">Bekliyor: {bulkStats.pending}</span>
-                      </div>
-                      <div className="flex items-center gap-2 p-2 rounded-lg bg-[hsl(var(--glass-bg-3))]">
-                        <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-                        <span className="text-sm text-muted-foreground">İşleniyor: {bulkStats.processing}</span>
-                      </div>
-                      <div className="flex items-center gap-2 p-2 rounded-lg bg-[hsl(var(--glass-bg-3))]">
-                        <div className="w-2 h-2 rounded-full bg-emerald-400" />
-                        <span className="text-sm text-muted-foreground">Tamamlandı: {bulkStats.completed}</span>
-                      </div>
-                      <div className="flex items-center gap-2 p-2 rounded-lg bg-[hsl(var(--glass-bg-3))]">
-                        <div className="w-2 h-2 rounded-full bg-red-400" />
-                        <span className="text-sm text-muted-foreground">Hata: {bulkStats.errors}</span>
-                      </div>
-                    </div>
-
-                    {/* Keyword List */}
-                    <div className="space-y-2 max-h-64 overflow-y-auto">
-                      {bulkStatus.map((item, idx) => (
-                        <motion.div
-                          key={idx}
-                          initial={{ opacity: 0, x: -10 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: idx * 0.05 }}
-                          className={cn(
-                            "flex items-center justify-between p-3 rounded-lg",
-                            item.status === 'completed' ? "bg-emerald-500/5 border border-emerald-500/20" :
-                            item.status === 'error' ? "bg-red-500/5 border border-red-500/20" :
-                            item.status === 'processing' ? "bg-primary/5 border border-primary/20" :
-                            "bg-[hsl(var(--glass-bg-3))] border border-transparent"
-                          )}
-                        >
-                          <div className="flex items-center gap-3">
-                            {item.status === 'pending' && (
-                              <Clock className="h-4 w-4 text-muted-foreground" />
-                            )}
-                            {item.status === 'processing' && (
-                              <Loader2 className="h-4 w-4 text-primary animate-spin" />
-                            )}
-                            {item.status === 'completed' && (
-                              <CheckCircle2 className="h-4 w-4 text-emerald-400" />
-                            )}
-                            {item.status === 'error' && (
-                              <XCircle className="h-4 w-4 text-red-400" />
-                            )}
-                            <span className={cn(
-                              "font-medium",
-                              item.status === 'completed' ? "text-foreground" :
-                              item.status === 'error' ? "text-red-400" :
-                              item.status === 'processing' ? "text-foreground" :
-                              "text-muted-foreground"
-                            )}>
-                              {item.keyword}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-3">
-                            {item.status === 'completed' && item.keywordsFound && (
-                              <span className="text-sm text-emerald-400">
-                                {item.keywordsFound} keyword
-                              </span>
-                            )}
-                            {item.status === 'error' && item.error && (
-                              <span className="text-sm text-red-400 truncate max-w-48">
-                                {item.error}
-                              </span>
-                            )}
-                            {item.status === 'completed' && item.projectId && (
-                              <Link
-                                href={`/keywords/${item.projectId}`}
-                                className="flex items-center gap-1 text-sm text-primary hover:underline"
-                              >
-                                Görüntüle
-                                <ChevronRight className="h-3 w-3" />
-                              </Link>
-                            )}
-                          </div>
-                        </motion.div>
-                      ))}
-                    </div>
-
-                    {/* Completed Actions */}
-                    {!isBulkProcessing && bulkStats.completed > 0 && (
-                      <div className="mt-4 pt-4 border-t border-[hsl(var(--glass-border-subtle))]">
-                        <div className="flex items-center justify-between">
-                          <p className="text-sm text-muted-foreground">
-                            {bulkStats.completed} proje başarıyla oluşturuldu
-                          </p>
-                          <div className="flex items-center gap-2">
-                            <button
-                              onClick={() => {
-                                setBulkKeywords('');
-                                setBulkStatus([]);
-                              }}
-                              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[hsl(var(--glass-bg-3))] text-muted-foreground hover:text-foreground transition-colors text-sm"
-                            >
-                              <RefreshCw className="h-4 w-4" />
-                              Yeni Toplu İşlem
-                            </button>
-                            <Link
-                              href="/tool1"
-                              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors text-sm font-medium"
-                            >
-                              Tüm Projeleri Gör
-                              <ArrowRight className="h-4 w-4" />
-                            </Link>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </motion.div>
-
-            {/* Loading State */}
-            <AnimatePresence>
-              {isLoading && (
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  className="relative rounded-2xl glass-2 p-8 md:p-12 overflow-hidden"
-                >
-                  {/* Main Loading Animation */}
-                  <div className="flex flex-col items-center justify-center mb-8">
-                    <div className="relative mb-6">
-                      <motion.div
-                        className="absolute inset-0 bg-primary/20 rounded-full"
-                        animate={{ scale: [1, 1.5, 1], opacity: [0.5, 0, 0.5] }}
-                        transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
-                      />
-                      <motion.div
-                        className="absolute inset-0 bg-primary/30 rounded-full"
-                        animate={{ scale: [1, 1.3, 1], opacity: [0.6, 0, 0.6] }}
-                        transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut', delay: 0.3 }}
-                      />
-                      <motion.div
-                        className="relative h-20 w-20 rounded-full bg-gradient-to-br from-primary to-orange-500 flex items-center justify-center shadow-lg shadow-primary/30"
-                        animate={{ rotate: 360 }}
-                        transition={{ duration: 8, repeat: Infinity, ease: 'linear' }}
-                      >
-                        <motion.div
-                          animate={{ rotate: -360 }}
-                          transition={{ duration: 8, repeat: Infinity, ease: 'linear' }}
-                        >
-                          {(() => {
-                            const StepIcon = LOADING_STEPS[currentStep].icon;
-                            return <StepIcon className="h-9 w-9 text-white" />;
-                          })()}
-                        </motion.div>
-                      </motion.div>
-                    </div>
-
-                    <AnimatePresence mode="wait">
-                      <motion.div
-                        key={currentStep}
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -10 }}
-                        transition={{ duration: 0.3 }}
-                        className="text-center"
-                      >
-                        <p className="text-lg font-semibold text-foreground mb-1">
-                          {LOADING_STEPS[currentStep].label}
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          Adım {currentStep + 1} / {LOADING_STEPS.length}
-                        </p>
-                      </motion.div>
-                    </AnimatePresence>
-                  </div>
-
-                  {/* Progress Steps */}
-                  <div className="max-w-2xl mx-auto mb-8">
-                    <div className="flex items-center justify-between">
-                      {LOADING_STEPS.map((step, index) => {
-                        const StepIcon = step.icon;
-                        const isActive = index === currentStep;
-                        const isCompleted = index < currentStep;
-
-                        return (
-                          <div key={step.id} className="flex items-center">
-                            <motion.div
-                              className={cn(
-                                'relative flex items-center justify-center w-10 h-10 rounded-full transition-all duration-300',
-                                isCompleted && 'bg-primary text-white',
-                                isActive && 'bg-primary/20 text-primary ring-2 ring-primary ring-offset-2 ring-offset-[hsl(var(--glass-bg-2))]',
-                                !isCompleted && !isActive && 'bg-[hsl(var(--glass-bg-3))] text-muted-foreground'
-                              )}
-                              animate={isActive ? { scale: [1, 1.1, 1] } : {}}
-                              transition={{ duration: 1, repeat: isActive ? Infinity : 0 }}
-                            >
-                              {isCompleted ? (
-                                <CheckCircle2 className="h-5 w-5" />
-                              ) : (
-                                <StepIcon className="h-5 w-5" />
-                              )}
-                            </motion.div>
-                            {index < LOADING_STEPS.length - 1 && (
-                              <div className="w-6 md:w-12 h-0.5 mx-1">
-                                <motion.div
-                                  className="h-full bg-primary rounded-full origin-left"
-                                  initial={{ scaleX: 0 }}
-                                  animate={{ scaleX: isCompleted ? 1 : 0 }}
-                                  transition={{ duration: 0.3 }}
-                                />
-                                <div className="h-full -mt-0.5 bg-[hsl(var(--glass-border-subtle))] rounded-full" />
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  {/* Tip */}
-                  <div className="max-w-xl mx-auto">
-                    <div className="rounded-xl bg-primary/5 border border-primary/20 p-4">
-                      <div className="flex items-start gap-3">
-                        <div className="p-2 rounded-lg bg-primary/10">
-                          <Zap className="h-4 w-4 text-primary" />
-                        </div>
-                        <div>
-                          <p className="text-xs font-semibold text-primary uppercase tracking-wider mb-1">
-                            SEO İpucu
-                          </p>
-                          <AnimatePresence mode="wait">
-                            <motion.p
-                              key={currentTip}
-                              initial={{ opacity: 0, x: 20 }}
-                              animate={{ opacity: 1, x: 0 }}
-                              exit={{ opacity: 0, x: -20 }}
-                              transition={{ duration: 0.4 }}
-                              className="text-sm text-muted-foreground"
-                            >
-                              {TIPS[currentTip]}
-                            </motion.p>
-                          </AnimatePresence>
-                        </div>
-                      </div>
-                    </div>
                   </div>
                 </motion.div>
               )}
             </AnimatePresence>
 
-
-
-            {/* Empty State */}
-            {!results && !isLoading && !error && (
-              <motion.div
-                className="rounded-2xl glass-2 p-12 flex flex-col items-center justify-center text-center"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.2 }}
+            {/* Search Button */}
+            {inputMode === 'single' ? (
+              <motion.button
+                onClick={() => handleSearch()}
+                disabled={isLoading || !keyword.trim() || !selectedClientId}
+                className="group w-full bg-gradient-to-r from-primary to-orange-500 hover:from-primary/90 hover:to-orange-500/90 text-white text-lg font-bold py-4 px-6 rounded-xl shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
+                whileHover={{ scale: 1.01 }}
+                whileTap={{ scale: 0.99 }}
               >
-                <div className="relative mb-6">
-                  <div className="absolute inset-0 bg-primary/20 rounded-full blur-xl" />
-                  <div className="relative p-6 rounded-2xl bg-gradient-to-br from-primary/10 to-orange-500/10 border border-primary/20">
-                    <Search className="h-12 w-12 text-primary" />
-                  </div>
-                </div>
-                <h3 className="text-xl font-bold text-foreground mb-2">Keyword Araştırmasına Başla</h3>
-                <p className="text-muted-foreground max-w-md mb-6">
-                  Yukarıdaki arama kutusuna ana keyword'ünüzü yazın. Google Ads, Suggestions, Trends ve DataForSEO verilerini tek seferde çekeceğiz.
-                </p>
-                <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                  <span className="flex items-center gap-1.5">
-                    <Zap className="h-4 w-4 text-primary" />
-                    Hızlı sonuç
-                  </span>
-                  <span className="flex items-center gap-1.5">
-                    <Database className="h-4 w-4 text-emerald-400" />
-                    Otomatik kayıt
-                  </span>
-                  <span className="flex items-center gap-1.5">
-                    <Brain className="h-4 w-4 text-purple-400" />
-                    AI filtreleme
-                  </span>
-                </div>
-              </motion.div>
+                {isLoading ? (
+                  <Loader2 className="h-6 w-6 animate-spin" />
+                ) : (
+                  <>
+                    <Sparkles className="h-5 w-5 group-hover:rotate-12 transition-transform" />
+                    Keyword Analiz Et
+                  </>
+                )}
+              </motion.button>
+            ) : (
+              <motion.button
+                onClick={handleBulkSearch}
+                disabled={isBulkProcessing || bulkKeywordList.length === 0 || !selectedClientId}
+                className="group w-full bg-gradient-to-r from-primary to-orange-500 hover:from-primary/90 hover:to-orange-500/90 text-white text-lg font-bold py-4 px-6 rounded-xl shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
+                whileHover={{ scale: 1.01 }}
+                whileTap={{ scale: 0.99 }}
+              >
+                {isBulkProcessing ? (
+                  <Loader2 className="h-6 w-6 animate-spin" />
+                ) : (
+                  <>
+                    <Layers className="h-5 w-5" />
+                    {bulkKeywordList.length} Keyword Araştır
+                  </>
+                )}
+              </motion.button>
             )}
-          </div>
 
-          {/* Sidebar */}
-          <div className="space-y-6">
-            {/* Recent Projects */}
-            <motion.div
-              className="rounded-2xl glass-2 p-5"
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.2 }}
-            >
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="font-semibold text-foreground flex items-center gap-2">
-                  <History className="h-4 w-4 text-muted-foreground" />
-                  Son Projeler
-                </h3>
-                <Link href="/tool1" className="text-xs text-primary hover:underline">
-                  Tümü
-                </Link>
-              </div>
+            {/* Custom Rules Panel */}
+            <div className="mt-6">
+              <button
+                onClick={() => setShowRulesPanel(!showRulesPanel)}
+                className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <SlidersHorizontal className="h-4 w-4" />
+                <span>AI Kuralları</span>
+                <span className="text-xs text-muted-foreground">(Opsiyonel)</span>
+                <ChevronDown className={cn(
+                  "h-4 w-4 transition-transform",
+                  showRulesPanel && "rotate-180"
+                )} />
+                {customRules.trim() && (
+                  <span className="px-2 py-0.5 rounded-full bg-primary/20 text-primary text-xs">
+                    Aktif
+                  </span>
+                )}
+              </button>
 
-              {isLoadingProjects ? (
-                <div className="space-y-3">
-                  {[1, 2, 3].map(i => (
-                    <div key={i} className="h-16 rounded-lg bg-muted/20 animate-pulse" />
-                  ))}
-                </div>
-              ) : recentProjects.length > 0 ? (
-                <div className="space-y-2">
-                  {recentProjects.map((project) => (
-                    <Link
-                      key={project.id}
-                      href={`/keywords/${project.uuid || project.id}`}
-                      className="group block p-3 rounded-xl hover:bg-[hsl(var(--glass-bg-interactive))] transition-all"
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="min-w-0 flex-1">
-                          <p className="text-sm font-medium text-foreground truncate group-hover:text-primary transition-colors">
-                            {project.main_keyword}
-                          </p>
+              <AnimatePresence>
+                {showRulesPanel && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="overflow-hidden"
+                  >
+                    <div className="mt-3 p-4 rounded-xl bg-[hsl(var(--glass-bg-1))] border border-[hsl(var(--glass-border-subtle))]">
+                      <div className="flex items-start gap-2 mb-3">
+                        <Brain className="h-4 w-4 text-purple-400 mt-0.5" />
+                        <div>
+                          <p className="text-sm font-medium text-foreground">AI Seçim Kuralları</p>
                           <p className="text-xs text-muted-foreground">
-                            {project.total_keywords_found || 0} keyword
+                            Doğal dilde kurallar yazın. AI keyword seçerken bu kurallara uyacaktır.
                           </p>
                         </div>
-                        <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
                       </div>
-                    </Link>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-sm text-muted-foreground text-center py-4">
-                  Henüz proje yok
-                </p>
+                      <textarea
+                        value={customRules}
+                        onChange={(e) => setCustomRules(e.target.value)}
+                        placeholder="Örnek: Marka isimleri olmasın, sadece B2B odaklı keywordler..."
+                        className="w-full h-24 p-3 rounded-lg bg-[hsl(var(--glass-bg-3))] border border-[hsl(var(--glass-border-subtle))] text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:border-purple-500/50 focus:ring-2 focus:ring-purple-500/10 transition-all resize-none"
+                        disabled={isLoading || isBulkProcessing}
+                      />
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
+            {/* Error Message */}
+            <AnimatePresence>
+              {error && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  className="mt-4 p-4 rounded-xl bg-red-500/10 border border-red-500/30 flex items-center gap-3"
+                >
+                  <AlertCircle className="h-5 w-5 text-red-400 flex-shrink-0" />
+                  <p className="text-red-400">{error}</p>
+                </motion.div>
               )}
-            </motion.div>
+            </AnimatePresence>
 
-            {/* Quick Actions */}
-            <motion.div
-              className="rounded-2xl glass-2 p-5"
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.3 }}
-            >
-              <h3 className="font-semibold text-foreground mb-4 flex items-center gap-2">
-                <Zap className="h-4 w-4 text-primary" />
-                Hızlı İşlemler
-              </h3>
-              <div className="space-y-2">
-                <Link
-                  href="/tool1/new"
-                  className="flex items-center gap-3 p-3 rounded-xl hover:bg-[hsl(var(--glass-bg-interactive))] transition-all group"
+            {/* Bulk Progress */}
+            <AnimatePresence>
+              {(isBulkProcessing || (bulkStatus.length > 0 && bulkStats.completed > 0)) && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  className="mt-6 rounded-xl bg-[hsl(var(--glass-bg-1))] border border-[hsl(var(--glass-border-subtle))] p-4"
                 >
-                  <div className="p-2 rounded-lg bg-primary/10 text-primary">
-                    <Plus className="h-4 w-4" />
+                  {/* Header */}
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-3">
+                      <div className={cn(
+                        "p-2 rounded-lg",
+                        isBulkProcessing ? "bg-primary/10" : "bg-emerald-500/10"
+                      )}>
+                        {isBulkProcessing ? (
+                          <Loader2 className="h-5 w-5 text-primary animate-spin" />
+                        ) : (
+                          <CheckCircle2 className="h-5 w-5 text-emerald-400" />
+                        )}
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-foreground">
+                          {isBulkProcessing ? 'İşlem Devam Ediyor' : 'Tamamlandı'}
+                        </h3>
+                        <p className="text-xs text-muted-foreground">
+                          {bulkStats.completed + bulkStats.errors}/{bulkStatus.length} keyword
+                          {bulkStats.totalKeywords > 0 && ` • ${bulkStats.totalKeywords} toplam`}
+                        </p>
+                      </div>
+                    </div>
+                    {isBulkProcessing ? (
+                      <button
+                        onClick={handleCancelBulk}
+                        className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors text-sm"
+                      >
+                        <Pause className="h-4 w-4" />
+                        Durdur
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => setBulkStatus([])}
+                        className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[hsl(var(--glass-bg-3))] text-muted-foreground hover:text-foreground transition-colors text-sm"
+                      >
+                        <XCircle className="h-4 w-4" />
+                        Kapat
+                      </button>
+                    )}
                   </div>
-                  <div>
-                    <p className="text-sm font-medium text-foreground group-hover:text-primary transition-colors">
-                      Yeni Proje
-                    </p>
-                    <p className="text-xs text-muted-foreground">Detaylı araştırma</p>
-                  </div>
-                </Link>
-                <Link
-                  href="/clients"
-                  className="flex items-center gap-3 p-3 rounded-xl hover:bg-[hsl(var(--glass-bg-interactive))] transition-all group"
-                >
-                  <div className="p-2 rounded-lg bg-blue-500/10 text-blue-400">
-                    <Building2 className="h-4 w-4" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-foreground group-hover:text-primary transition-colors">
-                      Müşteriler
-                    </p>
-                    <p className="text-xs text-muted-foreground">{clients.length} müşteri</p>
-                  </div>
-                </Link>
-                <Link
-                  href="/tool1"
-                  className="flex items-center gap-3 p-3 rounded-xl hover:bg-[hsl(var(--glass-bg-interactive))] transition-all group"
-                >
-                  <div className="p-2 rounded-lg bg-purple-500/10 text-purple-400">
-                    <Database className="h-4 w-4" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-foreground group-hover:text-primary transition-colors">
-                      Tüm Projeler
-                    </p>
-                    <p className="text-xs text-muted-foreground">Araştırma geçmişi</p>
-                  </div>
-                </Link>
-              </div>
-            </motion.div>
 
-            {/* Pro Tips */}
-            <motion.div
-              className="rounded-2xl bg-gradient-to-br from-primary/10 to-orange-500/10 border border-primary/20 p-5"
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.4 }}
-            >
-              <div className="flex items-center gap-2 mb-3">
-                <Star className="h-4 w-4 text-primary" />
-                <h3 className="font-semibold text-foreground">Pro İpucu</h3>
-              </div>
-              <p className="text-sm text-muted-foreground">
-                Long-tail keywordler genellikle daha düşük rekabet ve daha yüksek dönüşüm oranı sunar. 3+ kelimelik aramaları deneyin.
-              </p>
-            </motion.div>
-          </div>
+                  {/* Progress Bar */}
+                  <div className="h-2 rounded-full bg-[hsl(var(--glass-bg-3))] overflow-hidden mb-4">
+                    <motion.div
+                      className="h-full rounded-full bg-gradient-to-r from-primary to-orange-500"
+                      initial={{ width: 0 }}
+                      animate={{ width: `${((bulkStats.completed + bulkStats.errors) / bulkStatus.length) * 100}%` }}
+                      transition={{ duration: 0.3 }}
+                    />
+                  </div>
+
+                  {/* Keyword List */}
+                  <div className="space-y-2 max-h-48 overflow-y-auto">
+                    {bulkStatus.map((item, idx) => (
+                      <div
+                        key={idx}
+                        className={cn(
+                          "flex items-center justify-between p-2 rounded-lg text-sm",
+                          item.status === 'completed' ? "bg-emerald-500/5" :
+                          item.status === 'error' ? "bg-red-500/5" :
+                          item.status === 'processing' ? "bg-primary/5" :
+                          "bg-transparent"
+                        )}
+                      >
+                        <div className="flex items-center gap-2">
+                          {item.status === 'pending' && <Clock className="h-3.5 w-3.5 text-muted-foreground" />}
+                          {item.status === 'processing' && <Loader2 className="h-3.5 w-3.5 text-primary animate-spin" />}
+                          {item.status === 'completed' && <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />}
+                          {item.status === 'error' && <XCircle className="h-3.5 w-3.5 text-red-400" />}
+                          <span className={cn(
+                            item.status === 'completed' ? "text-foreground" :
+                            item.status === 'error' ? "text-red-400" :
+                            "text-muted-foreground"
+                          )}>
+                            {item.keyword}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {item.status === 'completed' && item.keywordsFound && (
+                            <span className="text-xs text-emerald-400">{item.keywordsFound} kw</span>
+                          )}
+                          {item.status === 'completed' && item.projectId && (
+                            <Link
+                              href={`/keywords/${item.projectId}`}
+                              className="text-xs text-primary hover:underline"
+                            >
+                              Görüntüle
+                            </Link>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Completed Actions */}
+                  {!isBulkProcessing && bulkStats.completed > 0 && (
+                    <div className="mt-4 pt-4 border-t border-[hsl(var(--glass-border-subtle))]">
+                      <div className="flex items-center justify-end gap-2">
+                        <button
+                          onClick={() => {
+                            setBulkKeywords('');
+                            setBulkStatus([]);
+                          }}
+                          className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[hsl(var(--glass-bg-3))] text-muted-foreground hover:text-foreground transition-colors text-sm"
+                        >
+                          <RefreshCw className="h-4 w-4" />
+                          Yeni İşlem
+                        </button>
+                        <Link
+                          href="/tool1"
+                          className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors text-sm font-medium"
+                        >
+                          Projeleri Gör
+                          <ArrowRight className="h-4 w-4" />
+                        </Link>
+                      </div>
+                    </div>
+                  )}
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Loading Overlay */}
+            <AnimatePresence>
+              {isLoading && (
+                <LoadingOverlay currentStep={currentStep} currentTip={currentTip} />
+              )}
+            </AnimatePresence>
+          </motion.div>
         </div>
-      </div>
+      </section>
+
+      {/* Recent Projects */}
+      <section className="px-6 pb-12">
+        <div className="max-w-6xl mx-auto">
+          <RecentProjectsBar projects={recentProjects} isLoading={isLoadingProjects} />
+        </div>
+      </section>
     </PageTransition>
-  );
-}
-
-// Stat Card Component
-function StatCard({
-  label,
-  value,
-  icon: Icon,
-  color,
-}: {
-  label: string;
-  value: number;
-  icon: React.ElementType;
-  color: 'blue' | 'emerald' | 'purple' | 'amber' | 'primary' | 'cyan';
-}) {
-  const colors = {
-    blue: 'text-blue-400 bg-blue-500/10',
-    emerald: 'text-emerald-400 bg-emerald-500/10',
-    purple: 'text-purple-400 bg-purple-500/10',
-    amber: 'text-amber-400 bg-amber-500/10',
-    primary: 'text-primary bg-primary/10',
-    cyan: 'text-cyan-400 bg-cyan-500/10',
-  };
-
-  return (
-    <div className="rounded-xl glass-1 p-3">
-      <div className="flex items-center gap-2 mb-1">
-        <div className={cn('p-1.5 rounded-lg', colors[color])}>
-          <Icon className={cn('h-3.5 w-3.5', colors[color].split(' ')[0])} />
-        </div>
-        <span className="text-xs text-muted-foreground">{label}</span>
-      </div>
-      <p className="text-xl font-bold text-foreground">{value.toLocaleString()}</p>
-    </div>
-  );
-}
-
-// Source Badge Component
-function SourceBadge({ source }: { source: string }) {
-  const colors: Record<string, string> = {
-    'google_ads': 'bg-blue-500/20 text-blue-400',
-    'google_suggestions': 'bg-emerald-500/20 text-emerald-400',
-    'google_trends': 'bg-purple-500/20 text-purple-400',
-    'dataforseo': 'bg-amber-500/20 text-amber-400',
-  };
-
-  const labels: Record<string, string> = {
-    'google_ads': 'Ads',
-    'google_suggestions': 'Suggest',
-    'google_trends': 'Trends',
-    'dataforseo': 'DFS',
-  };
-
-  return (
-    <span className={cn(
-      'inline-flex px-2 py-0.5 rounded text-xs font-medium',
-      colors[source] || 'bg-[hsl(var(--glass-bg-3))] text-muted-foreground'
-    )}>
-      {labels[source] || source}
-    </span>
-  );
-}
-
-// Competition Badge Component
-function CompetitionBadge({ competition }: { competition?: string | null }) {
-  if (!competition) return <span className="text-muted-foreground text-xs">-</span>;
-
-  const colors: Record<string, string> = {
-    'LOW': 'bg-emerald-500/20 text-emerald-400',
-    'MEDIUM': 'bg-amber-500/20 text-amber-400',
-    'HIGH': 'bg-red-500/20 text-red-400',
-  };
-
-  const labels: Record<string, string> = {
-    'LOW': 'Düşük',
-    'MEDIUM': 'Orta',
-    'HIGH': 'Yüksek',
-  };
-
-  return (
-    <span className={cn(
-      'inline-flex px-2 py-0.5 rounded text-xs font-medium',
-      colors[competition.toUpperCase()] || 'bg-[hsl(var(--glass-bg-3))] text-muted-foreground'
-    )}>
-      {labels[competition.toUpperCase()] || competition}
-    </span>
-  );
-}
-
-// Intent Badge Component
-function IntentBadge({ intent }: { intent?: string | null }) {
-  if (!intent) return <span className="text-muted-foreground text-xs">-</span>;
-
-  const colors: Record<string, string> = {
-    'informational': 'bg-blue-500/20 text-blue-400',
-    'transactional': 'bg-emerald-500/20 text-emerald-400',
-    'commercial': 'bg-purple-500/20 text-purple-400',
-    'navigational': 'bg-amber-500/20 text-amber-400',
-  };
-
-  const labels: Record<string, string> = {
-    'informational': 'Info',
-    'transactional': 'Trans',
-    'commercial': 'Comm',
-    'navigational': 'Nav',
-  };
-
-  return (
-    <span className={cn(
-      'inline-flex px-2 py-0.5 rounded text-xs font-medium',
-      colors[intent.toLowerCase()] || 'bg-[hsl(var(--glass-bg-3))] text-muted-foreground'
-    )}>
-      {labels[intent.toLowerCase()] || intent}
-    </span>
-  );
-}
-
-// Difficulty Badge Component
-function DifficultyBadge({ value }: { value?: number | null }) {
-  if (value === null || value === undefined) return <span className="text-muted-foreground text-xs">-</span>;
-
-  const getColor = () => {
-    if (value <= 30) return 'bg-emerald-500/20 text-emerald-400';
-    if (value <= 60) return 'bg-amber-500/20 text-amber-400';
-    return 'bg-red-500/20 text-red-400';
-  };
-
-  return (
-    <span className={cn('inline-flex px-2 py-0.5 rounded text-xs font-medium', getColor())}>
-      {value}
-    </span>
-  );
-}
-
-// Opportunity Badge Component
-function OpportunityBadge({ value }: { value?: number | null }) {
-  if (value === null || value === undefined) return <span className="text-muted-foreground text-xs">-</span>;
-
-  const getColor = () => {
-    if (value >= 70) return 'bg-emerald-500/20 text-emerald-400';
-    if (value >= 40) return 'bg-amber-500/20 text-amber-400';
-    return 'bg-red-500/20 text-red-400';
-  };
-
-  return (
-    <span className={cn('inline-flex px-2 py-0.5 rounded text-xs font-medium', getColor())}>
-      {value}
-    </span>
   );
 }
