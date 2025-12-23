@@ -17,6 +17,7 @@ interface Client {
   default_language: string;
   default_country: string;
   is_active: boolean;
+  logo_url: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -51,7 +52,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
     // Fetch client by ID or UUID
     const clients = await query<Client[]>(
-      `SELECT id, uuid, name, slug, domain, industry, default_language, default_country, is_active, created_at, updated_at
+      `SELECT id, uuid, name, slug, domain, industry, default_language, default_country, is_active, logo_url, created_at, updated_at
        FROM clients
        WHERE (id = ? OR uuid = ?) AND deleted_at IS NULL
        LIMIT 1`,
@@ -175,7 +176,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 
     // Fetch updated client
     const updatedClients = await query<Client[]>(
-      `SELECT id, uuid, name, slug, domain, industry, default_language, default_country, is_active, created_at, updated_at
+      `SELECT id, uuid, name, slug, domain, industry, default_language, default_country, is_active, logo_url, created_at, updated_at
        FROM clients WHERE id = ?`,
       [existingClient.id]
     );

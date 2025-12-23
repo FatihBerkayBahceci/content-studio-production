@@ -14,6 +14,7 @@ interface Client {
   default_language: string;
   default_country: string;
   is_active: boolean;
+  logo_url: string | null;
 }
 
 // Helper to create slug from name
@@ -44,7 +45,7 @@ export async function GET(request: NextRequest) {
     }
 
     const allClients = await query<Client[]>(
-      `SELECT id, uuid, name, slug, domain, industry, default_language, default_country, is_active
+      `SELECT id, uuid, name, slug, domain, industry, default_language, default_country, is_active, logo_url
        FROM clients
        WHERE is_active = 1 AND deleted_at IS NULL
        ORDER BY id ASC`

@@ -232,21 +232,36 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     const pid = Number(project.id);
 
-    // Check if keyword already exists
-    const existsSql = `SELECT id FROM keyword_results WHERE project_id = ? AND keyword = ? LIMIT 1`;
+    // Check if keyword already exists (with any status)
+    const existsSql = `SELECT id, status FROM keyword_results WHERE project_id = ? AND keyword = ? LIMIT 1`;
     const existing = await query(existsSql, [pid, keyword]);
 
     if (Array.isArray(existing) && existing.length > 0) {
-      return NextResponse.json(
-        { success: false, error: 'Bu keyword zaten listede mevcut' },
-        { status: 409 }
-      );
+      const existingKeyword = existing[0];
+
+      // If already approved, return error
+      if (existingKeyword.status === 'approved') {
+        return NextResponse.json(
+          { success: false, error: 'Bu keyword zaten ana listede mevcut' },
+          { status: 409 }
+        );
+      }
+
+      // If exists but not approved (raw/rejected), update to approved
+      const updateSql = `UPDATE keyword_results SET status = 'approved', source = ? WHERE id = ?`;
+      await query(updateSql, [source || 'manual', existingKeyword.id]);
+
+      return NextResponse.json({
+        success: true,
+        id: existingKeyword.id,
+        message: 'Keyword ana listeye taşındı'
+      });
     }
 
-    // Insert the keyword
+    // Insert new keyword as approved
     const insertSql = `
-      INSERT INTO keyword_results (project_id, keyword, search_volume, cpc, competition, source, created_at)
-      VALUES (?, ?, ?, ?, ?, ?, NOW())
+      INSERT INTO keyword_results (project_id, keyword, search_volume, cpc, competition, source, status, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, 'approved', NOW())
     `;
     const result = await query(insertSql, [
       pid,

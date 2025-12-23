@@ -25,7 +25,7 @@ export const useUIStore = create<UIStore>()(
     (set) => ({
       // Initial State
       sidebarOpen: true,
-      sidebarCollapsed: false,
+      sidebarCollapsed: true,
       mobileSidebarOpen: false,
       theme: 'system',
 

@@ -3,7 +3,6 @@
 import { usePathname } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { Sidebar } from '@/components/layout/sidebar';
-import { Header } from '@/components/layout/header';
 
 // Routes that don't need the main layout (sidebar, header)
 const publicRoutes = ['/login'];
@@ -35,7 +34,14 @@ export function AuthLayout({ children }: { children: React.ReactNode }) {
   // For authenticated routes, show full layout
   return (
     <div className="app-wrapper">
-      <Header />
+      {/* Background Effects */}
+      <div className="bg-blobs" aria-hidden="true">
+        <div className="blob blob-1" />
+        <div className="blob blob-2" />
+        <div className="blob blob-3" />
+        <div className="blob blob-4" />
+      </div>
+
       <Sidebar />
       <main className="app-content">
         <div className="app-content-inner">

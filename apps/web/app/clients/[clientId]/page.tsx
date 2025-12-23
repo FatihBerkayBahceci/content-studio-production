@@ -7,8 +7,9 @@ import {
   ArrowLeft, Building2, Globe, Save, Loader2, Settings,
   Users, Bot, CheckCircle2, XCircle, Trash2,
   AlertTriangle, Plus, X, MessageSquare, Edit3, Power,
-  ChevronRight, FileSpreadsheet
+  ChevronRight, FileSpreadsheet, Camera, Image as ImageIcon
 } from 'lucide-react';
+import { useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useClient, useUpdateClient, useDeleteClient } from '@/lib/hooks/use-clients';
 import { cn } from '@/lib/utils/cn';
@@ -108,7 +109,66 @@ export default function ClientDetailPage({ params }: PageProps) {
   const [showSheetsConfigForm, setShowSheetsConfigForm] = useState(false);
   const [editingSheetsConfig, setEditingSheetsConfig] = useState<SheetsConfig | null>(null);
 
+  // Logo state
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [isUploadingLogo, setIsUploadingLogo] = useState(false);
+  const logoInputRef = useRef<HTMLInputElement>(null);
+
   const client = data?.success ? data.data : null;
+
+  // Initialize logo from client data
+  useEffect(() => {
+    if (client?.logo_url) {
+      setLogoUrl(client.logo_url);
+    }
+  }, [client?.logo_url]);
+
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !client) return;
+
+    setIsUploadingLogo(true);
+    try {
+      const formData = new FormData();
+      formData.append('logo', file);
+
+      const res = await fetch(`/api/clients/${client.id}/logo`, {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        setLogoUrl(data.logo_url);
+        showNotification('success', 'Logo başarıyla yüklendi');
+      } else {
+        showNotification('error', data.error || 'Logo yüklenemedi');
+      }
+    } catch (err) {
+      showNotification('error', 'Logo yüklenirken hata oluştu');
+    } finally {
+      setIsUploadingLogo(false);
+      if (logoInputRef.current) logoInputRef.current.value = '';
+    }
+  };
+
+  const handleRemoveLogo = async () => {
+    if (!client || !logoUrl) return;
+    if (!confirm('Logoyu kaldırmak istediğinizden emin misiniz?')) return;
+
+    try {
+      const res = await fetch(`/api/clients/${client.id}/logo`, { method: 'DELETE' });
+      const data = await res.json();
+      if (data.success) {
+        setLogoUrl(null);
+        showNotification('success', 'Logo kaldırıldı');
+      } else {
+        showNotification('error', data.error || 'Logo kaldırılamadı');
+      }
+    } catch (err) {
+      showNotification('error', 'Logo kaldırılırken hata oluştu');
+    }
+  };
 
   useEffect(() => {
     if (client) {
@@ -365,13 +425,48 @@ export default function ClientDetailPage({ params }: PageProps) {
 
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <div className={cn(
-              'w-12 h-12 rounded-xl flex items-center justify-center text-lg font-semibold',
-              formData.is_active
-                ? 'bg-primary/10 text-primary'
-                : 'bg-muted text-muted-foreground'
-            )}>
-              {client.name.charAt(0).toUpperCase()}
+            {/* Logo Upload */}
+            <div className="relative group">
+              <div className={cn(
+                'w-16 h-16 rounded-xl flex items-center justify-center text-xl font-semibold overflow-hidden transition-all',
+                formData.is_active
+                  ? 'ring-2 ring-primary/30'
+                  : 'ring-2 ring-muted',
+                !logoUrl && (formData.is_active
+                  ? 'bg-primary/10 text-primary'
+                  : 'bg-muted text-muted-foreground')
+              )}>
+                {isUploadingLogo ? (
+                  <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                ) : logoUrl ? (
+                  <img src={logoUrl} alt={client.name} className="w-full h-full object-cover" />
+                ) : (
+                  client.name.charAt(0).toUpperCase()
+                )}
+              </div>
+              {/* Upload Overlay */}
+              <button
+                onClick={() => logoInputRef.current?.click()}
+                className="absolute inset-0 rounded-xl bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity"
+              >
+                <Camera className="h-5 w-5 text-white" />
+              </button>
+              {/* Remove Button */}
+              {logoUrl && (
+                <button
+                  onClick={handleRemoveLogo}
+                  className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-red-500 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              )}
+              <input
+                ref={logoInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/svg+xml"
+                onChange={handleLogoUpload}
+                className="hidden"
+              />
             </div>
             <div>
               <div className="flex items-center gap-2">

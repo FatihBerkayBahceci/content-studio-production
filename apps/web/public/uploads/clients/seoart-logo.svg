@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
+  <!-- Background -->
+  <rect x="0" y="0" width="100" height="100" rx="16" ry="16" fill="#1a1a1a"/>
+  <!-- Rounded square border -->
+  <rect x="8" y="8" width="84" height="84" rx="12" ry="12" fill="none" stroke="#FF8C00" stroke-width="3"/>
+  <!-- Circle -->
+  <circle cx="50" cy="50" r="26" fill="none" stroke="#FF8C00" stroke-width="3"/>
+  <!-- Wave/pulse symbol -->
+  <path d="M 26 52 L 38 52 L 45 68 L 56 34 L 64 52 L 74 52" fill="none" stroke="#FF8C00" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
