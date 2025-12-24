@@ -1,0 +1,93 @@
+{
+  "name": "WF-BULK-KEYWORD: Single Seed v2",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "process-single-seed",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 0],
+      "webhookId": "process-single-seed"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.dataforseo.com/v3/keywords_data/google_ads/keywords_for_keywords/live",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {"name": "Authorization", "value": "Basic b2t0YXlAc2VvYXJ0LmNvbTo0ODk2ZGRhYzQ2OWUyZjIw"},
+            {"name": "Content-Type", "value": "application/json"}
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "=[{\"keywords\": [\"{{ $json.body.seed }}\"], \"location_code\": {{ $json.body.locationCode }}, \"language_code\": \"{{ $json.body.language }}\", \"include_seed_keyword\": true, \"sort_by\": \"search_volume\"}]",
+        "options": {"timeout": 60000}
+      },
+      "id": "dfs",
+      "name": "DataForSEO",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [220, 0],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $('Webhook').first().json.body;\nconst dfs = $input.first().json;\nconst seed = input.seed;\n\nlet keywords = [];\ntry {\n  if (dfs?.tasks?.[0]?.result) {\n    keywords = dfs.tasks[0].result.map(k => ({\n      kw: (k.keyword || '').toLowerCase().trim(),\n      vol: k.search_volume || 0,\n      cpc: k.cpc || 0\n    })).filter(k => k.kw.length >= 2);\n  }\n} catch(e) {}\n\n// Dedupe\nconst seen = new Set();\nconst unique = keywords.filter(k => {\n  if (seen.has(k.kw)) return false;\n  seen.add(k.kw);\n  return true;\n}).slice(0, 500);\n\nif (unique.length === 0) {\n  return [{json: {\n    seed,\n    approved: [],\n    rejected: [],\n    stats: {approved: 0, rejected: 0}\n  }}];\n}\n\nconst kwList = unique.map((k, i) => `${i+1}|${k.kw}|${k.vol}`).join('\\n');\n\nconst prompt = `\"${seed}\" icin anahtar kelime analizi.\n\nKEYWORDS (no|keyword|volume):\n${kwList}\n\nGOREV: Icerik olusturmaya EN UYGUN 35 keyword sec.\n\nSECIM KRITERLERI:\n- Blog/makale/rehber yazilabilir mi?\n- Kullaniciya deger katan bilgi iceriyor mu?\n- Arama amaci bilgi edinme mi?\n\nSECME (ama DIGER'de goster):\n- Marka+model kombinasyonlari (nike air max 90)\n- Fiyat/satin alma sorgulari\n- Cok genel tek kelimeler\n\nONEMLI: Sadece CONTENT listesi ver. Geri kalan TUM keywordler otomatik DIGER olarak kaydedilecek.\n\nCIKTI FORMATI (TEK SATIR):\nCONTENT:1,5,8,12,15,23,45,67\n\nACIKLAMA YAZMA. SADECE NUMARALAR.`;\n\nreturn [{json: {seed, keywords: unique, prompt}}];"
+      },
+      "id": "parse-dfs",
+      "name": "Parse DFS",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [440, 0]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpQueryAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\"contents\":[{\"parts\":[{\"text\":{{ JSON.stringify($json.prompt) }}}]}],\"generationConfig\":{\"temperature\":0.1,\"maxOutputTokens\":4096}}",
+        "options": {"timeout": 60000}
+      },
+      "id": "gemini",
+      "name": "Gemini",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [660, 0],
+      "credentials": {"httpQueryAuth": {"id": "Hp8gTY1C1efbSfkx", "name": "Gemini API"}},
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const prev = $('Parse DFS').first().json;\nconst gemini = $input.first().json;\nconst seed = prev.seed;\nconst kws = prev.keywords || [];\n\n// Normalize function for Turkish character comparison\nconst normalize = (str) => {\n  return str\n    .toLowerCase()\n    .replace(/ı/g, 'i')\n    .replace(/ğ/g, 'g')\n    .replace(/ü/g, 'u')\n    .replace(/ş/g, 's')\n    .replace(/ö/g, 'o')\n    .replace(/ç/g, 'c')\n    .replace(/[^a-z0-9\\s]/g, '')\n    .replace(/\\s+/g, ' ')\n    .trim();\n};\n\n// Check if string has Turkish characters (preferred version)\nconst hasTurkishChars = (str) => /[ıİğĞüÜşŞöÖçÇ]/.test(str);\n\n// Helper: prefer Turkish version, else higher volume\nconst pickBest = (existing, newKw) => {\n  const existingTr = hasTurkishChars(existing.kw);\n  const newTr = hasTurkishChars(newKw.kw);\n  if (newTr && !existingTr) return newKw;\n  if (existingTr && !newTr) return existing;\n  return newKw.vol > existing.vol ? newKw : existing;\n};\n\nconst approved = [];\nconst rejected = [];\nconst contentSet = new Set();\n\ntry {\n  const txt = gemini?.candidates?.[0]?.content?.parts?.[0]?.text || '';\n  \n  // Parse CONTENT line\n  const contentMatch = txt.match(/CONTENT[:\\s]*([\\d,\\s]+)/i);\n  const contentNos = contentMatch \n    ? contentMatch[1].split(',').map(n => parseInt(n.trim())).filter(n => n > 0 && n <= kws.length)\n    : [];\n  \n  // Build approved list from CONTENT (with Turkish preference)\n  const approvedMap = new Map();\n  contentNos.forEach(n => {\n    const k = kws[n - 1];\n    if (k) {\n      contentSet.add(n - 1);\n      const norm = normalize(k.kw);\n      if (approvedMap.has(norm)) {\n        approvedMap.set(norm, pickBest(approvedMap.get(norm), k));\n      } else {\n        approvedMap.set(norm, k);\n      }\n    }\n  });\n  \n  approvedMap.forEach((k, norm) => {\n    approved.push({\n      keyword: k.kw,\n      seed_keyword: seed,\n      search_volume: k.vol,\n      cpc: k.cpc,\n      status: 'approved',\n      priority: k.vol >= 5000 ? 'high' : k.vol >= 1000 ? 'medium' : 'low'\n    });\n  });\n  \n  // Build rejected list - group by normalized, pick Turkish version\n  const rejectedMap = new Map();\n  const approvedNorms = new Set(approvedMap.keys());\n  \n  kws.forEach((k, idx) => {\n    if (contentSet.has(idx)) return;\n    const norm = normalize(k.kw);\n    if (approvedNorms.has(norm)) return;\n    \n    if (rejectedMap.has(norm)) {\n      rejectedMap.set(norm, pickBest(rejectedMap.get(norm), k));\n    } else {\n      rejectedMap.set(norm, k);\n    }\n  });\n  \n  rejectedMap.forEach((k, norm) => {\n    rejected.push({\n      keyword: k.kw,\n      seed_keyword: seed,\n      search_volume: k.vol,\n      cpc: k.cpc,\n      status: 'rejected'\n    });\n  });\n  \n} catch(e) {\n  // Fallback: top 35 by volume for approved, rest for rejected\n  const sorted = [...kws].sort((a, b) => b.vol - a.vol);\n  const approvedMap = new Map();\n  const rejectedMap = new Map();\n  \n  sorted.forEach((k, idx) => {\n    const norm = normalize(k.kw);\n    const isTop35 = idx < 35;\n    const targetMap = isTop35 ? approvedMap : rejectedMap;\n    \n    if (isTop35 && rejectedMap.has(norm)) return;\n    if (!isTop35 && approvedMap.has(norm)) return;\n    \n    if (targetMap.has(norm)) {\n      targetMap.set(norm, pickBest(targetMap.get(norm), k));\n    } else {\n      targetMap.set(norm, k);\n    }\n  });\n  \n  approvedMap.forEach((k) => {\n    approved.push({\n      keyword: k.kw,\n      seed_keyword: seed,\n      search_volume: k.vol,\n      cpc: k.cpc,\n      status: 'approved',\n      priority: k.vol >= 5000 ? 'high' : k.vol >= 1000 ? 'medium' : 'low'\n    });\n  });\n  \n  rejectedMap.forEach((k) => {\n    rejected.push({\n      keyword: k.kw,\n      seed_keyword: seed,\n      search_volume: k.vol,\n      cpc: k.cpc,\n      status: 'rejected'\n    });\n  });\n}\n\n// If no approved from Gemini, fallback to top 35\nif (approved.length === 0 && kws.length > 0) {\n  const sorted = [...kws].sort((a, b) => b.vol - a.vol);\n  const approvedMap = new Map();\n  const rejectedMap = new Map();\n  \n  sorted.forEach((k, idx) => {\n    const norm = normalize(k.kw);\n    const isTop35 = approvedMap.size < 35 && !rejectedMap.has(norm);\n    const targetMap = isTop35 ? approvedMap : rejectedMap;\n    \n    if (!isTop35 && approvedMap.has(norm)) return;\n    \n    if (targetMap.has(norm)) {\n      targetMap.set(norm, pickBest(targetMap.get(norm), k));\n    } else {\n      targetMap.set(norm, k);\n    }\n  });\n  \n  approvedMap.forEach((k) => {\n    approved.push({\n      keyword: k.kw,\n      seed_keyword: seed,\n      search_volume: k.vol,\n      cpc: k.cpc,\n      status: 'approved',\n      priority: 'medium'\n    });\n  });\n  \n  rejectedMap.forEach((k) => {\n    rejected.push({\n      keyword: k.kw,\n      seed_keyword: seed,\n      search_volume: k.vol,\n      cpc: k.cpc,\n      status: 'rejected'\n    });\n  });\n}\n\nreturn [{json: {\n  seed,\n  approved,\n  rejected,\n  stats: {\n    approved: approved.length,\n    rejected: rejected.length\n  }\n}}];"
+      },
+      "id": "parse-gemini",
+      "name": "Parse Gemini",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [880, 0]
+    }
+  ],
+  "connections": {
+    "Webhook": {"main": [[{"node": "DataForSEO"}]]},
+    "DataForSEO": {"main": [[{"node": "Parse DFS"}]]},
+    "Parse DFS": {"main": [[{"node": "Gemini"}]]},
+    "Gemini": {"main": [[{"node": "Parse Gemini"}]]}
+  },
+  "active": false,
+  "settings": {"executionOrder": "v1"},
+  "versionId": "bulk-single-v2",
+  "meta": {"templateCredsSetupCompleted": true},
+  "id": "WF-BULK-KEYWORD-SINGLE-v2",
+  "tags": []
+}

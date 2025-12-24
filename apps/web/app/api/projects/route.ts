@@ -10,7 +10,8 @@ interface CreateProjectRequest {
   main_keyword: string;
   target_country?: string;
   target_language?: string;
-  project_type?: string;
+  project_type?: 'single' | 'bulk';
+  seed_keywords?: string[];
 }
 
 interface InsertResult {
@@ -60,13 +61,17 @@ export async function POST(request: NextRequest) {
     const uuid = randomUUID();
     const targetCountry = body.target_country || 'TR';
     const targetLanguage = body.target_language || 'tr';
+    const projectType = body.project_type || 'single';
+    const seedKeywords = body.seed_keywords && body.seed_keywords.length > 0
+      ? JSON.stringify(body.seed_keywords)
+      : null;
 
-    // Insert new keyword project
+    // Insert new keyword project (with optional bulk fields)
     const result = await query<InsertResult>(
       `INSERT INTO keyword_projects
-        (uuid, client_id, project_name, main_keyword, target_country, target_language, status, scenario_type)
-       VALUES (?, ?, ?, ?, ?, ?, 'pending', 'seed_keyword')`,
-      [uuid, body.client_id, body.name, body.main_keyword, targetCountry, targetLanguage]
+        (uuid, client_id, project_name, main_keyword, target_country, target_language, status, scenario_type, project_type, seed_keywords)
+       VALUES (?, ?, ?, ?, ?, ?, 'pending', 'seed_keyword', ?, ?)`,
+      [uuid, body.client_id, body.name, body.main_keyword, targetCountry, targetLanguage, projectType, seedKeywords]
     );
 
     // Get the inserted ID (mysql2 returns insertId differently)
@@ -82,6 +87,8 @@ export async function POST(request: NextRequest) {
         main_keyword: body.main_keyword,
         target_country: targetCountry,
         target_language: targetLanguage,
+        project_type: projectType,
+        seed_keywords: body.seed_keywords || [],
         status: 'pending',
       },
     });
@@ -121,6 +128,8 @@ export async function GET(request: NextRequest) {
       SELECT kp.id, kp.uuid, kp.client_id, kp.project_name as name,
              kp.main_keyword, kp.target_country, kp.target_language, kp.status,
              kp.total_keywords_found, kp.created_at,
+             COALESCE(kp.project_type, 'single') as project_type,
+             kp.seed_keywords, kp.bulk_stats,
              c.name as client_name
       FROM keyword_projects kp
       JOIN clients c ON kp.client_id = c.id
@@ -144,6 +153,13 @@ export async function GET(request: NextRequest) {
     if (clientId) {
       sql += ' AND kp.client_id = ?';
       params.push(clientId);
+    }
+
+    // Filter by project type (single/bulk)
+    const projectType = searchParams.get('project_type');
+    if (projectType) {
+      sql += ' AND COALESCE(kp.project_type, \'single\') = ?';
+      params.push(projectType);
     }
 
     sql += ' ORDER BY kp.created_at DESC LIMIT 100';

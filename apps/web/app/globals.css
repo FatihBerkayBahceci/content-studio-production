@@ -219,6 +219,27 @@
     }
   }
 
+  /* ════════════════════════════════════════════════════════════
+     SELECT & OPTION GLOBAL STYLES
+     Fix contrast issues in dark theme dropdowns
+     ════════════════════════════════════════════════════════════ */
+  select {
+    @apply cursor-pointer;
+  }
+
+  select option {
+    @apply bg-zinc-900 text-white;
+    padding: 8px 12px;
+  }
+
+  select option:checked {
+    @apply bg-zinc-700;
+  }
+
+  select option:hover {
+    @apply bg-zinc-800;
+  }
+
   /* Floating blobs - animated shapes */
   .bg-blobs {
     position: fixed;

@@ -36,6 +36,7 @@ function hasTurkishChars(str: string): boolean {
 interface RawKeyword {
   id: number;
   keyword: string;
+  seed_keyword: string | null;
   search_volume: number | null;
   cpc: number | null;
   competition: string | null;
@@ -102,9 +103,16 @@ function deduplicateKeywords(keywords: RawKeyword[]): RawKeyword[] {
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { projectId: string } }
+  { params }: { params: Promise<{ projectId: string }> }
 ) {
-  const { projectId } = params;
+  const { projectId } = await params;
+  const { searchParams } = new URL(request.url);
+
+  // Query parameters for filtering
+  const seedFilter = searchParams.get('seed');
+  const statusFilter = searchParams.get('status') || 'rejected,pending'; // Default: rejected + pending
+  const limit = parseInt(searchParams.get('limit') || '0') || 0;
+  const offset = parseInt(searchParams.get('offset') || '0') || 0;
 
   let connection;
   try {
@@ -112,7 +120,7 @@ export async function GET(
 
     // Get project info
     const [projects] = await connection.execute(
-      `SELECT id FROM keyword_projects WHERE uuid = ? OR id = ? LIMIT 1`,
+      `SELECT id, COALESCE(project_type, 'single') as project_type FROM keyword_projects WHERE uuid = ? OR id = ? LIMIT 1`,
       [projectId, projectId]
     );
 
@@ -122,13 +130,13 @@ export async function GET(
 
     const project = projects[0] as any;
     const pid = project.id;
+    const isBulk = project.project_type === 'bulk';
 
-    // Get keywords from keyword_results table (workflow saves here)
-    // Only get rejected/pending keywords (not approved - these are "Diğer DataForSEO Kelimeleri")
-    const [rawKeywords] = await connection.execute(
-      `SELECT
+    // Build query with optional filters
+    let sql = `SELECT
         id,
         keyword,
+        seed_keyword,
         search_volume,
         cpc,
         competition,
@@ -139,10 +147,31 @@ export async function GET(
         reject_reason,
         created_at
       FROM keyword_results
-      WHERE project_id = ? AND status IN ('rejected', 'pending')
-      ORDER BY search_volume DESC`,
-      [pid]
-    );
+      WHERE project_id = ?`;
+    const queryParams: any[] = [pid];
+
+    // Status filter
+    if (statusFilter && statusFilter !== 'all') {
+      const statuses = statusFilter.split(',').map(s => s.trim());
+      sql += ` AND status IN (${statuses.map(() => '?').join(',')})`;
+      queryParams.push(...statuses);
+    }
+
+    // Seed filter (for bulk projects)
+    if (seedFilter) {
+      sql += ` AND seed_keyword = ?`;
+      queryParams.push(seedFilter);
+    }
+
+    sql += ` ORDER BY search_volume DESC`;
+
+    // Pagination
+    if (limit > 0) {
+      sql += ` LIMIT ? OFFSET ?`;
+      queryParams.push(limit, offset);
+    }
+
+    const [rawKeywords] = await connection.execute(sql, queryParams);
 
     await connection.end();
 
@@ -174,8 +203,12 @@ export async function GET(
         max_volume: maxVolume,
         min_volume: minVolume,
       },
+      project_type: isBulk ? 'bulk' : 'single',
+      seed_filter: seedFilter || null,
+      status_filter: statusFilter,
       original_count: originalCount,
-      duplicates_merged: duplicatesRemoved
+      duplicates_merged: duplicatesRemoved,
+      pagination: limit > 0 ? { limit, offset, has_more: rawKeywordsArray.length === limit } : null,
     });
 
   } catch (error: any) {

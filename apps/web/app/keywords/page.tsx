@@ -727,7 +727,7 @@ export default function KeywordsPage() {
     }
   };
 
-  // Bulk search
+  // Bulk search - uses dedicated bulk endpoint for speed
   const handleBulkSearch = async () => {
     if (isBulkProcessing || bulkKeywordList.length === 0 || !selectedClientId) return;
 
@@ -737,47 +737,125 @@ export default function KeywordsPage() {
     setResults(null);
     setError(null);
 
+    // Show all keywords as processing
     const initialStatus: BulkKeywordStatus[] = bulkKeywordList.map(kw => ({
       keyword: kw,
-      status: 'pending',
+      status: 'processing',
     }));
     setBulkStatus(initialStatus);
 
-    const queue = [...bulkKeywordList];
-    const processing: Promise<void>[] = [];
+    try {
+      // Create a single project for all keywords
+      const mainKeyword = bulkKeywordList[0];
+      const projectResponse = await fetch('/api/projects', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          client_id: selectedClientId,
+          name: `Bulk Research: ${mainKeyword} (+${bulkKeywordList.length - 1} more)`,
+          main_keyword: mainKeyword,
+          target_country: country,
+          target_language: country === 'TR' ? 'tr' : 'en',
+        }),
+      });
+      const projectData = await projectResponse.json();
 
-    const processNext = async () => {
-      if (bulkCancelledRef.current || queue.length === 0) return;
-
-      const kw = queue.shift()!;
-
-      setBulkStatus(prev => prev.map(s =>
-        s.keyword === kw ? { ...s, status: 'processing' } : s
-      ));
-
-      const result = await processKeyword(kw);
-
-      setBulkStatus(prev => prev.map(s =>
-        s.keyword === kw ? result : s
-      ));
-
-      if (!bulkCancelledRef.current && queue.length > 0) {
-        await processNext();
+      if (!projectData.success || !projectData.project?.id) {
+        throw new Error(projectData.error || 'Proje oluşturulamadı');
       }
-    };
 
-    for (let i = 0; i < Math.min(MAX_CONCURRENT_REQUESTS, bulkKeywordList.length); i++) {
-      processing.push(processNext());
-    }
+      const projectId = projectData.project.id;
+      const projectUuid = projectData.project.uuid || projectId;
 
-    await Promise.all(processing);
+      // Call bulk endpoint with all keywords at once
+      const response = await api.post<{
+        success: boolean;
+        message?: string;
+        stats?: {
+          total_seeds: number;
+          total_approved: number;
+          total_rejected: number;
+          per_seed: Record<string, { approved: number; rejected?: number; others?: number }>;
+        };
+        keywords?: Array<{
+          keyword: string;
+          seed_keyword: string;
+          search_volume: number;
+          priority?: string;
+          status: string;
+        }>;
+        rejected_keywords?: Array<{
+          keyword: string;
+          seed_keyword: string;
+          search_volume: number;
+        }>;
+        processing_time_ms?: number;
+      }>('/bulk-keyword-research', {
+        keywords: bulkKeywordList,
+        country: country,
+        language: country === 'TR' ? 'tr' : 'en',
+        project_id: projectId,
+        client_id: selectedClientId,
+      }, { timeout: 300000 }); // 5 min timeout for bulk
 
-    setIsBulkProcessing(false);
+      if (response.success && response.keywords) {
+        // Update status for each keyword based on per_seed stats
+        const updatedStatus: BulkKeywordStatus[] = bulkKeywordList.map(kw => {
+          const seedStats = response.stats?.per_seed?.[kw];
+          const keywordsForSeed = response.keywords?.filter(k => k.seed_keyword === kw) || [];
+          return {
+            keyword: kw,
+            status: 'completed' as const,
+            projectId,
+            keywordsFound: seedStats?.approved || keywordsForSeed.length,
+          };
+        });
+        setBulkStatus(updatedStatus);
 
-    const response = await fetch('/api/projects');
-    const data = await response.json();
-    if (data.success && data.projects) {
-      setRecentProjects(data.projects.slice(0, 6));
+        // Update project with results
+        await fetch(`/api/projects/${projectId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            status: 'keywords_discovered',
+            total_keywords_found: response.keywords.length,
+          }),
+        });
+
+        // Save to localStorage for fallback
+        const fallbackData = {
+          projectId,
+          projectUuid,
+          keywords: response.keywords,
+          stats: response.stats,
+          savedAt: Date.now(),
+        };
+        localStorage.setItem(`keywords-fallback-${projectUuid}`, JSON.stringify(fallbackData));
+
+        // Navigate to project page
+        router.push(`/keywords/${projectUuid}`);
+      } else {
+        throw new Error(response.message || 'Bulk işlem başarısız');
+      }
+    } catch (err: any) {
+      console.error('Bulk search error:', err);
+      setError(err.message || 'Bulk işlem sırasında hata oluştu');
+
+      // Mark all as error
+      setBulkStatus(prev => prev.map(s => ({
+        ...s,
+        status: 'error' as const,
+        error: err.message,
+      })));
+    } finally {
+      setIsBulkProcessing(false);
+
+      // Refresh projects list
+      const response = await fetch('/api/projects');
+      const data = await response.json();
+      if (data.success && data.projects) {
+        setRecentProjects(data.projects.slice(0, 6));
+      }
     }
   };
 

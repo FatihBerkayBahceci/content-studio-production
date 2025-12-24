@@ -1,0 +1,144 @@
+{
+  "name": "WF-BULK-KEYWORD: Main v3",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "bulk-keyword-research",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [-600, 0],
+      "webhookId": "bulk-keyword-research"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $json.body || $json;\nconst keywords = body.keywords || [];\nconst projectId = body.project_id;\nconst clientId = body.client_id;\nconst country = (body.country || 'TR').toUpperCase();\nconst language = body.language || 'tr';\n\nif (!Array.isArray(keywords) || keywords.length === 0) {\n  return [{json: {error: 'keywords array required', code: 400}}];\n}\n\nconst seeds = keywords\n  .map(k => String(k).trim().toLowerCase())\n  .filter(k => k.length >= 2)\n  .slice(0, 20);\n\nif (seeds.length === 0) {\n  return [{json: {error: 'valid keywords required', code: 400}}];\n}\n\nconst locCodes = {TR: 2792, US: 2840, GB: 2826, DE: 2276};\nconst locationCode = locCodes[country] || 2792;\n\n// Return each seed as separate item for sequential processing\nreturn seeds.map((seed, idx) => ({\n  json: {\n    seed,\n    seedIndex: idx,\n    totalSeeds: seeds.length,\n    locationCode,\n    language,\n    projectId: projectId ? parseInt(projectId) : null,\n    clientId: clientId ? parseInt(clientId) : null,\n    startTime: Date.now()\n  }\n}));"
+      },
+      "id": "validate",
+      "name": "Validate",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-380, 0]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:5678/webhook/process-single-seed",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"seed\": \"{{ $json.seed }}\",\n  \"locationCode\": {{ $json.locationCode }},\n  \"language\": \"{{ $json.language }}\"\n}",
+        "options": {"timeout": 120000, "batching": {"batch": {"batchSize": 1, "batchInterval": 1000}}}
+      },
+      "id": "process-seeds",
+      "name": "Process Seeds",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [-160, 0],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst firstItem = $('Validate').first().json;\nconst projectId = firstItem.projectId;\nconst clientId = firstItem.clientId;\nconst startTime = firstItem.startTime;\nconst totalSeeds = firstItem.totalSeeds;\n\n// Combine all results\nconst allApproved = [];\nconst allRejected = [];\nconst perSeed = {};\n\nitems.forEach(item => {\n  const r = item.json;\n  if (r.seed) {\n    allApproved.push(...(r.approved || []));\n    allRejected.push(...(r.rejected || []));\n    perSeed[r.seed] = r.stats || {approved: 0, rejected: 0};\n  }\n});\n\nreturn [{json: {\n  projectId,\n  clientId,\n  stats: {\n    total_seeds: totalSeeds,\n    total_approved: allApproved.length,\n    total_rejected: allRejected.length,\n    per_seed: perSeed\n  },\n  approved_keywords: allApproved,\n  rejected_keywords: allRejected,\n  startTime\n}}];"
+      },
+      "id": "combine",
+      "name": "Combine Results",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [60, 0]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {"leftValue": "", "typeValidation": "loose"},
+          "conditions": [{"leftValue": "={{ $json.projectId }}", "rightValue": true, "operator": {"type": "boolean", "operation": "exists"}}]
+        }
+      },
+      "id": "if-db",
+      "name": "IF DB",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [280, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "const d = $input.first().json;\nconst all = [...(d.approved_keywords || []), ...(d.rejected_keywords || [])];\n\nif (!all.length || !d.projectId) {\n  return [{json: {...d, query: 'SELECT 1'}}];\n}\n\nconst esc = s => s == null ? 'NULL' : \"'\" + String(s).replace(/'/g, \"''\") + \"'\";\n\nconst vals = all.slice(0, 2000).map(k => \n  `(${d.projectId},${esc(k.keyword)},${esc(k.seed_keyword)},'related',${k.search_volume || 'NULL'},${k.cpc || 'NULL'},NULL,NULL,${esc(k.seed_keyword)},${esc(k.priority || 'medium')},'cluster','dataforseo','${k.status}',NULL)`\n).join(',');\n\nconst query = `INSERT INTO keyword_results(project_id,keyword,seed_keyword,keyword_type,search_volume,cpc,competition,search_intent,keyword_cluster,content_priority,page_type,source,status,reject_reason) VALUES ${vals} ON DUPLICATE KEY UPDATE search_volume=VALUES(search_volume),status=VALUES(status),seed_keyword=VALUES(seed_keyword)`;\n\nreturn [{json: {...d, query}}];"
+      },
+      "id": "build-sql",
+      "name": "Build SQL",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [500, -100]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "={{ $json.query }}"
+      },
+      "id": "mysql",
+      "name": "MySQL",
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.4,
+      "position": [720, -100],
+      "credentials": {"mySql": {"id": "1rDLBK64lV00T0am", "name": "SEO Suite MySQL"}},
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const d = $('Build SQL').first().json;\nreturn [{json: {\n  success: true,\n  message: `Bulk tamamlandi: ${d.approved_keywords?.length || 0} ana sonuc, ${d.rejected_keywords?.length || 0} diger`,\n  project_id: d.projectId,\n  stats: d.stats,\n  keywords: (d.approved_keywords || []).map(k => ({\n    keyword: k.keyword,\n    seed_keyword: k.seed_keyword,\n    search_volume: k.search_volume,\n    priority: k.priority,\n    status: k.status\n  })),\n  rejected_keywords: (d.rejected_keywords || []).map(k => ({\n    keyword: k.keyword,\n    seed_keyword: k.seed_keyword,\n    search_volume: k.search_volume\n  })),\n  processing_time_ms: Date.now() - d.startTime\n}}];"
+      },
+      "id": "resp-db",
+      "name": "Response DB",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [940, -100]
+    },
+    {
+      "parameters": {
+        "jsCode": "const d = $input.first().json;\nreturn [{json: {\n  success: true,\n  message: `Bulk tamamlandi: ${d.approved_keywords?.length || 0} ana sonuc, ${d.rejected_keywords?.length || 0} diger`,\n  project_id: null,\n  stats: d.stats,\n  keywords: (d.approved_keywords || []).map(k => ({\n    keyword: k.keyword,\n    seed_keyword: k.seed_keyword,\n    search_volume: k.search_volume,\n    priority: k.priority,\n    status: k.status\n  })),\n  rejected_keywords: (d.rejected_keywords || []).map(k => ({\n    keyword: k.keyword,\n    seed_keyword: k.seed_keyword,\n    search_volume: k.search_volume\n  })),\n  processing_time_ms: Date.now() - d.startTime\n}}];"
+      },
+      "id": "resp-no-db",
+      "name": "Response No DB",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [500, 100]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}"
+      },
+      "id": "respond",
+      "name": "Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1160, 0]
+    }
+  ],
+  "connections": {
+    "Webhook": {"main": [[{"node": "Validate"}]]},
+    "Validate": {"main": [[{"node": "Process Seeds"}]]},
+    "Process Seeds": {"main": [[{"node": "Combine Results"}]]},
+    "Combine Results": {"main": [[{"node": "IF DB"}]]},
+    "IF DB": {
+      "main": [
+        [{"node": "Build SQL"}],
+        [{"node": "Response No DB"}]
+      ]
+    },
+    "Build SQL": {"main": [[{"node": "MySQL"}]]},
+    "MySQL": {"main": [[{"node": "Response DB"}]]},
+    "Response DB": {"main": [[{"node": "Respond"}]]},
+    "Response No DB": {"main": [[{"node": "Respond"}]]}
+  },
+  "active": false,
+  "settings": {"executionOrder": "v1"},
+  "versionId": "bulk-main-v3",
+  "meta": {"templateCredsSetupCompleted": true},
+  "id": "WF-BULK-KEYWORD-MAIN-v3",
+  "tags": []
+}

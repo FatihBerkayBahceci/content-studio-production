@@ -99,14 +99,19 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     }
 
     // Build update query dynamically
-    const allowedFields = ['status', 'total_keywords_found', 'total_competitors_analyzed', 'total_paa_found'];
+    const allowedFields = ['status', 'total_keywords_found', 'total_competitors_analyzed', 'total_paa_found', 'bulk_stats', 'seed_keywords'];
     const updates: string[] = [];
     const values: unknown[] = [];
 
     for (const field of allowedFields) {
       if (body[field] !== undefined) {
         updates.push(`${field} = ?`);
-        values.push(body[field]);
+        // JSON stringify object fields
+        if ((field === 'bulk_stats' || field === 'seed_keywords') && typeof body[field] === 'object') {
+          values.push(JSON.stringify(body[field]));
+        } else {
+          values.push(body[field]);
+        }
       }
     }
 

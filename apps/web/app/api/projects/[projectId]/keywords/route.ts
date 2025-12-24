@@ -61,6 +61,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       SELECT
         id,
         keyword,
+        seed_keyword,
         keyword_type,
         search_volume,
         keyword_difficulty,
@@ -197,7 +198,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     const { projectId } = params;
     const body = await request.json();
-    const { keyword, search_volume, cpc, competition, source } = body;
+    const { keyword, seed_keyword, search_volume, cpc, competition, source } = body;
 
     if (!keyword) {
       return NextResponse.json(
@@ -260,12 +261,13 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     // Insert new keyword as approved
     const insertSql = `
-      INSERT INTO keyword_results (project_id, keyword, search_volume, cpc, competition, source, status, created_at)
-      VALUES (?, ?, ?, ?, ?, ?, 'approved', NOW())
+      INSERT INTO keyword_results (project_id, keyword, seed_keyword, search_volume, cpc, competition, source, status, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, 'approved', NOW())
     `;
     const result = await query(insertSql, [
       pid,
       keyword,
+      seed_keyword || null,
       search_volume || null,
       cpc || null,
       competition || null,

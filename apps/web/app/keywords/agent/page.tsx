@@ -74,6 +74,7 @@ interface Client {
 interface KeywordResult {
   id?: number;
   keyword: string;
+  seed_keyword?: string | null;
   source?: string;
   search_volume?: number | null;
   keyword_difficulty?: number | null;
@@ -81,6 +82,10 @@ interface KeywordResult {
   cpc?: number | null;
   search_intent?: string | null;
   trend?: 'up' | 'down' | 'stable' | null;
+  status?: 'approved' | 'rejected' | 'pending' | null;
+  cluster?: string | null;
+  priority?: string | null;
+  content_type?: string | null;
 }
 
 interface KeywordResearchResponse {
@@ -145,6 +150,18 @@ const LOADING_STEPS = [
   { label: 'Keywordler birleştiriliyor...', duration: 3000 },
   { label: 'AI en iyi keywordleri seçiyor...', duration: 6000 },
   { label: 'Sonuçlar kaydediliyor...', duration: 2000 },
+];
+
+const BULK_LOADING_STEPS = [
+  { label: 'Bulk proje oluşturuluyor...', duration: 2000 },
+  { label: 'DataForSEO bulk sorgusu yapılıyor...', duration: 15000 },
+  { label: 'Google Suggestions paralel çekiliyor...', duration: 20000 },
+  { label: 'Tüm keywordler birleştiriliyor...', duration: 5000 },
+  { label: 'AI chunk analizi yapılıyor (1/3)...', duration: 30000 },
+  { label: 'AI chunk analizi yapılıyor (2/3)...', duration: 30000 },
+  { label: 'AI chunk analizi yapılıyor (3/3)...', duration: 30000 },
+  { label: 'Sonuçlar veritabanına kaydediliyor...', duration: 10000 },
+  { label: 'Tamamlanıyor...', duration: 3000 },
 ];
 
 // Turkish character normalization
@@ -280,10 +297,12 @@ function LoadingOverlay({
   currentStep,
   totalSteps,
   stepLabel,
+  isBulk = false,
 }: {
   currentStep: number;
   totalSteps: number;
   stepLabel: string;
+  isBulk?: boolean;
 }) {
   return (
     <motion.div
@@ -566,7 +585,18 @@ export default function KeywordAgentPage() {
   const [aiCategorized, setAiCategorized] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [rawSearchQuery, setRawSearchQuery] = useState('');
+  const [primarySearchQuery, setPrimarySearchQuery] = useState('');
   const categorizationStartedRef = useRef(false);
+
+  // Bulk seed filter state
+  const [seedKeywords, setSeedKeywords] = useState<string[]>([]);
+  const [selectedSeed, setSelectedSeed] = useState<string | null>(null);
+  const [projectType, setProjectType] = useState<'single' | 'bulk'>('single');
+
+  // Bulk project merge state
+  const [bulkProjects, setBulkProjects] = useState<RecentProject[]>([]);
+  const [selectedBulkProjectId, setSelectedBulkProjectId] = useState<number | null>(null);
+  const [isNewBulkProject, setIsNewBulkProject] = useState(true);
 
   // Recent projects
   const [recentProjects, setRecentProjects] = useState<RecentProject[]>([]);
@@ -646,21 +676,43 @@ export default function KeywordAgentPage() {
     fetchProjects();
   }, [projectId]);
 
-  // Loading animation
+  // Fetch bulk projects for selected client
+  useEffect(() => {
+    if (mode === 'bulk' && selectedClientId) {
+      const fetchBulkProjects = async () => {
+        try {
+          const response = await fetch(`/api/projects?client_id=${selectedClientId}&project_type=bulk`);
+          const data = await response.json();
+          if (data.success && data.projects) {
+            setBulkProjects(data.projects);
+          }
+        } catch (err) {
+          console.error('Failed to fetch bulk projects:', err);
+        }
+      };
+      fetchBulkProjects();
+    } else {
+      setBulkProjects([]);
+      setSelectedBulkProjectId(null);
+    }
+  }, [mode, selectedClientId]);
+
+  // Loading animation - uses different steps for bulk mode
   useEffect(() => {
     if (isLoading) {
       setCurrentStep(0);
       let stepIndex = 0;
+      const steps = mode === 'bulk' ? BULK_LOADING_STEPS : LOADING_STEPS;
 
       const advanceStep = () => {
-        if (stepIndex < LOADING_STEPS.length - 1) {
+        if (stepIndex < steps.length - 1) {
           stepIndex++;
           setCurrentStep(stepIndex);
-          loadingIntervalRef.current = setTimeout(advanceStep, LOADING_STEPS[stepIndex].duration);
+          loadingIntervalRef.current = setTimeout(advanceStep, steps[stepIndex].duration);
         }
       };
 
-      loadingIntervalRef.current = setTimeout(advanceStep, LOADING_STEPS[0].duration);
+      loadingIntervalRef.current = setTimeout(advanceStep, steps[0].duration);
     } else {
       if (loadingIntervalRef.current) {
         clearTimeout(loadingIntervalRef.current);
@@ -671,12 +723,24 @@ export default function KeywordAgentPage() {
     return () => {
       if (loadingIntervalRef.current) clearTimeout(loadingIntervalRef.current);
     };
-  }, [isLoading]);
+  }, [isLoading, mode]);
 
-  // Sort results by volume
+  // Sort and filter results by volume and seed
   const sortedResults = useMemo(() => {
-    return [...results].sort((a, b) => (b.search_volume || 0) - (a.search_volume || 0));
-  }, [results]);
+    let filtered = [...results];
+
+    // Filter by seed keyword if bulk project and a seed is selected
+    if (projectType === 'bulk' && selectedSeed) {
+      filtered = filtered.filter(kw => kw.seed_keyword === selectedSeed);
+    }
+
+    // Filter by search query
+    if (primarySearchQuery) {
+      filtered = filtered.filter(kw => kw.keyword.toLowerCase().includes(primarySearchQuery.toLowerCase()));
+    }
+
+    return filtered.sort((a, b) => (b.search_volume || 0) - (a.search_volume || 0));
+  }, [results, projectType, selectedSeed, primarySearchQuery]);
 
   // Grouped keywords (for category chips) - uses AI categories or rule-based grouping
   const groupedKeywords = useMemo(() => {
@@ -697,7 +761,7 @@ export default function KeywordAgentPage() {
     return groupKeywords(rawKeywords);
   }, [rawKeywords, aiCategorized, aiCategories]);
 
-  // Filter raw keywords (exclude ones already in main list + apply search and category filters)
+  // Filter raw keywords (exclude ones already in main list + apply search, category, and seed filters)
   const filteredRawKeywords = useMemo(() => {
     const mainKeywordSet = new Set(results.map(k => normalizeKeyword(k.keyword)));
 
@@ -719,13 +783,24 @@ export default function KeywordAgentPage() {
         if (rawSearchQuery && !kw.keyword.toLowerCase().includes(rawSearchQuery.toLowerCase())) return false;
         // Apply category filter
         if (categoryKeywords && !categoryKeywords.has(normalizedKw)) return false;
+        // Apply seed filter for bulk projects
+        if (projectType === 'bulk' && selectedSeed && kw.seed_keyword !== selectedSeed) return false;
         return true;
       })
       .sort((a, b) => (b.search_volume || 0) - (a.search_volume || 0));
-  }, [rawKeywords, results, rawSearchQuery, selectedCategory, groupedKeywords]);
+  }, [rawKeywords, results, rawSearchQuery, selectedCategory, groupedKeywords, projectType, selectedSeed]);
 
-  // Handle search
+  // Handle search - routes to single or bulk based on mode
   const handleSearch = async () => {
+    if (mode === 'bulk') {
+      await handleBulkSearch();
+    } else {
+      await handleSingleSearch();
+    }
+  };
+
+  // Handle single keyword search
+  const handleSingleSearch = async () => {
     if (isLoading) return;
 
     const keywordList = keywords.trim().split('\n').filter(k => k.trim().length >= 2);
@@ -788,6 +863,11 @@ export default function KeywordAgentPage() {
         const keywordResults = response.keywords || [];
         setResults(keywordResults);
 
+        // Set single mode states
+        setProjectType('single');
+        setSeedKeywords([]);
+        setSelectedSeed(null);
+
         // Update project
         if (keywordResults.length > 0) {
           await fetch(`/api/projects/${newProjectId}`, {
@@ -817,6 +897,179 @@ export default function KeywordAgentPage() {
       }
     } catch (err: any) {
       setError(err.message || 'API hatası');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Handle bulk keyword search - processes multiple keywords at once
+  const handleBulkSearch = async () => {
+    if (isLoading) return;
+
+    const keywordList = keywords.trim().split('\n').filter(k => k.trim().length >= 2);
+    if (keywordList.length === 0) {
+      setError('En az bir keyword girin (minimum 2 karakter)');
+      return;
+    }
+
+    if (keywordList.length > 100) {
+      setError('Maksimum 100 keyword girebilirsiniz');
+      return;
+    }
+
+    if (!selectedClientId) {
+      setError('Lütfen bir müşteri seçin');
+      return;
+    }
+
+    const mainKeyword = keywordList[0];
+
+    // Check if using existing project
+    const useExistingProject = !isNewBulkProject && selectedBulkProjectId;
+
+    if (useExistingProject && !selectedBulkProjectId) {
+      setError('Lütfen mevcut bir proje seçin veya yeni proje oluşturun');
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+    setResults([]);
+    setRawKeywords([]);
+    setSelectedPrimary(new Set());
+    setSelectedOther(new Set());
+    setAiCategories([]);
+    setAiCategorized(false);
+    categorizationStartedRef.current = false;
+
+    // Don't reset project states if using existing project
+    if (!useExistingProject) {
+      setProjectId(null);
+      setProjectUuid(null);
+    }
+
+    try {
+      let targetProjectId: number;
+      let targetProjectUuid: string;
+
+      if (useExistingProject && selectedBulkProjectId) {
+        // Use existing project
+        targetProjectId = selectedBulkProjectId;
+        targetProjectUuid = String(selectedBulkProjectId);
+
+        // Get existing project's seed keywords and merge with new ones
+        const existingProject = bulkProjects.find(p => p.id === selectedBulkProjectId);
+        let combinedSeeds = keywordList;
+
+        if (existingProject) {
+          // Merge seed keywords - existing project might have seed_keywords in different format
+          let existingSeeds: string[] = [];
+          if (existingProject.seed_keywords) {
+            try {
+              existingSeeds = typeof existingProject.seed_keywords === 'string'
+                ? JSON.parse(existingProject.seed_keywords)
+                : existingProject.seed_keywords;
+            } catch {
+              existingSeeds = [];
+            }
+          }
+          // Combine existing and new seeds (unique)
+          combinedSeeds = Array.from(new Set([...existingSeeds, ...keywordList]));
+        }
+        setSeedKeywords(combinedSeeds);
+
+        // Update project's seed_keywords in DB
+        await fetch(`/api/projects/${targetProjectId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ seed_keywords: combinedSeeds }),
+        });
+      } else {
+        // Create new bulk project
+        const projectResponse = await fetch('/api/projects', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            client_id: selectedClientId,
+            name: `Bulk Research: ${mainKeyword} (+${keywordList.length - 1} keywords)`,
+            main_keyword: mainKeyword,
+            target_country: region,
+            target_language: language,
+            project_type: 'bulk',
+            seed_keywords: keywordList,
+          }),
+        });
+        const projectData = await projectResponse.json();
+
+        if (!projectData.success || !projectData.project?.id) {
+          throw new Error(projectData.error || 'Proje oluşturulamadı');
+        }
+
+        targetProjectId = projectData.project.id;
+        targetProjectUuid = projectData.project.uuid || targetProjectId;
+        setSeedKeywords(keywordList);
+      }
+
+      setProjectId(targetProjectId);
+      setProjectUuid(targetProjectUuid);
+
+      // Run bulk keyword research via n8n
+      const response = await api.post<KeywordResearchResponse>('/bulk-keyword-research', {
+        keywords: keywordList,
+        country: region,
+        language: language,
+        project_id: targetProjectId,
+        client_id: selectedClientId,
+        custom_rules: aiContext.trim() || undefined,
+        project_name: useExistingProject ? undefined : `Bulk Research: ${mainKeyword}`,
+      }, { timeout: 600000 }); // 10 minute timeout for bulk
+
+      if (response.success) {
+        const keywordResults = response.keywords || [];
+
+        // Set bulk mode states
+        setProjectType('bulk');
+        setSelectedSeed(null); // Show all initially
+
+        // Update project with stats
+        await fetch(`/api/projects/${targetProjectId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            status: 'keywords_discovered',
+            total_keywords_found: keywordResults.length,
+            bulk_stats: response.stats,
+          }),
+        });
+
+        // Fetch all keywords (approved + rejected) from DB - this will include all keywords for the project
+        await fetchRawKeywords(targetProjectId);
+
+        // Fetch approved keywords
+        const approvedResponse = await fetch(`/api/projects/${targetProjectId}/keywords`);
+        const approvedData = await approvedResponse.json();
+        if (approvedData.success && approvedData.data) {
+          setResults(approvedData.data);
+        } else {
+          setResults(keywordResults);
+        }
+
+        showNotification('success', `Bulk araştırma tamamlandı! ${keywordResults.length} keyword onaylandı.`);
+
+        // Refresh bulk projects list
+        if (useExistingProject) {
+          const response = await fetch(`/api/projects?client_id=${selectedClientId}&project_type=bulk`);
+          const data = await response.json();
+          if (data.success && data.projects) {
+            setBulkProjects(data.projects);
+          }
+        }
+      } else {
+        setError(response.error || 'Bulk araştırma hatası');
+      }
+    } catch (err: any) {
+      console.error('Bulk search error:', err);
+      setError(err.message || 'Bulk API hatası');
     } finally {
       setIsLoading(false);
     }
@@ -988,6 +1241,9 @@ export default function KeywordAgentPage() {
     setSelectedCategory(null);
     setSelectedPrimary(new Set());
     setSelectedOther(new Set());
+    setSeedKeywords([]);
+    setSelectedSeed(null);
+    setProjectType('single');
     categorizationStartedRef.current = false;
 
     // Set project info
@@ -998,6 +1254,30 @@ export default function KeywordAgentPage() {
     setIsLoading(true);
 
     try {
+      // Fetch project details to get project type and seed keywords
+      const projectRes = await fetch(`/api/projects/${projId}`);
+      const projectData = await projectRes.json();
+
+      if (projectData.success && projectData.project) {
+        const proj = projectData.project;
+        if (proj.project_type === 'bulk') {
+          setProjectType('bulk');
+          setMode('bulk');
+          // Parse seed_keywords if it's a JSON string
+          let seeds: string[] = [];
+          if (proj.seed_keywords) {
+            try {
+              seeds = typeof proj.seed_keywords === 'string'
+                ? JSON.parse(proj.seed_keywords)
+                : proj.seed_keywords;
+            } catch {
+              seeds = [];
+            }
+          }
+          setSeedKeywords(seeds);
+        }
+      }
+
       // Fetch approved keywords
       const keywordsRes = await fetch(`/api/projects/${projId}/keywords`);
       const keywordsData = await keywordsRes.json();
@@ -1028,6 +1308,7 @@ export default function KeywordAgentPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           keyword: kw.keyword,
+          seed_keyword: kw.seed_keyword,
           search_volume: kw.search_volume,
           cpc: kw.cpc,
           competition: kw.competition,
@@ -1140,9 +1421,10 @@ export default function KeywordAgentPage() {
     setSelectedPrimary(new Set());
   };
 
-  // Copy keyword
-  const copyKeyword = (kw: string) => {
-    navigator.clipboard.writeText(kw);
+  // Copy keyword with volume
+  const copyKeyword = (keyword: string, volume?: number | null) => {
+    const text = `${keyword}\t${volume?.toLocaleString() || ''}`;
+    navigator.clipboard.writeText(text);
     showNotification('success', 'Keyword kopyalandı');
   };
 
@@ -1156,10 +1438,10 @@ export default function KeywordAgentPage() {
     return [...primaryKws, ...otherKws];
   };
 
-  // Copy selected keywords
+  // Copy selected keywords with volume
   const copySelectedKeywords = () => {
     const keywords = getSelectedKeywords();
-    const text = keywords.map(kw => kw.keyword).join('\n');
+    const text = keywords.map(kw => `${kw.keyword}\t${kw.search_volume?.toLocaleString() || ''}`).join('\n');
     navigator.clipboard.writeText(text);
     showNotification('success', `${keywords.length} keyword kopyalandı`);
   };
@@ -1340,7 +1622,12 @@ export default function KeywordAgentPage() {
             <div className="relative overflow-hidden flex-shrink-0 rounded-xl p-4 bg-white/[0.02] backdrop-blur-xl border border-white/[0.08] shadow-[0_8px_32px_-8px_rgba(0,0,0,0.5),inset_0_1px_0_0_rgba(255,255,255,0.05)]">
               <AnimatePresence>
                 {isLoading && (
-                  <LoadingOverlay currentStep={currentStep} totalSteps={LOADING_STEPS.length} stepLabel={LOADING_STEPS[currentStep]?.label || ''} />
+                  <LoadingOverlay
+                    currentStep={currentStep}
+                    totalSteps={mode === 'bulk' ? BULK_LOADING_STEPS.length : LOADING_STEPS.length}
+                    stepLabel={(mode === 'bulk' ? BULK_LOADING_STEPS : LOADING_STEPS)[currentStep]?.label || ''}
+                    isBulk={mode === 'bulk'}
+                  />
                 )}
               </AnimatePresence>
 
@@ -1373,22 +1660,75 @@ export default function KeywordAgentPage() {
                 <div>
                   <label className="block text-xs font-medium text-zinc-500 mb-1.5">Language</label>
                   <div className="relative">
-                    <select value={language} onChange={(e) => setLanguage(e.target.value)} className="w-full appearance-none bg-white/[0.03] border border-white/[0.08] rounded-md py-2 pl-3 pr-8 text-sm text-white focus:ring-1 focus:ring-primary focus:border-primary focus:outline-none" disabled={isLoading}>
-                      {LANGUAGES.map(l => <option key={l.code} value={l.code}>{l.flag} {l.name}</option>)}
+                    <select value={language} onChange={(e) => setLanguage(e.target.value)} className="w-full appearance-none bg-zinc-800 border border-zinc-700 rounded-md py-2 pl-3 pr-8 text-sm text-white focus:ring-1 focus:ring-primary focus:border-primary focus:outline-none" disabled={isLoading}>
+                      {LANGUAGES.map(l => <option key={l.code} value={l.code} className="bg-zinc-800 text-white">{l.flag} {l.name}</option>)}
                     </select>
-                    <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500 pointer-events-none" />
+                    <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400 pointer-events-none" />
                   </div>
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-zinc-500 mb-1.5">Region</label>
                   <div className="relative">
-                    <select value={region} onChange={(e) => setRegion(e.target.value)} className="w-full appearance-none bg-white/[0.03] border border-white/[0.08] rounded-md py-2 pl-3 pr-8 text-sm text-white focus:ring-1 focus:ring-primary focus:border-primary focus:outline-none" disabled={isLoading}>
-                      {REGIONS.map(r => <option key={r.code} value={r.code}>{r.flag} {r.name}</option>)}
+                    <select value={region} onChange={(e) => setRegion(e.target.value)} className="w-full appearance-none bg-zinc-800 border border-zinc-700 rounded-md py-2 pl-3 pr-8 text-sm text-white focus:ring-1 focus:ring-primary focus:border-primary focus:outline-none" disabled={isLoading}>
+                      {REGIONS.map(r => <option key={r.code} value={r.code} className="bg-zinc-800 text-white">{r.flag} {r.name}</option>)}
                     </select>
-                    <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500 pointer-events-none" />
+                    <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400 pointer-events-none" />
                   </div>
                 </div>
               </div>
+
+              {/* Bulk Project Selection - Show only in bulk mode */}
+              {mode === 'bulk' && (
+                <div className="mb-5 p-3 rounded-lg bg-white/[0.02] border border-white/[0.06]">
+                  <div className="flex items-center gap-3 mb-3">
+                    <label className="text-xs font-medium text-zinc-400">Proje Seçimi</label>
+                    <div className="flex items-center gap-1 bg-zinc-800 rounded-md p-0.5">
+                      <button
+                        onClick={() => { setIsNewBulkProject(true); setSelectedBulkProjectId(null); }}
+                        className={cn(
+                          'px-2.5 py-1 text-xs rounded transition-all',
+                          isNewBulkProject ? 'bg-primary text-white' : 'text-zinc-400 hover:text-white'
+                        )}
+                        disabled={isLoading}
+                      >
+                        Yeni Proje
+                      </button>
+                      <button
+                        onClick={() => setIsNewBulkProject(false)}
+                        className={cn(
+                          'px-2.5 py-1 text-xs rounded transition-all',
+                          !isNewBulkProject ? 'bg-primary text-white' : 'text-zinc-400 hover:text-white'
+                        )}
+                        disabled={isLoading || bulkProjects.length === 0}
+                      >
+                        Mevcut Projeye Ekle
+                      </button>
+                    </div>
+                  </div>
+
+                  {!isNewBulkProject && (
+                    <div className="relative">
+                      <select
+                        value={selectedBulkProjectId || ''}
+                        onChange={(e) => setSelectedBulkProjectId(e.target.value ? Number(e.target.value) : null)}
+                        className="w-full appearance-none bg-zinc-800 border border-zinc-700 rounded-md py-2 pl-3 pr-8 text-sm text-white focus:ring-1 focus:ring-primary focus:border-primary focus:outline-none"
+                        disabled={isLoading}
+                      >
+                        <option value="" className="bg-zinc-800 text-white">Proje seçin...</option>
+                        {bulkProjects.map(p => (
+                          <option key={p.id} value={p.id} className="bg-zinc-800 text-white">
+                            {p.name} ({p.total_keywords_found || 0} keyword)
+                          </option>
+                        ))}
+                      </select>
+                      <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400 pointer-events-none" />
+                      {bulkProjects.length === 0 && (
+                        <p className="mt-1.5 text-xs text-zinc-500">Bu müşteri için henüz bulk proje yok</p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
 
               <div className="mb-6">
                 <button onClick={() => setShowAiContext(!showAiContext)} className="flex items-center gap-2 text-xs font-medium text-zinc-500 hover:text-primary transition-colors">
@@ -1418,48 +1758,102 @@ export default function KeywordAgentPage() {
               </AnimatePresence>
             </div>
 
-            <RecentProjectsPanel
-              projects={recentProjects}
-              isLoading={isLoadingProjects}
-              onSelectProject={loadProject}
-              activeProjectId={projectId}
-            />
+            {/* Recent Projects - sadece sonuç yokken göster */}
+            {results.length === 0 && rawKeywords.length === 0 && (
+              <RecentProjectsPanel
+                projects={recentProjects}
+                isLoading={isLoadingProjects}
+                onSelectProject={loadProject}
+                activeProjectId={projectId}
+              />
+            )}
           </div>
 
           {/* Right Panel - Results */}
           <div className="lg:col-span-9 flex flex-col gap-3 min-h-0 overflow-hidden">
             {/* Primary Results Table */}
             <div className="overflow-hidden flex flex-col flex-1 min-h-0 rounded-xl bg-white/[0.02] backdrop-blur-xl border border-white/[0.08] shadow-[0_8px_32px_-8px_rgba(0,0,0,0.5),inset_0_1px_0_0_rgba(255,255,255,0.05)]">
-              <div className="px-4 py-2 border-b border-white/[0.05] flex items-center justify-between flex-shrink-0">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-white/[0.05]"><CheckCircle2 className="h-4 w-4 text-primary" /></div>
-                  <h3 className="text-sm font-semibold text-white">Ana Sonuçlar</h3>
-                  {results.length > 0 && <span className="text-xs px-2 py-0.5 rounded-full border tabular-nums font-mono bg-emerald-900/20 text-emerald-300 border-emerald-900/30">{results.length} accepted</span>}
+              <div className="px-4 py-2 border-b border-white/[0.05] flex-shrink-0">
+                {/* Title Row */}
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-white/[0.05]"><CheckCircle2 className="h-4 w-4 text-primary" /></div>
+                    <h3 className="text-sm font-semibold text-white">Ana Sonuçlar</h3>
+                    {results.length > 0 && <span className="text-xs px-2 py-0.5 rounded-full border tabular-nums font-mono bg-emerald-900/20 text-emerald-300 border-emerald-900/30">{sortedResults.length}{projectType === 'bulk' && selectedSeed ? `/${results.length}` : ''}{primarySearchQuery ? ` (filtreli)` : ''} accepted</span>}
+
+                    {/* Seed Filter Dropdown for Bulk Projects */}
+                    {projectType === 'bulk' && seedKeywords.length > 0 && (
+                      <div className="relative">
+                        <select
+                          value={selectedSeed || ''}
+                          onChange={(e) => setSelectedSeed(e.target.value || null)}
+                          className="appearance-none bg-zinc-800 border border-zinc-700 rounded-lg pl-3 pr-8 py-1.5 text-xs text-white focus:ring-1 focus:ring-primary focus:border-primary focus:outline-none cursor-pointer min-w-[180px]"
+                        >
+                          <option value="" className="bg-zinc-800 text-white">Tüm Keywordler ({results.length})</option>
+                          {seedKeywords.map((seed) => {
+                            const count = results.filter(r => r.seed_keyword === seed).length;
+                            return (
+                              <option key={seed} value={seed} className="bg-zinc-800 text-white">
+                                {seed} ({count})
+                              </option>
+                            );
+                          })}
+                        </select>
+                        <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-3 w-3 text-zinc-400 pointer-events-none" />
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {selectedPrimary.size > 0 && (
+                      <>
+                        <button onClick={deselectAllPrimary} className="flex items-center gap-1.5 px-2 py-1 text-xs font-medium text-zinc-400 bg-zinc-800 rounded hover:bg-zinc-700 transition-colors">
+                          <X className="h-3 w-3" />{selectedPrimary.size} seçili
+                        </button>
+                        <button onClick={bulkRemoveFromMain} className="flex items-center gap-1.5 px-2 py-1 text-xs font-medium text-red-400 bg-red-900/20 border border-red-900/30 rounded hover:bg-red-900/30 transition-colors">
+                          <Trash2 className="h-3 w-3" />Sil
+                        </button>
+                      </>
+                    )}
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  {selectedPrimary.size > 0 && (
-                    <button onClick={bulkRemoveFromMain} className="flex items-center gap-1.5 px-2 py-1 text-xs font-medium text-red-400 bg-red-900/20 border border-red-900/30 rounded hover:bg-red-900/30 transition-colors">
-                      <Trash2 className="h-3 w-3" />{selectedPrimary.size} Sil
+
+                {/* Search Input */}
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
+                  <input
+                    type="text"
+                    placeholder="Kelime ara..."
+                    value={primarySearchQuery}
+                    onChange={(e) => setPrimarySearchQuery(e.target.value)}
+                    className="w-full pl-10 pr-10 py-2 rounded-lg bg-white/[0.03] border border-white/[0.08] text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-all"
+                  />
+                  {primarySearchQuery && (
+                    <button onClick={() => setPrimarySearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded hover:bg-zinc-800">
+                      <X className="h-3 w-3 text-zinc-500" />
                     </button>
                   )}
-                  <button onClick={selectedPrimary.size === sortedResults.length && sortedResults.length > 0 ? deselectAllPrimary : selectAllPrimary} className="flex items-center gap-1.5 px-2 py-1 text-xs font-medium text-zinc-400 bg-zinc-800 rounded hover:bg-zinc-700 transition-colors">
-                    {selectedPrimary.size === sortedResults.length && sortedResults.length > 0 ? <CheckSquare className="h-3 w-3" /> : <Square className="h-3 w-3" />}
-                    {selectedPrimary.size > 0 ? `${selectedPrimary.size} seçili` : 'Tümünü Seç'}
-                  </button>
                 </div>
               </div>
 
               <div className="overflow-auto flex-1 min-h-0">
                 <table className="w-full text-left text-sm whitespace-nowrap">
-                  <thead className="bg-white/[0.02] backdrop-blur-sm border-b border-white/[0.05] sticky top-0 z-10">
+                  <thead className="bg-zinc-900 border-b border-white/[0.05] sticky top-0 z-20">
                     <tr>
-                      <th className="px-3 py-2 w-10"></th>
-                      <th className="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-zinc-400">Keyword</th>
-                      <th className="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-zinc-400 text-right">Vol</th>
-                      <th className="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-zinc-400 text-center">KD</th>
-                      <th className="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-zinc-400 text-right">CPC</th>
-                      <th className="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-zinc-400">Intent</th>
-                      <th className="px-3 py-2 w-12"></th>
+                      <th className="px-3 py-2 w-10 bg-zinc-900">
+                        <button
+                          onClick={(e) => { e.stopPropagation(); selectedPrimary.size === sortedResults.length && sortedResults.length > 0 ? deselectAllPrimary() : selectAllPrimary(); }}
+                          className="p-1 rounded hover:bg-zinc-700 transition-colors"
+                          title={selectedPrimary.size === sortedResults.length && sortedResults.length > 0 ? 'Seçimi kaldır' : 'Tümünü seç'}
+                        >
+                          {selectedPrimary.size === sortedResults.length && sortedResults.length > 0 ? <CheckSquare className="h-4 w-4 text-primary" /> : <Square className="h-4 w-4 text-zinc-500" />}
+                        </button>
+                      </th>
+                      <th className="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-zinc-400 bg-zinc-900">Keyword</th>
+                      <th className="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-zinc-400 text-right bg-zinc-900">Vol</th>
+                      <th className="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-zinc-400 text-center bg-zinc-900">KD</th>
+                      <th className="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-zinc-400 text-right bg-zinc-900">CPC</th>
+                      <th className="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-zinc-400 bg-zinc-900">Intent</th>
+                      <th className="px-3 py-2 w-12 bg-zinc-900"></th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-white/[0.03]">
@@ -1478,7 +1872,7 @@ export default function KeywordAgentPage() {
                             </td>
                             <td className="px-4 py-3 font-medium text-white">
                               {kw.keyword}
-                              <button onClick={(e) => { e.stopPropagation(); copyKeyword(kw.keyword); }} className="ml-2 opacity-0 group-hover:opacity-100 text-[10px] text-zinc-500 hover:text-primary transition-opacity">Copy</button>
+                              <button onClick={(e) => { e.stopPropagation(); copyKeyword(kw.keyword, kw.search_volume); }} className="ml-2 opacity-0 group-hover:opacity-100 text-[10px] text-zinc-500 hover:text-primary transition-opacity">Copy</button>
                             </td>
                             <td className="px-4 py-3 text-zinc-300 text-right tabular-nums font-mono">{kw.search_volume?.toLocaleString() || '-'}</td>
                             <td className="px-4 py-3 text-center"><DifficultyBadge value={kw.keyword_difficulty} /></td>
@@ -1524,6 +1918,32 @@ export default function KeywordAgentPage() {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
+                    {/* Category Dropdown */}
+                    {groupedKeywords.length > 0 && (
+                      <>
+                        <div className="relative">
+                          <select
+                            value={selectedCategory || ''}
+                            onChange={(e) => setSelectedCategory(e.target.value || null)}
+                            className="appearance-none bg-zinc-800 border border-zinc-700 rounded-lg pl-3 pr-8 py-1.5 text-xs text-white focus:ring-1 focus:ring-primary focus:border-primary focus:outline-none cursor-pointer min-w-[160px]"
+                          >
+                            <option value="" className="bg-zinc-800 text-white">Tüm Kategoriler ({rawKeywords.length})</option>
+                            {groupedKeywords.map((group) => (
+                              <option key={group.id} value={group.id} className="bg-zinc-800 text-white">
+                                {group.name} ({group.keywords.length})
+                              </option>
+                            ))}
+                          </select>
+                          <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-3 w-3 text-zinc-400 pointer-events-none" />
+                        </div>
+                        {selectedCategory && (
+                          <button onClick={() => setSelectedCategory(null)} className="p-1.5 rounded-lg text-red-400 bg-red-500/10 hover:bg-red-500/20 transition-colors" title="Filtreyi temizle">
+                            <X className="h-3 w-3" />
+                          </button>
+                        )}
+                      </>
+                    )}
+
                     {/* AI Categorization Button */}
                     {isAiCategorizing ? (
                       <div className="flex items-center gap-1.5 px-2 py-1 text-xs font-medium bg-primary/10 text-primary rounded">
@@ -1539,50 +1959,17 @@ export default function KeywordAgentPage() {
                       </button>
                     ) : null}
                     {selectedOther.size > 0 && (
-                      <button onClick={bulkAddToMain} className="flex items-center gap-1.5 px-2 py-1 text-xs font-medium text-emerald-400 bg-emerald-900/20 border border-emerald-900/30 rounded hover:bg-emerald-900/30 transition-colors">
-                        <Plus className="h-3 w-3" />{selectedOther.size} Ekle
-                      </button>
+                      <>
+                        <button onClick={deselectAllOther} className="flex items-center gap-1.5 px-2 py-1 text-xs font-medium text-zinc-400 bg-zinc-800 rounded hover:bg-zinc-700 transition-colors">
+                          <X className="h-3 w-3" />{selectedOther.size} seçili
+                        </button>
+                        <button onClick={bulkAddToMain} className="flex items-center gap-1.5 px-2 py-1 text-xs font-medium text-emerald-400 bg-emerald-900/20 border border-emerald-900/30 rounded hover:bg-emerald-900/30 transition-colors">
+                          <Plus className="h-3 w-3" />Ekle
+                        </button>
+                      </>
                     )}
-                    <button onClick={selectedOther.size === filteredRawKeywords.length && filteredRawKeywords.length > 0 ? deselectAllOther : selectAllOther} className="flex items-center gap-1.5 px-2 py-1 text-xs font-medium text-zinc-400 bg-zinc-800 rounded hover:bg-zinc-700 transition-colors">
-                      {selectedOther.size === filteredRawKeywords.length && filteredRawKeywords.length > 0 ? <CheckSquare className="h-3 w-3" /> : <Square className="h-3 w-3" />}
-                      {selectedOther.size > 0 ? `${selectedOther.size} seçili` : 'Tümünü Seç'}
-                    </button>
                   </div>
                 </div>
-
-                {/* Category Chips */}
-                {groupedKeywords.length > 0 && (
-                  <div className="flex items-center gap-2 flex-wrap mb-2">
-                    {selectedCategory && (
-                      <button onClick={() => setSelectedCategory(null)} className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors">
-                        <X className="h-3 w-3" />Filtreyi Kaldır
-                      </button>
-                    )}
-                    {groupedKeywords.slice(0, 6).map((group) => {
-                      const GroupIcon = getGroupIcon(group.icon);
-                      const isSelected = selectedCategory === group.id;
-                      return (
-                        <button
-                          key={group.id}
-                          onClick={() => toggleCategoryFilter(group.id)}
-                          className={cn(
-                            "flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium transition-all cursor-pointer",
-                            isSelected ? 'ring-2 ring-offset-1 ring-offset-zinc-900' : '',
-                            group.id === 'brands' ? cn('bg-blue-500/10 text-blue-400 hover:bg-blue-500/20', isSelected && 'ring-blue-400 bg-blue-500/30') :
-                            group.id === 'sizes' ? cn('bg-purple-500/10 text-purple-400 hover:bg-purple-500/20', isSelected && 'ring-purple-400 bg-purple-500/30') :
-                            group.id === 'price' ? cn('bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20', isSelected && 'ring-emerald-400 bg-emerald-500/30') :
-                            group.id === 'comparison' ? cn('bg-amber-500/10 text-amber-400 hover:bg-amber-500/20', isSelected && 'ring-amber-400 bg-amber-500/30') :
-                            group.id === 'questions' ? cn('bg-cyan-500/10 text-cyan-400 hover:bg-cyan-500/20', isSelected && 'ring-cyan-400 bg-cyan-500/30') :
-                            cn('bg-zinc-800 text-zinc-300 hover:bg-zinc-700', isSelected && 'ring-primary bg-primary/20 text-primary')
-                          )}
-                        >
-                          <GroupIcon className="h-3 w-3" />
-                          {group.name}: {group.keywords.length}
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
 
                 {/* Search Input */}
                 <div className="relative">
@@ -1604,15 +1991,23 @@ export default function KeywordAgentPage() {
 
               <div className="overflow-auto flex-1 min-h-0">
                 <table className="w-full text-left text-sm whitespace-nowrap">
-                  <thead className="bg-white/[0.02] backdrop-blur-sm border-b border-white/[0.05] sticky top-0 z-10">
+                  <thead className="bg-zinc-900 border-b border-white/[0.05] sticky top-0 z-20">
                     <tr>
-                      <th className="px-3 py-2 w-10"></th>
-                      <th className="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-zinc-400">Keyword</th>
-                      <th className="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-zinc-400 text-right">Vol</th>
-                      <th className="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-zinc-400 text-center">KD</th>
-                      <th className="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-zinc-400 text-right">CPC</th>
-                      <th className="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-zinc-400">Intent</th>
-                      <th className="px-3 py-2 w-12"></th>
+                      <th className="px-3 py-2 w-10 bg-zinc-900">
+                        <button
+                          onClick={(e) => { e.stopPropagation(); selectedOther.size === filteredRawKeywords.length && filteredRawKeywords.length > 0 ? deselectAllOther() : selectAllOther(); }}
+                          className="p-1 rounded hover:bg-zinc-700 transition-colors"
+                          title={selectedOther.size === filteredRawKeywords.length && filteredRawKeywords.length > 0 ? 'Seçimi kaldır' : 'Tümünü seç'}
+                        >
+                          {selectedOther.size === filteredRawKeywords.length && filteredRawKeywords.length > 0 ? <CheckSquare className="h-4 w-4 text-blue-400" /> : <Square className="h-4 w-4 text-zinc-500" />}
+                        </button>
+                      </th>
+                      <th className="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-zinc-400 bg-zinc-900">Keyword</th>
+                      <th className="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-zinc-400 text-right bg-zinc-900">Vol</th>
+                      <th className="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-zinc-400 text-center bg-zinc-900">KD</th>
+                      <th className="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-zinc-400 text-right bg-zinc-900">CPC</th>
+                      <th className="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-zinc-400 bg-zinc-900">Intent</th>
+                      <th className="px-3 py-2 w-12 bg-zinc-900"></th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-white/[0.03]">
@@ -1632,7 +2027,7 @@ export default function KeywordAgentPage() {
                             </td>
                             <td className="px-3 py-2 font-medium text-white">
                               {kw.keyword}
-                              <button onClick={(e) => { e.stopPropagation(); copyKeyword(kw.keyword); }} className="ml-2 opacity-0 group-hover:opacity-100 text-[10px] text-zinc-500 hover:text-primary transition-opacity">Copy</button>
+                              <button onClick={(e) => { e.stopPropagation(); copyKeyword(kw.keyword, kw.search_volume); }} className="ml-2 opacity-0 group-hover:opacity-100 text-[10px] text-zinc-500 hover:text-primary transition-opacity">Copy</button>
                             </td>
                             <td className="px-3 py-2 text-zinc-300 text-right tabular-nums font-mono">{kw.search_volume?.toLocaleString() || '-'}</td>
                             <td className="px-3 py-2 text-center"><DifficultyBadge value={kw.keyword_difficulty} /></td>
@@ -1655,7 +2050,7 @@ export default function KeywordAgentPage() {
         </div>
       </main>
 
-      {/* Floating Action Bar - Compact */}
+      {/* Floating Action Bar - Quick Actions */}
       <AnimatePresence>
         {totalSelected > 0 && (
           <motion.div
@@ -1663,63 +2058,56 @@ export default function KeywordAgentPage() {
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 100, opacity: 0 }}
             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-            className="fixed bottom-4 left-1/2 -translate-x-1/2 z-40"
+            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40"
           >
-            <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-black/60 backdrop-blur-xl border border-white/[0.1] shadow-lg">
+            <div className="flex items-center gap-3 px-6 py-3 rounded-2xl bg-zinc-900/95 backdrop-blur-xl border border-white/[0.15] shadow-2xl shadow-black/50">
               {/* Selection Count */}
-              <span className="text-sm font-medium text-white tabular-nums">
+              <span className="text-base font-semibold text-white tabular-nums min-w-[80px]">
                 {totalSelected} seçili
               </span>
 
-              <div className="h-4 w-px bg-white/10" />
+              <div className="h-6 w-px bg-white/10" />
 
-              {/* Select All / Clear */}
+              {/* Actions - Bigger with Labels */}
               <button
-                onClick={() => { selectAllPrimary(); selectAllOther(); }}
-                className="px-2 py-1 text-xs font-medium text-zinc-400 hover:text-white transition-colors"
+                onClick={copySelectedKeywords}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-white bg-white/5 hover:bg-white/10 transition-all active:scale-95"
               >
-                Tümü
+                <Copy className="h-5 w-5" />
+                <span className="text-sm font-medium">Kopyala</span>
               </button>
+
+              <button
+                onClick={exportSelectedCSV}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 transition-all active:scale-95"
+              >
+                <Download className="h-5 w-5" />
+                <span className="text-sm font-medium">CSV</span>
+              </button>
+
+              <button
+                onClick={() => setShowSheetsExportModal(true)}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-green-400 bg-green-500/10 hover:bg-green-500/20 transition-all active:scale-95"
+              >
+                <FileSpreadsheet className="h-5 w-5" />
+                <span className="text-sm font-medium">Sheets</span>
+              </button>
+
+              <button
+                onClick={() => setShowSheetsAdvancedModal(true)}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-purple-400 bg-purple-500/10 hover:bg-purple-500/20 transition-all active:scale-95"
+              >
+                <Settings className="h-5 w-5" />
+                <span className="text-sm font-medium">Gelişmiş</span>
+              </button>
+
+              <div className="h-6 w-px bg-white/10" />
+
               <button
                 onClick={clearAllSelections}
-                className="px-2 py-1 text-xs font-medium text-zinc-400 hover:text-white transition-colors"
+                className="p-2.5 rounded-xl text-zinc-400 hover:text-white hover:bg-white/10 transition-all active:scale-95"
               >
-                Temizle
-              </button>
-
-              <div className="h-4 w-px bg-white/10" />
-
-              {/* Actions */}
-              <button onClick={copySelectedKeywords} className="p-1.5 rounded-lg text-white hover:bg-white/10 transition-colors" title="Kopyala">
-                <Copy className="h-4 w-4" />
-              </button>
-              <button onClick={exportSelectedCSV} className="p-1.5 rounded-lg text-emerald-400 hover:bg-emerald-500/10 transition-colors" title="CSV İndir">
-                <Download className="h-4 w-4" />
-              </button>
-              <button onClick={() => setShowSheetsExportModal(true)} className="p-1.5 rounded-lg text-green-400 hover:bg-green-500/10 transition-colors" title="Sheets'e Aktar">
-                <FileSpreadsheet className="h-4 w-4" />
-              </button>
-              <button onClick={() => setShowSheetsAdvancedModal(true)} className="p-1.5 rounded-lg text-purple-400 hover:bg-purple-500/10 transition-colors" title="Gelişmiş Aktarım">
-                <Settings className="h-4 w-4" />
-              </button>
-
-              {selectedPrimary.size > 0 && (
-                <>
-                  <div className="h-4 w-px bg-white/10" />
-                  <button
-                    onClick={removeSelectedKeywords}
-                    disabled={isDeletingSelected}
-                    className="p-1.5 rounded-lg text-red-400 hover:bg-red-500/10 transition-colors disabled:opacity-50"
-                    title="Sil"
-                  >
-                    {isDeletingSelected ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-                  </button>
-                </>
-              )}
-
-              <div className="h-4 w-px bg-white/10" />
-              <button onClick={clearAllSelections} className="p-1.5 rounded-lg text-zinc-500 hover:text-white hover:bg-white/10 transition-colors">
-                <X className="h-4 w-4" />
+                <X className="h-5 w-5" />
               </button>
             </div>
           </motion.div>
