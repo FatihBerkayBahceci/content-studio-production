@@ -2,7 +2,6 @@
 -- PostgreSQL database dump
 --
 
-\restrict NaeW1NfiwjZ3UFaXuQkZnVhpDBbabJNvV4QoROUysn8eFbsiXmY1l7RkGcs2bDP
 
 -- Dumped from database version 15.14
 -- Dumped by pg_dump version 15.14
@@ -26,14 +25,14 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp" WITH SCHEMA public;
 
 
 --
--- Name: EXTENSION "uuid-ossp"; Type: COMMENT; Schema: -; Owner: 
+-- Name: EXTENSION "uuid-ossp"; Type: COMMENT; Schema: -; Owner: -
 --
 
 COMMENT ON EXTENSION "uuid-ossp" IS 'generate universally unique identifiers (UUIDs)';
 
 
 --
--- Name: increment_workflow_version(); Type: FUNCTION; Schema: public; Owner: n8n
+-- Name: increment_workflow_version(); Type: FUNCTION; Schema: public; Owner: -
 --
 
 CREATE FUNCTION public.increment_workflow_version() RETURNS trigger
@@ -48,14 +47,12 @@ CREATE FUNCTION public.increment_workflow_version() RETURNS trigger
 			$$;
 
 
-ALTER FUNCTION public.increment_workflow_version() OWNER TO n8n;
-
 SET default_tablespace = '';
 
 SET default_table_access_method = heap;
 
 --
--- Name: annotation_tag_entity; Type: TABLE; Schema: public; Owner: n8n
+-- Name: annotation_tag_entity; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.annotation_tag_entity (
@@ -66,10 +63,8 @@ CREATE TABLE public.annotation_tag_entity (
 );
 
 
-ALTER TABLE public.annotation_tag_entity OWNER TO n8n;
-
 --
--- Name: auth_identity; Type: TABLE; Schema: public; Owner: n8n
+-- Name: auth_identity; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.auth_identity (
@@ -81,10 +76,8 @@ CREATE TABLE public.auth_identity (
 );
 
 
-ALTER TABLE public.auth_identity OWNER TO n8n;
-
 --
--- Name: auth_provider_sync_history; Type: TABLE; Schema: public; Owner: n8n
+-- Name: auth_provider_sync_history; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.auth_provider_sync_history (
@@ -102,10 +95,8 @@ CREATE TABLE public.auth_provider_sync_history (
 );
 
 
-ALTER TABLE public.auth_provider_sync_history OWNER TO n8n;
-
 --
--- Name: auth_provider_sync_history_id_seq; Type: SEQUENCE; Schema: public; Owner: n8n
+-- Name: auth_provider_sync_history_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE public.auth_provider_sync_history_id_seq
@@ -117,17 +108,15 @@ CREATE SEQUENCE public.auth_provider_sync_history_id_seq
     CACHE 1;
 
 
-ALTER TABLE public.auth_provider_sync_history_id_seq OWNER TO n8n;
-
 --
--- Name: auth_provider_sync_history_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: n8n
+-- Name: auth_provider_sync_history_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
 ALTER SEQUENCE public.auth_provider_sync_history_id_seq OWNED BY public.auth_provider_sync_history.id;
 
 
 --
--- Name: binary_data; Type: TABLE; Schema: public; Owner: n8n
+-- Name: binary_data; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.binary_data (
@@ -144,38 +133,36 @@ CREATE TABLE public.binary_data (
 );
 
 
-ALTER TABLE public.binary_data OWNER TO n8n;
-
 --
--- Name: COLUMN binary_data."sourceType"; Type: COMMENT; Schema: public; Owner: n8n
+-- Name: COLUMN binary_data."sourceType"; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.binary_data."sourceType" IS 'Source the file belongs to, e.g. ''execution''';
 
 
 --
--- Name: COLUMN binary_data."sourceId"; Type: COMMENT; Schema: public; Owner: n8n
+-- Name: COLUMN binary_data."sourceId"; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.binary_data."sourceId" IS 'ID of the source, e.g. execution ID';
 
 
 --
--- Name: COLUMN binary_data.data; Type: COMMENT; Schema: public; Owner: n8n
+-- Name: COLUMN binary_data.data; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.binary_data.data IS 'Raw, not base64 encoded';
 
 
 --
--- Name: COLUMN binary_data."fileSize"; Type: COMMENT; Schema: public; Owner: n8n
+-- Name: COLUMN binary_data."fileSize"; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.binary_data."fileSize" IS 'In bytes';
 
 
 --
--- Name: chat_hub_agents; Type: TABLE; Schema: public; Owner: n8n
+-- Name: chat_hub_agents; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.chat_hub_agents (
@@ -193,31 +180,29 @@ CREATE TABLE public.chat_hub_agents (
 );
 
 
-ALTER TABLE public.chat_hub_agents OWNER TO n8n;
-
 --
--- Name: COLUMN chat_hub_agents.provider; Type: COMMENT; Schema: public; Owner: n8n
+-- Name: COLUMN chat_hub_agents.provider; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.chat_hub_agents.provider IS 'ChatHubProvider enum: "openai", "anthropic", "google", "n8n"';
 
 
 --
--- Name: COLUMN chat_hub_agents.model; Type: COMMENT; Schema: public; Owner: n8n
+-- Name: COLUMN chat_hub_agents.model; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.chat_hub_agents.model IS 'Model name used at the respective Model node, ie. "gpt-4"';
 
 
 --
--- Name: COLUMN chat_hub_agents.tools; Type: COMMENT; Schema: public; Owner: n8n
+-- Name: COLUMN chat_hub_agents.tools; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.chat_hub_agents.tools IS 'Tools available to the agent as JSON node definitions';
 
 
 --
--- Name: chat_hub_messages; Type: TABLE; Schema: public; Owner: n8n
+-- Name: chat_hub_messages; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.chat_hub_messages (
@@ -241,52 +226,50 @@ CREATE TABLE public.chat_hub_messages (
 );
 
 
-ALTER TABLE public.chat_hub_messages OWNER TO n8n;
-
 --
--- Name: COLUMN chat_hub_messages.type; Type: COMMENT; Schema: public; Owner: n8n
+-- Name: COLUMN chat_hub_messages.type; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.chat_hub_messages.type IS 'ChatHubMessageType enum: "human", "ai", "system", "tool", "generic"';
 
 
 --
--- Name: COLUMN chat_hub_messages.provider; Type: COMMENT; Schema: public; Owner: n8n
+-- Name: COLUMN chat_hub_messages.provider; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.chat_hub_messages.provider IS 'ChatHubProvider enum: "openai", "anthropic", "google", "n8n"';
 
 
 --
--- Name: COLUMN chat_hub_messages.model; Type: COMMENT; Schema: public; Owner: n8n
+-- Name: COLUMN chat_hub_messages.model; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.chat_hub_messages.model IS 'Model name used at the respective Model node, ie. "gpt-4"';
 
 
 --
--- Name: COLUMN chat_hub_messages."agentId"; Type: COMMENT; Schema: public; Owner: n8n
+-- Name: COLUMN chat_hub_messages."agentId"; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.chat_hub_messages."agentId" IS 'ID of the custom agent (if provider is "custom-agent")';
 
 
 --
--- Name: COLUMN chat_hub_messages.status; Type: COMMENT; Schema: public; Owner: n8n
+-- Name: COLUMN chat_hub_messages.status; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.chat_hub_messages.status IS 'ChatHubMessageStatus enum, eg. "success", "error", "running", "cancelled"';
 
 
 --
--- Name: COLUMN chat_hub_messages.attachments; Type: COMMENT; Schema: public; Owner: n8n
+-- Name: COLUMN chat_hub_messages.attachments; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.chat_hub_messages.attachments IS 'File attachments for the message (if any), stored as JSON. Files are stored as base64-encoded data URLs.';
 
 
 --
--- Name: chat_hub_sessions; Type: TABLE; Schema: public; Owner: n8n
+-- Name: chat_hub_sessions; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.chat_hub_sessions (
@@ -306,45 +289,43 @@ CREATE TABLE public.chat_hub_sessions (
 );
 
 
-ALTER TABLE public.chat_hub_sessions OWNER TO n8n;
-
 --
--- Name: COLUMN chat_hub_sessions.provider; Type: COMMENT; Schema: public; Owner: n8n
+-- Name: COLUMN chat_hub_sessions.provider; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.chat_hub_sessions.provider IS 'ChatHubProvider enum: "openai", "anthropic", "google", "n8n"';
 
 
 --
--- Name: COLUMN chat_hub_sessions.model; Type: COMMENT; Schema: public; Owner: n8n
+-- Name: COLUMN chat_hub_sessions.model; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.chat_hub_sessions.model IS 'Model name used at the respective Model node, ie. "gpt-4"';
 
 
 --
--- Name: COLUMN chat_hub_sessions."agentId"; Type: COMMENT; Schema: public; Owner: n8n
+-- Name: COLUMN chat_hub_sessions."agentId"; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.chat_hub_sessions."agentId" IS 'ID of the custom agent (if provider is "custom-agent")';
 
 
 --
--- Name: COLUMN chat_hub_sessions."agentName"; Type: COMMENT; Schema: public; Owner: n8n
+-- Name: COLUMN chat_hub_sessions."agentName"; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.chat_hub_sessions."agentName" IS 'Cached name of the custom agent (if provider is "custom-agent")';
 
 
 --
--- Name: COLUMN chat_hub_sessions.tools; Type: COMMENT; Schema: public; Owner: n8n
+-- Name: COLUMN chat_hub_sessions.tools; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.chat_hub_sessions.tools IS 'Tools available to the agent as JSON node definitions';
 
 
 --
--- Name: credentials_entity; Type: TABLE; Schema: public; Owner: n8n
+-- Name: credentials_entity; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.credentials_entity (
@@ -359,10 +340,8 @@ CREATE TABLE public.credentials_entity (
 );
 
 
-ALTER TABLE public.credentials_entity OWNER TO n8n;
-
 --
--- Name: data_table; Type: TABLE; Schema: public; Owner: n8n
+-- Name: data_table; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.data_table (
@@ -374,10 +353,8 @@ CREATE TABLE public.data_table (
 );
 
 
-ALTER TABLE public.data_table OWNER TO n8n;
-
 --
--- Name: data_table_column; Type: TABLE; Schema: public; Owner: n8n
+-- Name: data_table_column; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.data_table_column (
@@ -391,24 +368,22 @@ CREATE TABLE public.data_table_column (
 );
 
 
-ALTER TABLE public.data_table_column OWNER TO n8n;
-
 --
--- Name: COLUMN data_table_column.type; Type: COMMENT; Schema: public; Owner: n8n
+-- Name: COLUMN data_table_column.type; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.data_table_column.type IS 'Expected: string, number, boolean, or date (not enforced as a constraint)';
 
 
 --
--- Name: COLUMN data_table_column.index; Type: COMMENT; Schema: public; Owner: n8n
+-- Name: COLUMN data_table_column.index; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.data_table_column.index IS 'Column order, starting from 0 (0 = first column)';
 
 
 --
--- Name: event_destinations; Type: TABLE; Schema: public; Owner: n8n
+-- Name: event_destinations; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.event_destinations (
@@ -419,10 +394,8 @@ CREATE TABLE public.event_destinations (
 );
 
 
-ALTER TABLE public.event_destinations OWNER TO n8n;
-
 --
--- Name: execution_annotation_tags; Type: TABLE; Schema: public; Owner: n8n
+-- Name: execution_annotation_tags; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.execution_annotation_tags (
@@ -431,10 +404,8 @@ CREATE TABLE public.execution_annotation_tags (
 );
 
 
-ALTER TABLE public.execution_annotation_tags OWNER TO n8n;
-
 --
--- Name: execution_annotations; Type: TABLE; Schema: public; Owner: n8n
+-- Name: execution_annotations; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.execution_annotations (
@@ -447,10 +418,8 @@ CREATE TABLE public.execution_annotations (
 );
 
 
-ALTER TABLE public.execution_annotations OWNER TO n8n;
-
 --
--- Name: execution_annotations_id_seq; Type: SEQUENCE; Schema: public; Owner: n8n
+-- Name: execution_annotations_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE public.execution_annotations_id_seq
@@ -462,17 +431,15 @@ CREATE SEQUENCE public.execution_annotations_id_seq
     CACHE 1;
 
 
-ALTER TABLE public.execution_annotations_id_seq OWNER TO n8n;
-
 --
--- Name: execution_annotations_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: n8n
+-- Name: execution_annotations_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
 ALTER SEQUENCE public.execution_annotations_id_seq OWNED BY public.execution_annotations.id;
 
 
 --
--- Name: execution_data; Type: TABLE; Schema: public; Owner: n8n
+-- Name: execution_data; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.execution_data (
@@ -482,10 +449,8 @@ CREATE TABLE public.execution_data (
 );
 
 
-ALTER TABLE public.execution_data OWNER TO n8n;
-
 --
--- Name: execution_entity; Type: TABLE; Schema: public; Owner: n8n
+-- Name: execution_entity; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.execution_entity (
@@ -504,10 +469,8 @@ CREATE TABLE public.execution_entity (
 );
 
 
-ALTER TABLE public.execution_entity OWNER TO n8n;
-
 --
--- Name: execution_entity_id_seq; Type: SEQUENCE; Schema: public; Owner: n8n
+-- Name: execution_entity_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE public.execution_entity_id_seq
@@ -519,17 +482,15 @@ CREATE SEQUENCE public.execution_entity_id_seq
     CACHE 1;
 
 
-ALTER TABLE public.execution_entity_id_seq OWNER TO n8n;
-
 --
--- Name: execution_entity_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: n8n
+-- Name: execution_entity_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
 ALTER SEQUENCE public.execution_entity_id_seq OWNED BY public.execution_entity.id;
 
 
 --
--- Name: execution_metadata; Type: TABLE; Schema: public; Owner: n8n
+-- Name: execution_metadata; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.execution_metadata (
@@ -540,10 +501,8 @@ CREATE TABLE public.execution_metadata (
 );
 
 
-ALTER TABLE public.execution_metadata OWNER TO n8n;
-
 --
--- Name: execution_metadata_temp_id_seq; Type: SEQUENCE; Schema: public; Owner: n8n
+-- Name: execution_metadata_temp_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE public.execution_metadata_temp_id_seq
@@ -555,17 +514,15 @@ CREATE SEQUENCE public.execution_metadata_temp_id_seq
     CACHE 1;
 
 
-ALTER TABLE public.execution_metadata_temp_id_seq OWNER TO n8n;
-
 --
--- Name: execution_metadata_temp_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: n8n
+-- Name: execution_metadata_temp_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
 ALTER SEQUENCE public.execution_metadata_temp_id_seq OWNED BY public.execution_metadata.id;
 
 
 --
--- Name: folder; Type: TABLE; Schema: public; Owner: n8n
+-- Name: folder; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.folder (
@@ -578,10 +535,8 @@ CREATE TABLE public.folder (
 );
 
 
-ALTER TABLE public.folder OWNER TO n8n;
-
 --
--- Name: folder_tag; Type: TABLE; Schema: public; Owner: n8n
+-- Name: folder_tag; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.folder_tag (
@@ -590,10 +545,8 @@ CREATE TABLE public.folder_tag (
 );
 
 
-ALTER TABLE public.folder_tag OWNER TO n8n;
-
 --
--- Name: insights_by_period; Type: TABLE; Schema: public; Owner: n8n
+-- Name: insights_by_period; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.insights_by_period (
@@ -606,24 +559,22 @@ CREATE TABLE public.insights_by_period (
 );
 
 
-ALTER TABLE public.insights_by_period OWNER TO n8n;
-
 --
--- Name: COLUMN insights_by_period.type; Type: COMMENT; Schema: public; Owner: n8n
+-- Name: COLUMN insights_by_period.type; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.insights_by_period.type IS '0: time_saved_minutes, 1: runtime_milliseconds, 2: success, 3: failure';
 
 
 --
--- Name: COLUMN insights_by_period."periodUnit"; Type: COMMENT; Schema: public; Owner: n8n
+-- Name: COLUMN insights_by_period."periodUnit"; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.insights_by_period."periodUnit" IS '0: hour, 1: day, 2: week';
 
 
 --
--- Name: insights_by_period_id_seq; Type: SEQUENCE; Schema: public; Owner: n8n
+-- Name: insights_by_period_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 ALTER TABLE public.insights_by_period ALTER COLUMN id ADD GENERATED BY DEFAULT AS IDENTITY (
@@ -637,7 +588,7 @@ ALTER TABLE public.insights_by_period ALTER COLUMN id ADD GENERATED BY DEFAULT A
 
 
 --
--- Name: insights_metadata; Type: TABLE; Schema: public; Owner: n8n
+-- Name: insights_metadata; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.insights_metadata (
@@ -649,10 +600,8 @@ CREATE TABLE public.insights_metadata (
 );
 
 
-ALTER TABLE public.insights_metadata OWNER TO n8n;
-
 --
--- Name: insights_metadata_metaId_seq; Type: SEQUENCE; Schema: public; Owner: n8n
+-- Name: insights_metadata_metaId_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 ALTER TABLE public.insights_metadata ALTER COLUMN "metaId" ADD GENERATED BY DEFAULT AS IDENTITY (
@@ -666,7 +615,7 @@ ALTER TABLE public.insights_metadata ALTER COLUMN "metaId" ADD GENERATED BY DEFA
 
 
 --
--- Name: insights_raw; Type: TABLE; Schema: public; Owner: n8n
+-- Name: insights_raw; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.insights_raw (
@@ -678,17 +627,15 @@ CREATE TABLE public.insights_raw (
 );
 
 
-ALTER TABLE public.insights_raw OWNER TO n8n;
-
 --
--- Name: COLUMN insights_raw.type; Type: COMMENT; Schema: public; Owner: n8n
+-- Name: COLUMN insights_raw.type; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.insights_raw.type IS '0: time_saved_minutes, 1: runtime_milliseconds, 2: success, 3: failure';
 
 
 --
--- Name: insights_raw_id_seq; Type: SEQUENCE; Schema: public; Owner: n8n
+-- Name: insights_raw_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 ALTER TABLE public.insights_raw ALTER COLUMN id ADD GENERATED BY DEFAULT AS IDENTITY (
@@ -702,7 +649,7 @@ ALTER TABLE public.insights_raw ALTER COLUMN id ADD GENERATED BY DEFAULT AS IDEN
 
 
 --
--- Name: installed_nodes; Type: TABLE; Schema: public; Owner: n8n
+-- Name: installed_nodes; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.installed_nodes (
@@ -713,10 +660,8 @@ CREATE TABLE public.installed_nodes (
 );
 
 
-ALTER TABLE public.installed_nodes OWNER TO n8n;
-
 --
--- Name: installed_packages; Type: TABLE; Schema: public; Owner: n8n
+-- Name: installed_packages; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.installed_packages (
@@ -729,10 +674,8 @@ CREATE TABLE public.installed_packages (
 );
 
 
-ALTER TABLE public.installed_packages OWNER TO n8n;
-
 --
--- Name: invalid_auth_token; Type: TABLE; Schema: public; Owner: n8n
+-- Name: invalid_auth_token; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.invalid_auth_token (
@@ -741,10 +684,8 @@ CREATE TABLE public.invalid_auth_token (
 );
 
 
-ALTER TABLE public.invalid_auth_token OWNER TO n8n;
-
 --
--- Name: migrations; Type: TABLE; Schema: public; Owner: n8n
+-- Name: migrations; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.migrations (
@@ -754,10 +695,8 @@ CREATE TABLE public.migrations (
 );
 
 
-ALTER TABLE public.migrations OWNER TO n8n;
-
 --
--- Name: migrations_id_seq; Type: SEQUENCE; Schema: public; Owner: n8n
+-- Name: migrations_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE public.migrations_id_seq
@@ -769,17 +708,15 @@ CREATE SEQUENCE public.migrations_id_seq
     CACHE 1;
 
 
-ALTER TABLE public.migrations_id_seq OWNER TO n8n;
-
 --
--- Name: migrations_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: n8n
+-- Name: migrations_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
 ALTER SEQUENCE public.migrations_id_seq OWNED BY public.migrations.id;
 
 
 --
--- Name: oauth_access_tokens; Type: TABLE; Schema: public; Owner: n8n
+-- Name: oauth_access_tokens; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.oauth_access_tokens (
@@ -789,10 +726,8 @@ CREATE TABLE public.oauth_access_tokens (
 );
 
 
-ALTER TABLE public.oauth_access_tokens OWNER TO n8n;
-
 --
--- Name: oauth_authorization_codes; Type: TABLE; Schema: public; Owner: n8n
+-- Name: oauth_authorization_codes; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.oauth_authorization_codes (
@@ -810,17 +745,15 @@ CREATE TABLE public.oauth_authorization_codes (
 );
 
 
-ALTER TABLE public.oauth_authorization_codes OWNER TO n8n;
-
 --
--- Name: COLUMN oauth_authorization_codes."expiresAt"; Type: COMMENT; Schema: public; Owner: n8n
+-- Name: COLUMN oauth_authorization_codes."expiresAt"; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.oauth_authorization_codes."expiresAt" IS 'Unix timestamp in milliseconds';
 
 
 --
--- Name: oauth_clients; Type: TABLE; Schema: public; Owner: n8n
+-- Name: oauth_clients; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.oauth_clients (
@@ -836,17 +769,15 @@ CREATE TABLE public.oauth_clients (
 );
 
 
-ALTER TABLE public.oauth_clients OWNER TO n8n;
-
 --
--- Name: COLUMN oauth_clients."tokenEndpointAuthMethod"; Type: COMMENT; Schema: public; Owner: n8n
+-- Name: COLUMN oauth_clients."tokenEndpointAuthMethod"; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.oauth_clients."tokenEndpointAuthMethod" IS 'Possible values: none, client_secret_basic or client_secret_post';
 
 
 --
--- Name: oauth_refresh_tokens; Type: TABLE; Schema: public; Owner: n8n
+-- Name: oauth_refresh_tokens; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.oauth_refresh_tokens (
@@ -859,17 +790,15 @@ CREATE TABLE public.oauth_refresh_tokens (
 );
 
 
-ALTER TABLE public.oauth_refresh_tokens OWNER TO n8n;
-
 --
--- Name: COLUMN oauth_refresh_tokens."expiresAt"; Type: COMMENT; Schema: public; Owner: n8n
+-- Name: COLUMN oauth_refresh_tokens."expiresAt"; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.oauth_refresh_tokens."expiresAt" IS 'Unix timestamp in milliseconds';
 
 
 --
--- Name: oauth_user_consents; Type: TABLE; Schema: public; Owner: n8n
+-- Name: oauth_user_consents; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.oauth_user_consents (
@@ -880,17 +809,15 @@ CREATE TABLE public.oauth_user_consents (
 );
 
 
-ALTER TABLE public.oauth_user_consents OWNER TO n8n;
-
 --
--- Name: COLUMN oauth_user_consents."grantedAt"; Type: COMMENT; Schema: public; Owner: n8n
+-- Name: COLUMN oauth_user_consents."grantedAt"; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.oauth_user_consents."grantedAt" IS 'Unix timestamp in milliseconds';
 
 
 --
--- Name: oauth_user_consents_id_seq; Type: SEQUENCE; Schema: public; Owner: n8n
+-- Name: oauth_user_consents_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 ALTER TABLE public.oauth_user_consents ALTER COLUMN id ADD GENERATED BY DEFAULT AS IDENTITY (
@@ -904,7 +831,7 @@ ALTER TABLE public.oauth_user_consents ALTER COLUMN id ADD GENERATED BY DEFAULT 
 
 
 --
--- Name: processed_data; Type: TABLE; Schema: public; Owner: n8n
+-- Name: processed_data; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.processed_data (
@@ -916,10 +843,8 @@ CREATE TABLE public.processed_data (
 );
 
 
-ALTER TABLE public.processed_data OWNER TO n8n;
-
 --
--- Name: project; Type: TABLE; Schema: public; Owner: n8n
+-- Name: project; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.project (
@@ -933,10 +858,8 @@ CREATE TABLE public.project (
 );
 
 
-ALTER TABLE public.project OWNER TO n8n;
-
 --
--- Name: project_relation; Type: TABLE; Schema: public; Owner: n8n
+-- Name: project_relation; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.project_relation (
@@ -948,10 +871,8 @@ CREATE TABLE public.project_relation (
 );
 
 
-ALTER TABLE public.project_relation OWNER TO n8n;
-
 --
--- Name: role; Type: TABLE; Schema: public; Owner: n8n
+-- Name: role; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.role (
@@ -965,45 +886,43 @@ CREATE TABLE public.role (
 );
 
 
-ALTER TABLE public.role OWNER TO n8n;
-
 --
--- Name: COLUMN role.slug; Type: COMMENT; Schema: public; Owner: n8n
+-- Name: COLUMN role.slug; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.role.slug IS 'Unique identifier of the role for example: "global:owner"';
 
 
 --
--- Name: COLUMN role."displayName"; Type: COMMENT; Schema: public; Owner: n8n
+-- Name: COLUMN role."displayName"; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.role."displayName" IS 'Name used to display in the UI';
 
 
 --
--- Name: COLUMN role.description; Type: COMMENT; Schema: public; Owner: n8n
+-- Name: COLUMN role.description; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.role.description IS 'Text describing the scope in more detail of users';
 
 
 --
--- Name: COLUMN role."roleType"; Type: COMMENT; Schema: public; Owner: n8n
+-- Name: COLUMN role."roleType"; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.role."roleType" IS 'Type of the role, e.g., global, project, or workflow';
 
 
 --
--- Name: COLUMN role."systemRole"; Type: COMMENT; Schema: public; Owner: n8n
+-- Name: COLUMN role."systemRole"; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.role."systemRole" IS 'Indicates if the role is managed by the system and cannot be edited';
 
 
 --
--- Name: role_scope; Type: TABLE; Schema: public; Owner: n8n
+-- Name: role_scope; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.role_scope (
@@ -1012,10 +931,8 @@ CREATE TABLE public.role_scope (
 );
 
 
-ALTER TABLE public.role_scope OWNER TO n8n;
-
 --
--- Name: scope; Type: TABLE; Schema: public; Owner: n8n
+-- Name: scope; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.scope (
@@ -1025,31 +942,29 @@ CREATE TABLE public.scope (
 );
 
 
-ALTER TABLE public.scope OWNER TO n8n;
-
 --
--- Name: COLUMN scope.slug; Type: COMMENT; Schema: public; Owner: n8n
+-- Name: COLUMN scope.slug; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.scope.slug IS 'Unique identifier of the scope for example: "project:create"';
 
 
 --
--- Name: COLUMN scope."displayName"; Type: COMMENT; Schema: public; Owner: n8n
+-- Name: COLUMN scope."displayName"; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.scope."displayName" IS 'Name used to display in the UI';
 
 
 --
--- Name: COLUMN scope.description; Type: COMMENT; Schema: public; Owner: n8n
+-- Name: COLUMN scope.description; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.scope.description IS 'Text describing the scope in more detail of users';
 
 
 --
--- Name: settings; Type: TABLE; Schema: public; Owner: n8n
+-- Name: settings; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.settings (
@@ -1059,10 +974,8 @@ CREATE TABLE public.settings (
 );
 
 
-ALTER TABLE public.settings OWNER TO n8n;
-
 --
--- Name: shared_credentials; Type: TABLE; Schema: public; Owner: n8n
+-- Name: shared_credentials; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.shared_credentials (
@@ -1074,10 +987,8 @@ CREATE TABLE public.shared_credentials (
 );
 
 
-ALTER TABLE public.shared_credentials OWNER TO n8n;
-
 --
--- Name: shared_workflow; Type: TABLE; Schema: public; Owner: n8n
+-- Name: shared_workflow; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.shared_workflow (
@@ -1089,10 +1000,8 @@ CREATE TABLE public.shared_workflow (
 );
 
 
-ALTER TABLE public.shared_workflow OWNER TO n8n;
-
 --
--- Name: tag_entity; Type: TABLE; Schema: public; Owner: n8n
+-- Name: tag_entity; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.tag_entity (
@@ -1103,10 +1012,8 @@ CREATE TABLE public.tag_entity (
 );
 
 
-ALTER TABLE public.tag_entity OWNER TO n8n;
-
 --
--- Name: test_case_execution; Type: TABLE; Schema: public; Owner: n8n
+-- Name: test_case_execution; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.test_case_execution (
@@ -1126,10 +1033,8 @@ CREATE TABLE public.test_case_execution (
 );
 
 
-ALTER TABLE public.test_case_execution OWNER TO n8n;
-
 --
--- Name: test_run; Type: TABLE; Schema: public; Owner: n8n
+-- Name: test_run; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.test_run (
@@ -1146,10 +1051,8 @@ CREATE TABLE public.test_run (
 );
 
 
-ALTER TABLE public.test_run OWNER TO n8n;
-
 --
--- Name: user; Type: TABLE; Schema: public; Owner: n8n
+-- Name: user; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public."user" (
@@ -1171,10 +1074,8 @@ CREATE TABLE public."user" (
 );
 
 
-ALTER TABLE public."user" OWNER TO n8n;
-
 --
--- Name: user_api_keys; Type: TABLE; Schema: public; Owner: n8n
+-- Name: user_api_keys; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.user_api_keys (
@@ -1189,10 +1090,8 @@ CREATE TABLE public.user_api_keys (
 );
 
 
-ALTER TABLE public.user_api_keys OWNER TO n8n;
-
 --
--- Name: variables; Type: TABLE; Schema: public; Owner: n8n
+-- Name: variables; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.variables (
@@ -1204,10 +1103,8 @@ CREATE TABLE public.variables (
 );
 
 
-ALTER TABLE public.variables OWNER TO n8n;
-
 --
--- Name: webhook_entity; Type: TABLE; Schema: public; Owner: n8n
+-- Name: webhook_entity; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.webhook_entity (
@@ -1220,10 +1117,8 @@ CREATE TABLE public.webhook_entity (
 );
 
 
-ALTER TABLE public.webhook_entity OWNER TO n8n;
-
 --
--- Name: workflow_dependency; Type: TABLE; Schema: public; Owner: n8n
+-- Name: workflow_dependency; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.workflow_dependency (
@@ -1238,45 +1133,43 @@ CREATE TABLE public.workflow_dependency (
 );
 
 
-ALTER TABLE public.workflow_dependency OWNER TO n8n;
-
 --
--- Name: COLUMN workflow_dependency."workflowVersionId"; Type: COMMENT; Schema: public; Owner: n8n
+-- Name: COLUMN workflow_dependency."workflowVersionId"; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.workflow_dependency."workflowVersionId" IS 'Version of the workflow';
 
 
 --
--- Name: COLUMN workflow_dependency."dependencyType"; Type: COMMENT; Schema: public; Owner: n8n
+-- Name: COLUMN workflow_dependency."dependencyType"; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.workflow_dependency."dependencyType" IS 'Type of dependency: "credential", "nodeType", "webhookPath", or "workflowCall"';
 
 
 --
--- Name: COLUMN workflow_dependency."dependencyKey"; Type: COMMENT; Schema: public; Owner: n8n
+-- Name: COLUMN workflow_dependency."dependencyKey"; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.workflow_dependency."dependencyKey" IS 'ID or name of the dependency';
 
 
 --
--- Name: COLUMN workflow_dependency."dependencyInfo"; Type: COMMENT; Schema: public; Owner: n8n
+-- Name: COLUMN workflow_dependency."dependencyInfo"; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.workflow_dependency."dependencyInfo" IS 'Additional info about the dependency, interpreted based on type';
 
 
 --
--- Name: COLUMN workflow_dependency."indexVersionId"; Type: COMMENT; Schema: public; Owner: n8n
+-- Name: COLUMN workflow_dependency."indexVersionId"; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.workflow_dependency."indexVersionId" IS 'Version of the index structure';
 
 
 --
--- Name: workflow_dependency_id_seq; Type: SEQUENCE; Schema: public; Owner: n8n
+-- Name: workflow_dependency_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 ALTER TABLE public.workflow_dependency ALTER COLUMN id ADD GENERATED BY DEFAULT AS IDENTITY (
@@ -1290,7 +1183,7 @@ ALTER TABLE public.workflow_dependency ALTER COLUMN id ADD GENERATED BY DEFAULT 
 
 
 --
--- Name: workflow_entity; Type: TABLE; Schema: public; Owner: n8n
+-- Name: workflow_entity; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.workflow_entity (
@@ -1315,10 +1208,8 @@ CREATE TABLE public.workflow_entity (
 );
 
 
-ALTER TABLE public.workflow_entity OWNER TO n8n;
-
 --
--- Name: workflow_history; Type: TABLE; Schema: public; Owner: n8n
+-- Name: workflow_history; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.workflow_history (
@@ -1335,10 +1226,8 @@ CREATE TABLE public.workflow_history (
 );
 
 
-ALTER TABLE public.workflow_history OWNER TO n8n;
-
 --
--- Name: workflow_publish_history; Type: TABLE; Schema: public; Owner: n8n
+-- Name: workflow_publish_history; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.workflow_publish_history (
@@ -1352,17 +1241,15 @@ CREATE TABLE public.workflow_publish_history (
 );
 
 
-ALTER TABLE public.workflow_publish_history OWNER TO n8n;
-
 --
--- Name: COLUMN workflow_publish_history.event; Type: COMMENT; Schema: public; Owner: n8n
+-- Name: COLUMN workflow_publish_history.event; Type: COMMENT; Schema: public; Owner: -
 --
 
 COMMENT ON COLUMN public.workflow_publish_history.event IS 'Type of history record: activated (workflow is now active), deactivated (workflow is now inactive)';
 
 
 --
--- Name: workflow_publish_history_id_seq; Type: SEQUENCE; Schema: public; Owner: n8n
+-- Name: workflow_publish_history_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 ALTER TABLE public.workflow_publish_history ALTER COLUMN id ADD GENERATED BY DEFAULT AS IDENTITY (
@@ -1376,7 +1263,7 @@ ALTER TABLE public.workflow_publish_history ALTER COLUMN id ADD GENERATED BY DEF
 
 
 --
--- Name: workflow_statistics; Type: TABLE; Schema: public; Owner: n8n
+-- Name: workflow_statistics; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.workflow_statistics (
@@ -1388,10 +1275,8 @@ CREATE TABLE public.workflow_statistics (
 );
 
 
-ALTER TABLE public.workflow_statistics OWNER TO n8n;
-
 --
--- Name: workflows_tags; Type: TABLE; Schema: public; Owner: n8n
+-- Name: workflows_tags; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.workflows_tags (
@@ -1400,45 +1285,43 @@ CREATE TABLE public.workflows_tags (
 );
 
 
-ALTER TABLE public.workflows_tags OWNER TO n8n;
-
 --
--- Name: auth_provider_sync_history id; Type: DEFAULT; Schema: public; Owner: n8n
+-- Name: auth_provider_sync_history id; Type: DEFAULT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.auth_provider_sync_history ALTER COLUMN id SET DEFAULT nextval('public.auth_provider_sync_history_id_seq'::regclass);
 
 
 --
--- Name: execution_annotations id; Type: DEFAULT; Schema: public; Owner: n8n
+-- Name: execution_annotations id; Type: DEFAULT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.execution_annotations ALTER COLUMN id SET DEFAULT nextval('public.execution_annotations_id_seq'::regclass);
 
 
 --
--- Name: execution_entity id; Type: DEFAULT; Schema: public; Owner: n8n
+-- Name: execution_entity id; Type: DEFAULT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.execution_entity ALTER COLUMN id SET DEFAULT nextval('public.execution_entity_id_seq'::regclass);
 
 
 --
--- Name: execution_metadata id; Type: DEFAULT; Schema: public; Owner: n8n
+-- Name: execution_metadata id; Type: DEFAULT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.execution_metadata ALTER COLUMN id SET DEFAULT nextval('public.execution_metadata_temp_id_seq'::regclass);
 
 
 --
--- Name: migrations id; Type: DEFAULT; Schema: public; Owner: n8n
+-- Name: migrations id; Type: DEFAULT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.migrations ALTER COLUMN id SET DEFAULT nextval('public.migrations_id_seq'::regclass);
 
 
 --
--- Data for Name: annotation_tag_entity; Type: TABLE DATA; Schema: public; Owner: n8n
+-- Data for Name: annotation_tag_entity; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.annotation_tag_entity (id, name, "createdAt", "updatedAt") FROM stdin;
@@ -1446,7 +1329,7 @@ COPY public.annotation_tag_entity (id, name, "createdAt", "updatedAt") FROM stdi
 
 
 --
--- Data for Name: auth_identity; Type: TABLE DATA; Schema: public; Owner: n8n
+-- Data for Name: auth_identity; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.auth_identity ("userId", "providerId", "providerType", "createdAt", "updatedAt") FROM stdin;
@@ -1454,7 +1337,7 @@ COPY public.auth_identity ("userId", "providerId", "providerType", "createdAt", 
 
 
 --
--- Data for Name: auth_provider_sync_history; Type: TABLE DATA; Schema: public; Owner: n8n
+-- Data for Name: auth_provider_sync_history; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.auth_provider_sync_history (id, "providerType", "runMode", status, "startedAt", "endedAt", scanned, created, updated, disabled, error) FROM stdin;
@@ -1462,7 +1345,7 @@ COPY public.auth_provider_sync_history (id, "providerType", "runMode", status, "
 
 
 --
--- Data for Name: binary_data; Type: TABLE DATA; Schema: public; Owner: n8n
+-- Data for Name: binary_data; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.binary_data ("fileId", "sourceType", "sourceId", data, "mimeType", "fileName", "fileSize", "createdAt", "updatedAt") FROM stdin;
@@ -1470,7 +1353,7 @@ COPY public.binary_data ("fileId", "sourceType", "sourceId", data, "mimeType", "
 
 
 --
--- Data for Name: chat_hub_agents; Type: TABLE DATA; Schema: public; Owner: n8n
+-- Data for Name: chat_hub_agents; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.chat_hub_agents (id, name, description, "systemPrompt", "ownerId", "credentialId", provider, model, "createdAt", "updatedAt", tools) FROM stdin;
@@ -1478,7 +1361,7 @@ COPY public.chat_hub_agents (id, name, description, "systemPrompt", "ownerId", "
 
 
 --
--- Data for Name: chat_hub_messages; Type: TABLE DATA; Schema: public; Owner: n8n
+-- Data for Name: chat_hub_messages; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.chat_hub_messages (id, "sessionId", "previousMessageId", "revisionOfMessageId", "retryOfMessageId", type, name, content, provider, model, "workflowId", "executionId", "createdAt", "updatedAt", "agentId", status, attachments) FROM stdin;
@@ -1486,7 +1369,7 @@ COPY public.chat_hub_messages (id, "sessionId", "previousMessageId", "revisionOf
 
 
 --
--- Data for Name: chat_hub_sessions; Type: TABLE DATA; Schema: public; Owner: n8n
+-- Data for Name: chat_hub_sessions; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.chat_hub_sessions (id, title, "ownerId", "lastMessageAt", "credentialId", provider, model, "workflowId", "createdAt", "updatedAt", "agentId", "agentName", tools) FROM stdin;
@@ -1494,7 +1377,7 @@ COPY public.chat_hub_sessions (id, title, "ownerId", "lastMessageAt", "credentia
 
 
 --
--- Data for Name: credentials_entity; Type: TABLE DATA; Schema: public; Owner: n8n
+-- Data for Name: credentials_entity; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.credentials_entity (name, data, type, "createdAt", "updatedAt", id, "isManaged", "isGlobal") FROM stdin;
@@ -1508,7 +1391,7 @@ Google Sheets account	U2FsdGVkX18zmD+IswJ6u+IbUu9AKVMuV+slbpWDPFBpTAy9OPKdshBITw
 
 
 --
--- Data for Name: data_table; Type: TABLE DATA; Schema: public; Owner: n8n
+-- Data for Name: data_table; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.data_table (id, name, "projectId", "createdAt", "updatedAt") FROM stdin;
@@ -1516,7 +1399,7 @@ COPY public.data_table (id, name, "projectId", "createdAt", "updatedAt") FROM st
 
 
 --
--- Data for Name: data_table_column; Type: TABLE DATA; Schema: public; Owner: n8n
+-- Data for Name: data_table_column; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.data_table_column (id, name, type, index, "dataTableId", "createdAt", "updatedAt") FROM stdin;
@@ -1524,7 +1407,7 @@ COPY public.data_table_column (id, name, type, index, "dataTableId", "createdAt"
 
 
 --
--- Data for Name: event_destinations; Type: TABLE DATA; Schema: public; Owner: n8n
+-- Data for Name: event_destinations; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.event_destinations (id, destination, "createdAt", "updatedAt") FROM stdin;
@@ -1532,7 +1415,7 @@ COPY public.event_destinations (id, destination, "createdAt", "updatedAt") FROM 
 
 
 --
--- Data for Name: execution_annotation_tags; Type: TABLE DATA; Schema: public; Owner: n8n
+-- Data for Name: execution_annotation_tags; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.execution_annotation_tags ("annotationId", "tagId") FROM stdin;
@@ -1540,7 +1423,7 @@ COPY public.execution_annotation_tags ("annotationId", "tagId") FROM stdin;
 
 
 --
--- Data for Name: execution_annotations; Type: TABLE DATA; Schema: public; Owner: n8n
+-- Data for Name: execution_annotations; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.execution_annotations (id, "executionId", vote, note, "createdAt", "updatedAt") FROM stdin;
@@ -1548,7 +1431,7 @@ COPY public.execution_annotations (id, "executionId", vote, note, "createdAt", "
 
 
 --
--- Data for Name: folder; Type: TABLE DATA; Schema: public; Owner: n8n
+-- Data for Name: folder; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.folder (id, name, "parentFolderId", "projectId", "createdAt", "updatedAt") FROM stdin;
@@ -1556,7 +1439,7 @@ COPY public.folder (id, name, "parentFolderId", "projectId", "createdAt", "updat
 
 
 --
--- Data for Name: folder_tag; Type: TABLE DATA; Schema: public; Owner: n8n
+-- Data for Name: folder_tag; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.folder_tag ("folderId", "tagId") FROM stdin;
@@ -1564,7 +1447,7 @@ COPY public.folder_tag ("folderId", "tagId") FROM stdin;
 
 
 --
--- Data for Name: insights_by_period; Type: TABLE DATA; Schema: public; Owner: n8n
+-- Data for Name: insights_by_period; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.insights_by_period (id, "metaId", type, value, "periodUnit", "periodStart") FROM stdin;
@@ -1819,11 +1702,19 @@ COPY public.insights_by_period (id, "metaId", type, value, "periodUnit", "period
 294	70	2	2	0	2025-12-23 19:00:00+00
 295	71	2	1	0	2025-12-24 07:00:00+00
 296	72	2	3	0	2025-12-24 07:00:00+00
+297	72	2	3	0	2025-12-24 08:00:00+00
+298	72	1	49716	0	2025-12-24 08:00:00+00
+299	71	1	23551	0	2025-12-24 08:00:00+00
+300	40	1	7003	0	2025-12-24 08:00:00+00
+301	4	2	1	0	2025-12-24 08:00:00+00
+302	4	1	1196	0	2025-12-24 08:00:00+00
+303	40	2	1	0	2025-12-24 08:00:00+00
+304	71	2	1	0	2025-12-24 08:00:00+00
 \.
 
 
 --
--- Data for Name: insights_metadata; Type: TABLE DATA; Schema: public; Owner: n8n
+-- Data for Name: insights_metadata; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.insights_metadata ("metaId", "workflowId", "projectId", "workflowName", "projectName") FROM stdin;
@@ -1857,27 +1748,15 @@ COPY public.insights_metadata ("metaId", "workflowId", "projectId", "workflowNam
 
 
 --
--- Data for Name: insights_raw; Type: TABLE DATA; Schema: public; Owner: n8n
+-- Data for Name: insights_raw; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.insights_raw (id, "metaId", type, value, "timestamp") FROM stdin;
-919	4	2	1	2025-12-24 08:20:47+00
-920	4	1	1196	2025-12-24 08:20:47+00
-921	72	2	1	2025-12-24 08:21:21+00
-922	72	1	13952	2025-12-24 08:21:21+00
-923	72	2	1	2025-12-24 08:21:22+00
-924	72	1	15507	2025-12-24 08:21:22+00
-925	72	2	1	2025-12-24 08:21:26+00
-926	72	1	20257	2025-12-24 08:21:26+00
-927	71	2	1	2025-12-24 08:21:28+00
-928	71	1	23551	2025-12-24 08:21:28+00
-929	40	2	1	2025-12-24 08:33:32+00
-930	40	1	7003	2025-12-24 08:33:32+00
 \.
 
 
 --
--- Data for Name: installed_nodes; Type: TABLE DATA; Schema: public; Owner: n8n
+-- Data for Name: installed_nodes; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.installed_nodes (name, type, "latestVersion", package) FROM stdin;
@@ -1885,7 +1764,7 @@ COPY public.installed_nodes (name, type, "latestVersion", package) FROM stdin;
 
 
 --
--- Data for Name: installed_packages; Type: TABLE DATA; Schema: public; Owner: n8n
+-- Data for Name: installed_packages; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.installed_packages ("packageName", "installedVersion", "authorName", "authorEmail", "createdAt", "updatedAt") FROM stdin;
@@ -1893,7 +1772,7 @@ COPY public.installed_packages ("packageName", "installedVersion", "authorName",
 
 
 --
--- Data for Name: invalid_auth_token; Type: TABLE DATA; Schema: public; Owner: n8n
+-- Data for Name: invalid_auth_token; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.invalid_auth_token (token, "expiresAt") FROM stdin;
@@ -1902,7 +1781,7 @@ eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImViYzA0YTFhLTViODAtNGRlMi04YjY1LTM
 
 
 --
--- Data for Name: migrations; Type: TABLE DATA; Schema: public; Owner: n8n
+-- Data for Name: migrations; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.migrations (id, "timestamp", name) FROM stdin;
@@ -2033,7 +1912,7 @@ COPY public.migrations (id, "timestamp", name) FROM stdin;
 
 
 --
--- Data for Name: oauth_access_tokens; Type: TABLE DATA; Schema: public; Owner: n8n
+-- Data for Name: oauth_access_tokens; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.oauth_access_tokens (token, "clientId", "userId") FROM stdin;
@@ -2041,7 +1920,7 @@ COPY public.oauth_access_tokens (token, "clientId", "userId") FROM stdin;
 
 
 --
--- Data for Name: oauth_authorization_codes; Type: TABLE DATA; Schema: public; Owner: n8n
+-- Data for Name: oauth_authorization_codes; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.oauth_authorization_codes (code, "clientId", "userId", "redirectUri", "codeChallenge", "codeChallengeMethod", "expiresAt", state, used, "createdAt", "updatedAt") FROM stdin;
@@ -2049,7 +1928,7 @@ COPY public.oauth_authorization_codes (code, "clientId", "userId", "redirectUri"
 
 
 --
--- Data for Name: oauth_clients; Type: TABLE DATA; Schema: public; Owner: n8n
+-- Data for Name: oauth_clients; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.oauth_clients (id, name, "redirectUris", "grantTypes", "clientSecret", "clientSecretExpiresAt", "tokenEndpointAuthMethod", "createdAt", "updatedAt") FROM stdin;
@@ -2057,7 +1936,7 @@ COPY public.oauth_clients (id, name, "redirectUris", "grantTypes", "clientSecret
 
 
 --
--- Data for Name: oauth_refresh_tokens; Type: TABLE DATA; Schema: public; Owner: n8n
+-- Data for Name: oauth_refresh_tokens; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.oauth_refresh_tokens (token, "clientId", "userId", "expiresAt", "createdAt", "updatedAt") FROM stdin;
@@ -2065,7 +1944,7 @@ COPY public.oauth_refresh_tokens (token, "clientId", "userId", "expiresAt", "cre
 
 
 --
--- Data for Name: oauth_user_consents; Type: TABLE DATA; Schema: public; Owner: n8n
+-- Data for Name: oauth_user_consents; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.oauth_user_consents (id, "userId", "clientId", "grantedAt") FROM stdin;
@@ -2073,7 +1952,7 @@ COPY public.oauth_user_consents (id, "userId", "clientId", "grantedAt") FROM std
 
 
 --
--- Data for Name: processed_data; Type: TABLE DATA; Schema: public; Owner: n8n
+-- Data for Name: processed_data; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.processed_data ("workflowId", context, "createdAt", "updatedAt", value) FROM stdin;
@@ -2081,7 +1960,7 @@ COPY public.processed_data ("workflowId", context, "createdAt", "updatedAt", val
 
 
 --
--- Data for Name: project; Type: TABLE DATA; Schema: public; Owner: n8n
+-- Data for Name: project; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.project (id, name, type, "createdAt", "updatedAt", icon, description) FROM stdin;
@@ -2090,7 +1969,7 @@ vMTnhKlkE0V1r3hl	Fatih Berkay Bahçeci <hello@pera.works>	personal	2025-12-09 18
 
 
 --
--- Data for Name: project_relation; Type: TABLE DATA; Schema: public; Owner: n8n
+-- Data for Name: project_relation; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.project_relation ("projectId", "userId", role, "createdAt", "updatedAt") FROM stdin;
@@ -2099,7 +1978,7 @@ vMTnhKlkE0V1r3hl	ebc04a1a-5b80-4de2-8b65-382c0cd9393c	project:personalOwner	2025
 
 
 --
--- Data for Name: role; Type: TABLE DATA; Schema: public; Owner: n8n
+-- Data for Name: role; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.role (slug, "displayName", description, "roleType", "systemRole", "createdAt", "updatedAt") FROM stdin;
@@ -2118,7 +1997,7 @@ workflow:editor	Workflow Editor	Workflow Editor	workflow	t	2025-12-09 18:40:07.3
 
 
 --
--- Data for Name: role_scope; Type: TABLE DATA; Schema: public; Owner: n8n
+-- Data for Name: role_scope; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.role_scope ("roleSlug", "scopeSlug") FROM stdin;
@@ -2497,7 +2376,7 @@ workflow:editor	workflow:update
 
 
 --
--- Data for Name: scope; Type: TABLE DATA; Schema: public; Owner: n8n
+-- Data for Name: scope; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.scope (slug, "displayName", description) FROM stdin;
@@ -2664,7 +2543,7 @@ breakingChanges:*	breakingChanges:*	\N
 
 
 --
--- Data for Name: settings; Type: TABLE DATA; Schema: public; Owner: n8n
+-- Data for Name: settings; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.settings (key, value, "loadOnStartup") FROM stdin;
@@ -2679,7 +2558,7 @@ license.cert	eyJsaWNlbnNlS2V5IjoiLS0tLS1CRUdJTiBMSUNFTlNFIEtFWS0tLS0tXG5CeUN2aGd
 
 
 --
--- Data for Name: shared_credentials; Type: TABLE DATA; Schema: public; Owner: n8n
+-- Data for Name: shared_credentials; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.shared_credentials ("credentialsId", "projectId", role, "createdAt", "updatedAt") FROM stdin;
@@ -2693,7 +2572,7 @@ FRUwxjFQM3dnpWm4	vMTnhKlkE0V1r3hl	credential:owner	2025-12-18 11:58:28.605+00	20
 
 
 --
--- Data for Name: shared_workflow; Type: TABLE DATA; Schema: public; Owner: n8n
+-- Data for Name: shared_workflow; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.shared_workflow ("workflowId", "projectId", role, "createdAt", "updatedAt") FROM stdin;
@@ -2732,7 +2611,7 @@ wl9T4eOGoazJkDdv	vMTnhKlkE0V1r3hl	workflow:owner	2025-12-23 19:55:15.963+00	2025
 
 
 --
--- Data for Name: tag_entity; Type: TABLE DATA; Schema: public; Owner: n8n
+-- Data for Name: tag_entity; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.tag_entity (name, "createdAt", "updatedAt", id) FROM stdin;
@@ -2745,7 +2624,7 @@ Shared	2025-12-17 10:31:57.714+00	2025-12-17 10:31:57.714+00	Ezxn5KBS7wZlyQuW
 
 
 --
--- Data for Name: test_case_execution; Type: TABLE DATA; Schema: public; Owner: n8n
+-- Data for Name: test_case_execution; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.test_case_execution (id, "testRunId", "executionId", status, "runAt", "completedAt", "errorCode", "errorDetails", metrics, "createdAt", "updatedAt", inputs, outputs) FROM stdin;
@@ -2753,7 +2632,7 @@ COPY public.test_case_execution (id, "testRunId", "executionId", status, "runAt"
 
 
 --
--- Data for Name: test_run; Type: TABLE DATA; Schema: public; Owner: n8n
+-- Data for Name: test_run; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.test_run (id, "workflowId", status, "errorCode", "errorDetails", "runAt", "completedAt", metrics, "createdAt", "updatedAt") FROM stdin;
@@ -2761,16 +2640,16 @@ COPY public.test_run (id, "workflowId", status, "errorCode", "errorDetails", "ru
 
 
 --
--- Data for Name: user; Type: TABLE DATA; Schema: public; Owner: n8n
+-- Data for Name: user; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public."user" (id, email, "firstName", "lastName", password, "personalizationAnswers", "createdAt", "updatedAt", settings, disabled, "mfaEnabled", "mfaSecret", "mfaRecoveryCodes", "lastActiveAt", "roleSlug") FROM stdin;
-ebc04a1a-5b80-4de2-8b65-382c0cd9393c	fatihberkaybahceci@icloud.com	Fatih Berkay	Bahçeci	$2a$10$0.ctgRMI.Kd4jTVLymKVi.IH8x2XqH6.XeOtzebhH5FJa/2MAxNIO	{"version":"v4","personalization_survey_submitted_at":"2025-12-09T18:41:45.079Z","personalization_survey_n8n_version":"1.122.5"}	2025-12-09 18:40:01.986+00	2025-12-24 08:19:54.195+00	{"userActivated":true,"firstSuccessfulWorkflowId":"Ocdl2H3iqvuOChgw","userActivatedAt":1765306810023}	f	f	\N	\N	2025-12-23	global:owner
+ebc04a1a-5b80-4de2-8b65-382c0cd9393c	fatihberkaybahceci@icloud.com	Fatih Berkay	Bahçeci	$2b$12$uO.s3I12U4k/noiTuljxHuuyckc2lYS6arbHn6BUCiUtv/ecWVmMy	{"version":"v4","personalization_survey_submitted_at":"2025-12-09T18:41:45.079Z","personalization_survey_n8n_version":"1.122.5"}	2025-12-09 18:40:01.986+00	2025-12-24 08:19:54.195+00	{"userActivated":true,"firstSuccessfulWorkflowId":"Ocdl2H3iqvuOChgw","userActivatedAt":1765306810023}	f	f	\N	\N	2025-12-23	global:owner
 \.
 
 
 --
--- Data for Name: user_api_keys; Type: TABLE DATA; Schema: public; Owner: n8n
+-- Data for Name: user_api_keys; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.user_api_keys (id, "userId", label, "apiKey", "createdAt", "updatedAt", scopes, audience) FROM stdin;
@@ -2779,7 +2658,7 @@ CsBFwAGfX5Qlhwpo	ebc04a1a-5b80-4de2-8b65-382c0cd9393c	Pro	eyJhbGciOiJIUzI1NiIsIn
 
 
 --
--- Data for Name: variables; Type: TABLE DATA; Schema: public; Owner: n8n
+-- Data for Name: variables; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.variables (key, type, value, id, "projectId") FROM stdin;
@@ -2787,7 +2666,7 @@ COPY public.variables (key, type, value, id, "projectId") FROM stdin;
 
 
 --
--- Data for Name: webhook_entity; Type: TABLE DATA; Schema: public; Owner: n8n
+-- Data for Name: webhook_entity; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.webhook_entity ("webhookPath", method, node, "webhookId", "pathLength", "workflowId") FROM stdin;
@@ -2829,7 +2708,7 @@ process-single-seed	POST	Webhook	\N	\N	mNQs5AgZjCB0MIZx
 
 
 --
--- Data for Name: workflow_dependency; Type: TABLE DATA; Schema: public; Owner: n8n
+-- Data for Name: workflow_dependency; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.workflow_dependency (id, "workflowId", "workflowVersionId", "dependencyType", "dependencyKey", "dependencyInfo", "indexVersionId", "createdAt") FROM stdin;
@@ -2862,7 +2741,7 @@ COPY public.workflow_dependency (id, "workflowId", "workflowVersionId", "depende
 
 
 --
--- Data for Name: workflow_entity; Type: TABLE DATA; Schema: public; Owner: n8n
+-- Data for Name: workflow_entity; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.workflow_entity (name, active, nodes, connections, "createdAt", "updatedAt", settings, "staticData", "pinData", "versionId", "triggerCount", id, meta, "parentFolderId", "isArchived", "versionCounter", description, "activeVersionId") FROM stdin;
@@ -2901,7 +2780,7 @@ WF-000: Token Logger	t	[{"parameters":{"httpMethod":"POST","path":"log-tokens","
 
 
 --
--- Data for Name: workflow_history; Type: TABLE DATA; Schema: public; Owner: n8n
+-- Data for Name: workflow_history; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.workflow_history ("versionId", "workflowId", authors, "createdAt", "updatedAt", nodes, connections, name, autosaved, description) FROM stdin;
@@ -2941,7 +2820,6 @@ c20bd27d-6b9f-4ecd-8d9b-3d18a4e295d1	j3jZIjdsJSchQqCe	Fatih Berkay Bahçeci	2025
 f7cd0ca4-f01c-4f88-8d44-102e6cde14ce	886MnxYqCbAQ1Bjz	Fatih Berkay Bahçeci	2025-12-21 10:58:05.456+00	2025-12-21 10:58:05.456+00	[{"parameters":{"httpMethod":"POST","path":"sheets-write","responseMode":"responseNode","options":{}},"id":"a3fcfc72-9c17-4c55-b17e-275b5b9c5a3a","name":"Webhook","type":"n8n-nodes-base.webhook","typeVersion":2,"position":[-672,80],"webhookId":"sheets-write"},{"parameters":{"mode":"runOnceForEachItem","jsCode":"const body = $json.body || {};\\nconst mappings = body.column_mappings || {};\\nconst data = body.data || [];\\nconst startRow = body.start_row || 2;\\nconst writeMode = body.write_mode || 'append';\\nconst includeHeaders = body.include_headers !== false;\\n\\n// Get column letters sorted\\nconst columns = Object.entries(mappings).sort((a, b) => a[1].localeCompare(b[1]));\\nconst firstCol = columns[0]?.[1] || 'A';\\nconst lastCol = columns[columns.length - 1]?.[1] || 'A';\\n\\n// Build values array for Sheets API\\nconst values = [];\\n\\n// Add headers if needed\\nif (includeHeaders) {\\n  const headerRow = [];\\n  const labels = {\\n    keyword: 'Anahtar Kelime',\\n    search_volume: 'Arama Hacmi',\\n    keyword_difficulty: 'Zorluk',\\n    cpc: 'CPC',\\n    competition: 'Rekabet',\\n    search_intent: 'Arama Niyeti',\\n    opportunity_score: 'Fırsat Skoru',\\n    ai_category: 'AI Kategori'\\n  };\\n  for (const [field, col] of columns) {\\n    headerRow.push(labels[field] || field);\\n  }\\n  values.push(headerRow);\\n}\\n\\n// Add data rows\\nfor (const item of data) {\\n  const row = [];\\n  for (const [field, col] of columns) {\\n    const val = item[field];\\n    row.push(val !== null && val !== undefined ? String(val) : '');\\n  }\\n  values.push(row);\\n}\\n\\n// Calculate range for replace (exact range) vs append (starting point)\\nconst dataStartRow = includeHeaders ? 1 : startRow;\\nconst dataEndRow = dataStartRow + values.length - 1;\\nconst exactRange = `${body.sheet_name}!${firstCol}${dataStartRow}:${lastCol}${dataEndRow}`;\\nconst appendRange = `${body.sheet_name}!${firstCol}:${lastCol}`;\\n\\nreturn { json: {\\n  spreadsheet_id: body.spreadsheet_id,\\n  sheet_name: body.sheet_name,\\n  exact_range: exactRange,\\n  append_range: appendRange,\\n  values: values,\\n  write_mode: writeMode,\\n  row_count: data.length\\n}};"},"id":"215c15a1-ad4e-4c57-b80a-3e5bb33e3215","name":"Prepare Data","type":"n8n-nodes-base.code","typeVersion":2,"position":[-448,80]},{"parameters":{"conditions":{"options":{"caseSensitive":true},"conditions":[{"id":"c1","leftValue":"={{ $json.write_mode }}","rightValue":"replace","operator":{"type":"string","operation":"equals"}}]},"options":{}},"id":"04aa4aeb-e05d-4431-91c7-fc27f32124e7","name":"IF Replace","type":"n8n-nodes-base.if","typeVersion":2,"position":[-224,80]},{"parameters":{"method":"POST","url":"=https://sheets.googleapis.com/v4/spreadsheets/{{ $json.spreadsheet_id }}/values/{{ encodeURIComponent($json.sheet_name) }}!A:Z:clear","authentication":"predefinedCredentialType","nodeCredentialType":"googleSheetsOAuth2Api","options":{}},"id":"7e6bb1e9-879b-4881-b604-3f325a05f95b","name":"Clear Sheet","type":"n8n-nodes-base.httpRequest","typeVersion":4.2,"position":[0,0],"credentials":{"googleSheetsOAuth2Api":{"id":"FRUwxjFQM3dnpWm4","name":"Google Sheets account"}}},{"parameters":{"mode":"runOnceForEachItem","jsCode":"return { json: $('Prepare Data').item.json };"},"id":"93459e45-1c88-48e3-9183-c3abd6a530ae","name":"Restore (Replace)","type":"n8n-nodes-base.code","typeVersion":2,"position":[224,0]},{"parameters":{"method":"PUT","url":"=https://sheets.googleapis.com/v4/spreadsheets/{{ $json.spreadsheet_id }}/values/{{ encodeURIComponent($json.exact_range) }}?valueInputOption=USER_ENTERED","authentication":"predefinedCredentialType","nodeCredentialType":"googleSheetsOAuth2Api","sendBody":true,"specifyBody":"json","jsonBody":"={{ JSON.stringify({ range: $json.exact_range, values: $json.values }) }}","options":{}},"id":"53037a00-b6d8-402b-9ef7-d1b0a98f971f","name":"Write (Replace)","type":"n8n-nodes-base.httpRequest","typeVersion":4.2,"position":[448,0],"credentials":{"googleSheetsOAuth2Api":{"id":"FRUwxjFQM3dnpWm4","name":"Google Sheets account"}}},{"parameters":{"method":"POST","url":"=https://sheets.googleapis.com/v4/spreadsheets/{{ $json.spreadsheet_id }}/values/{{ encodeURIComponent($json.append_range) }}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS","authentication":"predefinedCredentialType","nodeCredentialType":"googleSheetsOAuth2Api","sendBody":true,"specifyBody":"json","jsonBody":"={{ JSON.stringify({ values: $json.values }) }}","options":{}},"id":"039bdec8-ed44-43c7-b475-e5890e95ef87","name":"Write (Append)","type":"n8n-nodes-base.httpRequest","typeVersion":4.2,"position":[0,160],"credentials":{"googleSheetsOAuth2Api":{"id":"FRUwxjFQM3dnpWm4","name":"Google Sheets account"}}},{"parameters":{"mode":"runOnceForEachItem","jsCode":"const prepData = $('Prepare Data').item.json;\\nconst response = $json;\\nconst updatedRows = response.updatedRows || prepData.values.length;\\n\\nreturn { json: {\\n  success: true,\\n  rows_written: updatedRows,\\n  spreadsheet_url: `https://docs.google.com/spreadsheets/d/${prepData.spreadsheet_id}`\\n}};"},"id":"174df93a-e7fb-4091-b4b8-2abbc650bdd6","name":"Format (Replace)","type":"n8n-nodes-base.code","typeVersion":2,"position":[672,0]},{"parameters":{"mode":"runOnceForEachItem","jsCode":"const prepData = $('Prepare Data').item.json;\\nconst response = $json;\\nconst updatedRows = response.updates?.updatedRows || prepData.values.length;\\n\\nreturn { json: {\\n  success: true,\\n  rows_written: updatedRows,\\n  spreadsheet_url: `https://docs.google.com/spreadsheets/d/${prepData.spreadsheet_id}`\\n}};"},"id":"6e529f28-9d94-44ba-9d22-19ca25d4f5b1","name":"Format (Append)","type":"n8n-nodes-base.code","typeVersion":2,"position":[224,160]},{"parameters":{"respondWith":"json","responseBody":"={{ JSON.stringify($json) }}","options":{}},"id":"3bd2b97b-10f9-49a8-a2fe-bf28040fc3e4","name":"Respond (Replace)","type":"n8n-nodes-base.respondToWebhook","typeVersion":1.1,"position":[896,0]},{"parameters":{"respondWith":"json","responseBody":"={{ JSON.stringify($json) }}","options":{}},"id":"e677d34c-fe67-4356-9c57-2b01d17c6847","name":"Respond (Append)","type":"n8n-nodes-base.respondToWebhook","typeVersion":1.1,"position":[448,160]}]	{"Webhook":{"main":[[{"node":"Prepare Data","type":"main","index":0}]]},"Prepare Data":{"main":[[{"node":"IF Replace","type":"main","index":0}]]},"IF Replace":{"main":[[{"node":"Clear Sheet","type":"main","index":0}],[{"node":"Write (Append)","type":"main","index":0}]]},"Clear Sheet":{"main":[[{"node":"Restore (Replace)","type":"main","index":0}]]},"Restore (Replace)":{"main":[[{"node":"Write (Replace)","type":"main","index":0}]]},"Write (Replace)":{"main":[[{"node":"Format (Replace)","type":"main","index":0}]]},"Write (Append)":{"main":[[{"node":"Format (Append)","type":"main","index":0}]]},"Format (Replace)":{"main":[[{"node":"Respond (Replace)","type":"main","index":0}]]},"Format (Append)":{"main":[[{"node":"Respond (Append)","type":"main","index":0}]]}}	\N	f	\N
 9dc5a4f7-aab6-404a-8959-11eebca030c0	xqZA3Veie70f1PZI	Fatih Berkay Bahçeci	2025-12-21 10:58:13.017+00	2025-12-21 10:58:13.017+00	[{"parameters":{"path":"client-prompts/list/:clientId","responseMode":"responseNode","options":{}},"id":"7bd75f15-a536-4430-8380-acd92785cd67","name":"Webhook - List Prompts","type":"n8n-nodes-base.webhook","typeVersion":2,"position":[0,0],"webhookId":"client-prompts-list"},{"parameters":{"operation":"executeQuery","query":"=SELECT id, client_id, prompt_name, prompt_text, is_active, sort_order, created_at, updated_at FROM client_prompts WHERE client_id = {{ parseInt($json.params.clientId) || 0 }} ORDER BY sort_order ASC, created_at DESC","options":{}},"id":"90f088e7-ab6f-47cc-afce-75da6cebf44b","name":"MySQL - List Prompts","type":"n8n-nodes-base.mySql","typeVersion":2.4,"position":[224,0],"credentials":{"mySql":{"id":"1rDLBK64lV00T0am","name":"SEO Suite MySQL"}}},{"parameters":{"respondWith":"json","responseBody":"={\\n  \\"success\\": true,\\n  \\"data\\": {{ JSON.stringify($input.all().map(i => ({ ...i.json, is_active: i.json.is_active === 1 || i.json.is_active === true }))) }}\\n}","options":{}},"id":"d82e3d49-c8e0-41b7-916f-126dcee0eaed","name":"Respond - List Prompts","type":"n8n-nodes-base.respondToWebhook","typeVersion":1.1,"position":[448,0]},{"parameters":{"httpMethod":"POST","path":"client-prompts/create","responseMode":"responseNode","options":{}},"id":"336d2ab8-937e-459c-a147-1648ccad36ac","name":"Webhook - Create Prompt","type":"n8n-nodes-base.webhook","typeVersion":2,"position":[0,208],"webhookId":"client-prompts-create"},{"parameters":{"mode":"runOnceForEachItem","jsCode":"// Check max prompts and prepare insert\\nconst body = $json.body || {};\\nconst clientId = parseInt(body.client_id);\\nconst promptName = body.prompt_name || '';\\nconst promptText = body.prompt_text || '';\\nconst isActive = body.is_active ? 1 : 0;\\n\\nif (!clientId || !promptName || !promptText) {\\n  return { json: { error: 'Missing required fields', valid: false } };\\n}\\n\\nreturn {\\n  json: {\\n    clientId,\\n    promptName,\\n    promptText,\\n    isActive,\\n    valid: true\\n  }\\n};"},"id":"f1f75d49-d1e7-41f0-88e0-864e1bd7015d","name":"Code - Validate Create","type":"n8n-nodes-base.code","typeVersion":2,"position":[224,208]},{"parameters":{"conditions":{"options":{"caseSensitive":true,"leftValue":"","typeValidation":"strict"},"conditions":[{"id":"condition-valid","leftValue":"={{ $json.valid }}","rightValue":true,"operator":{"type":"boolean","operation":"equals"}}],"combinator":"and"},"options":{}},"id":"020fb845-ebb5-4f3f-8622-7bff49cd9f89","name":"IF - Valid Create","type":"n8n-nodes-base.if","typeVersion":2,"position":[448,208]},{"parameters":{"operation":"executeQuery","query":"=SELECT COUNT(*) as count FROM client_prompts WHERE client_id = {{ $json.clientId }}","options":{}},"id":"b6ba912c-9332-4b24-8ee3-52874e336fd3","name":"MySQL - Check Count","type":"n8n-nodes-base.mySql","typeVersion":2.4,"position":[672,144],"credentials":{"mySql":{"id":"1rDLBK64lV00T0am","name":"SEO Suite MySQL"}}},{"parameters":{"mode":"runOnceForEachItem","jsCode":"// Check if under limit and pass data\\nconst count = $json.count || 0;\\nconst MAX_PROMPTS = 10;\\nconst prevData = $('Code - Validate Create').item.json;\\n\\nif (count >= MAX_PROMPTS) {\\n  return { json: { error: `Maximum ${MAX_PROMPTS} prompts allowed`, canCreate: false } };\\n}\\n\\nreturn {\\n  json: {\\n    ...prevData,\\n    canCreate: true\\n  }\\n};"},"id":"ea729d6f-af5c-4546-9420-1aa21b486c1e","name":"Code - Check Limit","type":"n8n-nodes-base.code","typeVersion":2,"position":[880,144]},{"parameters":{"conditions":{"options":{"caseSensitive":true,"leftValue":"","typeValidation":"strict"},"conditions":[{"id":"condition-can-create","leftValue":"={{ $json.canCreate }}","rightValue":true,"operator":{"type":"boolean","operation":"equals"}}],"combinator":"and"},"options":{}},"id":"25b42883-1d61-4b37-9bf7-73d60a27309e","name":"IF - Can Create","type":"n8n-nodes-base.if","typeVersion":2,"position":[1104,144]},{"parameters":{"operation":"executeQuery","query":"=INSERT INTO client_prompts (client_id, prompt_name, prompt_text, is_active, sort_order) VALUES ({{ $json.clientId }}, {{ JSON.stringify($json.promptName) }}, {{ JSON.stringify($json.promptText) }}, {{ $json.isActive }}, (SELECT COALESCE(MAX(sort_order), 0) + 1 FROM client_prompts cp WHERE cp.client_id = {{ $json.clientId }}))","options":{}},"id":"2e92704c-49a0-424d-a905-de1862a92ec1","name":"MySQL - Create Prompt","type":"n8n-nodes-base.mySql","typeVersion":2.4,"position":[1328,80],"credentials":{"mySql":{"id":"1rDLBK64lV00T0am","name":"SEO Suite MySQL"}}},{"parameters":{"operation":"executeQuery","query":"SELECT * FROM client_prompts WHERE id = LAST_INSERT_ID()","options":{}},"id":"f7faf58d-cdc9-49f0-81b6-ad14007b01a5","name":"MySQL - Get Created Prompt","type":"n8n-nodes-base.mySql","typeVersion":2.4,"position":[1552,80],"credentials":{"mySql":{"id":"1rDLBK64lV00T0am","name":"SEO Suite MySQL"}}},{"parameters":{"respondWith":"json","responseBody":"={\\n  \\"success\\": true,\\n  \\"data\\": {{ JSON.stringify({ ...$json, is_active: $json.is_active === 1 }) }},\\n  \\"message\\": \\"Prompt created successfully\\"\\n}","options":{}},"id":"c8dece86-345d-48a9-9642-b8ab9d48c2ad","name":"Respond - Create Prompt","type":"n8n-nodes-base.respondToWebhook","typeVersion":1.1,"position":[1760,80]},{"parameters":{"respondWith":"json","responseBody":"={\\n  \\"success\\": false,\\n  \\"error\\": {{ JSON.stringify($json.error || 'Cannot create prompt') }}\\n}","options":{"responseCode":400}},"id":"b4ff7bea-821d-4fd2-b5a5-905b34b9acee","name":"Respond - Create Error","type":"n8n-nodes-base.respondToWebhook","typeVersion":1.1,"position":[1328,224]},{"parameters":{"respondWith":"json","responseBody":"={\\n  \\"success\\": false,\\n  \\"error\\": {{ JSON.stringify($json.error || 'Invalid request') }}\\n}","options":{"responseCode":400}},"id":"b8524a53-f304-418a-bc55-dcf5d3c9a230","name":"Respond - Invalid Create","type":"n8n-nodes-base.respondToWebhook","typeVersion":1.1,"position":[672,272]},{"parameters":{"httpMethod":"PUT","path":"client-prompts/update/:id","responseMode":"responseNode","options":{}},"id":"aebd9405-6b52-4da4-95ec-6f9c9fd670f8","name":"Webhook - Update Prompt","type":"n8n-nodes-base.webhook","typeVersion":2,"position":[0,400],"webhookId":"client-prompts-update"},{"parameters":{"mode":"runOnceForEachItem","jsCode":"// Build update query\\nconst body = $json.body || {};\\nconst promptId = parseInt($json.params.id);\\n\\nif (!promptId) {\\n  return { json: { error: 'Invalid prompt ID', valid: false } };\\n}\\n\\nconst updates = [];\\nif (body.prompt_name !== undefined) {\\n  updates.push(`prompt_name = ${JSON.stringify(body.prompt_name)}`);\\n}\\nif (body.prompt_text !== undefined) {\\n  updates.push(`prompt_text = ${JSON.stringify(body.prompt_text)}`);\\n}\\nif (body.sort_order !== undefined) {\\n  updates.push(`sort_order = ${parseInt(body.sort_order)}`);\\n}\\n\\nif (updates.length === 0) {\\n  return { json: { error: 'No fields to update', valid: false } };\\n}\\n\\nupdates.push('updated_at = NOW()');\\n\\nreturn {\\n  json: {\\n    promptId,\\n    query: `UPDATE client_prompts SET ${updates.join(', ')} WHERE id = ${promptId}`,\\n    valid: true\\n  }\\n};"},"id":"ec11cfaf-71b4-4a54-9144-a4a1d94ef825","name":"Code - Build Update Prompt","type":"n8n-nodes-base.code","typeVersion":2,"position":[224,400]},{"parameters":{"conditions":{"options":{"caseSensitive":true,"leftValue":"","typeValidation":"strict"},"conditions":[{"id":"condition-valid-update","leftValue":"={{ $json.valid }}","rightValue":true,"operator":{"type":"boolean","operation":"equals"}}],"combinator":"and"},"options":{}},"id":"59e2f8b2-768e-463e-a370-d73a7563913f","name":"IF - Valid Update","type":"n8n-nodes-base.if","typeVersion":2,"position":[448,400]},{"parameters":{"operation":"executeQuery","query":"={{ $json.query }}","options":{}},"id":"25259415-b74d-486b-8641-507b8fbc4899","name":"MySQL - Update Prompt","type":"n8n-nodes-base.mySql","typeVersion":2.4,"position":[672,352],"credentials":{"mySql":{"id":"1rDLBK64lV00T0am","name":"SEO Suite MySQL"}}},{"parameters":{"operation":"executeQuery","query":"=SELECT * FROM client_prompts WHERE id = {{ $('Code - Build Update Prompt').item.json.promptId }}","options":{}},"id":"3a21674a-faff-4d9c-9b52-3fc6725bd50a","name":"MySQL - Get Updated Prompt","type":"n8n-nodes-base.mySql","typeVersion":2.4,"position":[880,352],"credentials":{"mySql":{"id":"1rDLBK64lV00T0am","name":"SEO Suite MySQL"}}},{"parameters":{"respondWith":"json","responseBody":"={\\n  \\"success\\": {{ $json.id ? true : false }},\\n  \\"data\\": {{ $json.id ? JSON.stringify({ ...$json, is_active: $json.is_active === 1 }) : 'null' }},\\n  \\"message\\": {{ $json.id ? '\\"Prompt updated successfully\\"' : '\\"Prompt not found\\"' }}\\n}","options":{}},"id":"571d7a52-5632-4fee-a026-2b8432b64b69","name":"Respond - Update Prompt","type":"n8n-nodes-base.respondToWebhook","typeVersion":1.1,"position":[1104,352]},{"parameters":{"respondWith":"json","responseBody":"={\\n  \\"success\\": false,\\n  \\"error\\": {{ JSON.stringify($json.error || 'Invalid request') }}\\n}","options":{"responseCode":400}},"id":"c1a68bba-3423-466e-a594-6743ac080799","name":"Respond - Invalid Update","type":"n8n-nodes-base.respondToWebhook","typeVersion":1.1,"position":[672,464]},{"parameters":{"httpMethod":"DELETE","path":"client-prompts/delete/:id","responseMode":"responseNode","options":{}},"id":"caca335a-dd88-4cc9-8501-c37848e77110","name":"Webhook - Delete Prompt","type":"n8n-nodes-base.webhook","typeVersion":2,"position":[0,608],"webhookId":"client-prompts-delete"},{"parameters":{"operation":"executeQuery","query":"=DELETE FROM client_prompts WHERE id = {{ parseInt($json.params.id) || 0 }}","options":{}},"id":"3cf91a18-4226-47ff-83e4-1f7c05e6c41f","name":"MySQL - Delete Prompt","type":"n8n-nodes-base.mySql","typeVersion":2.4,"position":[224,608],"credentials":{"mySql":{"id":"1rDLBK64lV00T0am","name":"SEO Suite MySQL"}}},{"parameters":{"respondWith":"json","responseBody":"={\\n  \\"success\\": true,\\n  \\"message\\": \\"Prompt deleted successfully\\"\\n}","options":{}},"id":"0a40e276-5c1f-406e-8b7f-6f399a26ef42","name":"Respond - Delete Prompt","type":"n8n-nodes-base.respondToWebhook","typeVersion":1.1,"position":[448,608]},{"parameters":{"httpMethod":"PUT","path":"client-prompts/set-active/:id","responseMode":"responseNode","options":{}},"id":"b1352f7b-34d9-45fb-8f43-4526787f0feb","name":"Webhook - Set Active","type":"n8n-nodes-base.webhook","typeVersion":2,"position":[0,800],"webhookId":"client-prompts-set-active"},{"parameters":{"mode":"runOnceForEachItem","jsCode":"// Get prompt ID and client ID\\nconst promptId = parseInt($json.params.id);\\nconst clientId = parseInt($json.body?.client_id);\\n\\nif (!promptId || !clientId) {\\n  return { json: { error: 'Invalid prompt or client ID', valid: false } };\\n}\\n\\nreturn {\\n  json: {\\n    promptId,\\n    clientId,\\n    valid: true\\n  }\\n};"},"id":"a0dc4cb9-eae8-4dab-a5d8-4c505f7c7fa7","name":"Code - Validate Set Active","type":"n8n-nodes-base.code","typeVersion":2,"position":[224,800]},{"parameters":{"conditions":{"options":{"caseSensitive":true,"leftValue":"","typeValidation":"strict"},"conditions":[{"id":"condition-valid-set-active","leftValue":"={{ $json.valid }}","rightValue":true,"operator":{"type":"boolean","operation":"equals"}}],"combinator":"and"},"options":{}},"id":"ee137210-2bbe-468f-9919-2f1c0a461471","name":"IF - Valid Set Active","type":"n8n-nodes-base.if","typeVersion":2,"position":[448,800]},{"parameters":{"operation":"executeQuery","query":"=UPDATE client_prompts SET is_active = 0 WHERE client_id = {{ $json.clientId }}","options":{}},"id":"8f1410ce-f65a-4cff-9586-6d21d4aec28c","name":"MySQL - Deactivate All","type":"n8n-nodes-base.mySql","typeVersion":2.4,"position":[672,752],"credentials":{"mySql":{"id":"1rDLBK64lV00T0am","name":"SEO Suite MySQL"}}},{"parameters":{"operation":"executeQuery","query":"=UPDATE client_prompts SET is_active = 1, updated_at = NOW() WHERE id = {{ $('Code - Validate Set Active').item.json.promptId }}","options":{}},"id":"bb05c1bc-2657-41e5-8716-124a46b15a2d","name":"MySQL - Activate One","type":"n8n-nodes-base.mySql","typeVersion":2.4,"position":[880,752],"credentials":{"mySql":{"id":"1rDLBK64lV00T0am","name":"SEO Suite MySQL"}}},{"parameters":{"respondWith":"json","responseBody":"={\\n  \\"success\\": true,\\n  \\"message\\": \\"Active prompt updated successfully\\"\\n}","options":{}},"id":"03b57618-93bf-44aa-b3dd-0441d6c980b1","name":"Respond - Set Active","type":"n8n-nodes-base.respondToWebhook","typeVersion":1.1,"position":[1104,752]},{"parameters":{"respondWith":"json","responseBody":"={\\n  \\"success\\": false,\\n  \\"error\\": {{ JSON.stringify($json.error || 'Invalid request') }}\\n}","options":{"responseCode":400}},"id":"dbaf24fa-852f-4a99-901b-716270a53219","name":"Respond - Invalid Set Active","type":"n8n-nodes-base.respondToWebhook","typeVersion":1.1,"position":[672,864]},{"parameters":{"path":"client-prompts/active/:clientId","responseMode":"responseNode","options":{}},"id":"7a26b56d-c29f-4c4d-b38e-cc9e524550ca","name":"Webhook - Get Active Prompt","type":"n8n-nodes-base.webhook","typeVersion":2,"position":[0,1008],"webhookId":"client-prompts-get-active"},{"parameters":{"operation":"executeQuery","query":"=SELECT id, client_id, prompt_name, prompt_text, is_active, sort_order, created_at, updated_at FROM client_prompts WHERE client_id = {{ parseInt($json.params.clientId) || 0 }} AND is_active = 1 LIMIT 1","options":{}},"id":"b918d4a3-19ec-46e3-befd-9f41787dc38c","name":"MySQL - Get Active Prompt","type":"n8n-nodes-base.mySql","typeVersion":2.4,"position":[224,1008],"credentials":{"mySql":{"id":"1rDLBK64lV00T0am","name":"SEO Suite MySQL"}}},{"parameters":{"respondWith":"json","responseBody":"={\\n  \\"success\\": {{ $json.id ? true : false }},\\n  \\"data\\": {{ $json.id ? JSON.stringify({ ...$json, is_active: true }) : 'null' }},\\n  \\"message\\": {{ $json.id ? '\\"Active prompt found\\"' : '\\"No active prompt found\\"' }}\\n}","options":{}},"id":"bc07c573-de42-4822-94e2-c8ba06be9e55","name":"Respond - Get Active","type":"n8n-nodes-base.respondToWebhook","typeVersion":1.1,"position":[448,1008]}]	{"Webhook - List Prompts":{"main":[[{"node":"MySQL - List Prompts","type":"main","index":0}]]},"MySQL - List Prompts":{"main":[[{"node":"Respond - List Prompts","type":"main","index":0}]]},"Webhook - Create Prompt":{"main":[[{"node":"Code - Validate Create","type":"main","index":0}]]},"Code - Validate Create":{"main":[[{"node":"IF - Valid Create","type":"main","index":0}]]},"IF - Valid Create":{"main":[[{"node":"MySQL - Check Count","type":"main","index":0}],[{"node":"Respond - Invalid Create","type":"main","index":0}]]},"MySQL - Check Count":{"main":[[{"node":"Code - Check Limit","type":"main","index":0}]]},"Code - Check Limit":{"main":[[{"node":"IF - Can Create","type":"main","index":0}]]},"IF - Can Create":{"main":[[{"node":"MySQL - Create Prompt","type":"main","index":0}],[{"node":"Respond - Create Error","type":"main","index":0}]]},"MySQL - Create Prompt":{"main":[[{"node":"MySQL - Get Created Prompt","type":"main","index":0}]]},"MySQL - Get Created Prompt":{"main":[[{"node":"Respond - Create Prompt","type":"main","index":0}]]},"Webhook - Update Prompt":{"main":[[{"node":"Code - Build Update Prompt","type":"main","index":0}]]},"Code - Build Update Prompt":{"main":[[{"node":"IF - Valid Update","type":"main","index":0}]]},"IF - Valid Update":{"main":[[{"node":"MySQL - Update Prompt","type":"main","index":0}],[{"node":"Respond - Invalid Update","type":"main","index":0}]]},"MySQL - Update Prompt":{"main":[[{"node":"MySQL - Get Updated Prompt","type":"main","index":0}]]},"MySQL - Get Updated Prompt":{"main":[[{"node":"Respond - Update Prompt","type":"main","index":0}]]},"Webhook - Delete Prompt":{"main":[[{"node":"MySQL - Delete Prompt","type":"main","index":0}]]},"MySQL - Delete Prompt":{"main":[[{"node":"Respond - Delete Prompt","type":"main","index":0}]]},"Webhook - Set Active":{"main":[[{"node":"Code - Validate Set Active","type":"main","index":0}]]},"Code - Validate Set Active":{"main":[[{"node":"IF - Valid Set Active","type":"main","index":0}]]},"IF - Valid Set Active":{"main":[[{"node":"MySQL - Deactivate All","type":"main","index":0}],[{"node":"Respond - Invalid Set Active","type":"main","index":0}]]},"MySQL - Deactivate All":{"main":[[{"node":"MySQL - Activate One","type":"main","index":0}]]},"MySQL - Activate One":{"main":[[{"node":"Respond - Set Active","type":"main","index":0}]]},"Webhook - Get Active Prompt":{"main":[[{"node":"MySQL - Get Active Prompt","type":"main","index":0}]]},"MySQL - Get Active Prompt":{"main":[[{"node":"Respond - Get Active","type":"main","index":0}]]}}	\N	f	\N
 a26989bc-baf1-4d58-829d-1f7c0a6cd9b2	askirexPIC3sUVXx	Fatih Berkay Bahçeci	2025-12-21 10:58:15.994+00	2025-12-21 10:58:15.994+00	[]	{}	\N	f	\N
-169d6df5-8464-4fe5-a246-d5d8e4f6cad7	adol4O3V4iGsGXpf	Fatih Berkay Bahçeci	2025-12-23 08:12:16.817+00	2025-12-23 08:12:16.817+00	[{"parameters":{"httpMethod":"POST","path":"bulk-keyword-research","responseMode":"responseNode","options":{}},"id":"18a61bc9-33e7-475d-8e19-71e9bc46c5e0","name":"Webhook Bulk","type":"n8n-nodes-base.webhook","typeVersion":2,"position":[-4032,96],"webhookId":"bulk-keyword-research"},{"parameters":{"jsCode":"// ===========================================\\n// BULK INPUT VALIDATION\\n// Max 100 seed keywords\\n// ===========================================\\nconst body = $json.body || $json;\\nconst keywords = body.keywords || [];\\nconst projectId = body.project_id;\\nconst clientId = body.client_id;\\nconst country = (body.country || 'TR').toUpperCase();\\nconst language = body.language || 'tr';\\nconst customRules = body.custom_rules || '';\\nconst projectName = body.project_name || '';\\n\\n// Validate keywords array\\nif (!Array.isArray(keywords) || keywords.length === 0) {\\n  return [{ json: { \\n    isValid: false, \\n    error: 'keywords parametresi zorunludur (array)', \\n    errorCode: 400 \\n  }}];\\n}\\n\\n// Clean and validate keywords\\nconst cleanKeywords = keywords\\n  .map(k => String(k).trim().toLowerCase())\\n  .filter(k => k.length >= 2)\\n  .slice(0, 100); // Max 100 keywords\\n\\nif (cleanKeywords.length === 0) {\\n  return [{ json: { \\n    isValid: false, \\n    error: 'En az 1 geçerli keyword gerekli (min 2 karakter)', \\n    errorCode: 400 \\n  }}];\\n}\\n\\nconst locationCodes = {\\n  'TR': 2792, 'US': 2840, 'GB': 2826, 'DE': 2276, 'FR': 2250\\n};\\n\\nreturn [{ json: { \\n  isValid: true,\\n  keywords: cleanKeywords,\\n  keywordCount: cleanKeywords.length,\\n  projectId: projectId ? parseInt(projectId) : null,\\n  clientId: clientId ? parseInt(clientId) : null,\\n  country: country,\\n  language: language,\\n  locationCode: locationCodes[country] || 2792,\\n  customRules: customRules,\\n  projectName: projectName || `Bulk Research - ${cleanKeywords[0]} (+${cleanKeywords.length - 1})`,\\n  startTime: Date.now()\\n}}];"},"id":"98b0a859-a28f-42e4-9783-49c09be3e008","name":"Validate Bulk Input","type":"n8n-nodes-base.code","typeVersion":2,"position":[-3808,96]},{"parameters":{"conditions":{"options":{"caseSensitive":true,"leftValue":"","typeValidation":"strict"},"conditions":[{"id":"valid","leftValue":"={{ $json.isValid }}","rightValue":true,"operator":{"type":"boolean","operation":"equals"}}],"combinator":"and"},"options":{}},"id":"adc45f42-7320-4f63-a4eb-44c72bd3544d","name":"IF Valid","type":"n8n-nodes-base.if","typeVersion":2,"position":[-3584,96]},{"parameters":{"respondWith":"json","responseBody":"={ \\"success\\": false, \\"error\\": \\"{{ $json.error }}\\" }","options":{"responseCode":"={{ $json.errorCode }}"}},"id":"b085bedb-8587-43a6-b344-5dd501b71a87","name":"Respond Error","type":"n8n-nodes-base.respondToWebhook","typeVersion":1.1,"position":[-3360,320]},{"parameters":{"operation":"executeQuery","query":"=SELECT \\n  COALESCE(cc.enable_ai_analysis, 1) as enable_ai_analysis,\\n  cc.ai_model_preference,\\n  cc.ai_temperature,\\n  sp.prompt_text as filter_prompt\\nFROM (SELECT 1 as dummy) d\\nLEFT JOIN client_configurations cc ON cc.client_id = {{ $json.clientId || 0 }}\\nLEFT JOIN system_prompts sp ON sp.slug = 'keyword-filter' AND sp.is_active = 1\\nLIMIT 1","options":{}},"id":"af4d615a-3c3a-43b0-b197-c211d665d3a2","name":"Get Client Config","type":"n8n-nodes-base.mySql","typeVersion":2.4,"position":[-3360,96],"credentials":{"mySql":{"id":"1rDLBK64lV00T0am","name":"SEO Suite MySQL"}}},{"parameters":{"jsCode":"// ===========================================\\n// PREPARE CONFIG FOR BULK PROCESSING\\n// ===========================================\\nconst input = $('Validate Bulk Input').first().json;\\nconst config = $input.first().json;\\n\\nreturn [{ json: {\\n  ...input,\\n  enableAiAnalysis: config.enable_ai_analysis == 1 || config.enable_ai_analysis === null,\\n  aiModel: config.ai_model_preference || 'gemini-2.0-flash',\\n  aiTemperature: parseFloat(config.ai_temperature) || 0.3,\\n  filterPromptTemplate: config.filter_prompt || ''\\n}}];"},"id":"0b6e6664-086a-42f4-9611-3f9e2d26027a","name":"Prepare Config","type":"n8n-nodes-base.code","typeVersion":2,"position":[-3136,96]},{"parameters":{"method":"POST","url":"https://api.dataforseo.com/v3/keywords_data/google_ads/keywords_for_keywords/live","sendHeaders":true,"headerParameters":{"parameters":[{"name":"Authorization","value":"Basic b2t0YXlAc2VvYXJ0LmNvbTo0ODk2ZGRhYzQ2OWUyZjIw"},{"name":"Content-Type","value":"application/json"}]},"sendBody":true,"specifyBody":"json","jsonBody":"=[{\\n  \\"keywords\\": {{ JSON.stringify($json.keywords) }},\\n  \\"location_code\\": {{ $json.locationCode }},\\n  \\"language_code\\": \\"{{ $json.language }}\\",\\n  \\"include_seed_keyword\\": true,\\n  \\"sort_by\\": \\"search_volume\\"\\n}]","options":{"timeout":120000}},"id":"41fcd1cb-d06a-4042-b2ed-75f06fe8c0c6","name":"DataForSEO Bulk","type":"n8n-nodes-base.httpRequest","typeVersion":4.2,"position":[-2912,96],"onError":"continueRegularOutput"},{"parameters":{"jsCode":"// ===========================================\\n// SPLIT KEYWORDS FOR GOOGLE SUGGEST\\n// Process in batches of 20 for parallel fetching\\n// ===========================================\\nconst config = $('Prepare Config').first().json;\\nconst keywords = config.keywords || [];\\n\\n// Return each keyword as separate item for parallel processing\\nreturn keywords.map((keyword, index) => ({\\n  json: {\\n    keyword: keyword,\\n    index: index,\\n    language: config.language,\\n    country: config.country,\\n    totalKeywords: keywords.length\\n  }\\n}));"},"id":"3235f0f2-b54d-4815-b443-785111d09af2","name":"Split for Suggest","type":"n8n-nodes-base.code","typeVersion":2,"position":[-2688,96]},{"parameters":{"batchSize":20,"options":{}},"id":"aa668a8c-0c25-40bb-8632-0c6e5ea6fdd1","name":"Batch Suggest","type":"n8n-nodes-base.splitInBatches","typeVersion":3,"position":[-2464,96]},{"parameters":{"url":"=http://suggestqueries.google.com/complete/search?client=firefox&q={{ encodeURIComponent($json.keyword) }}&hl={{ $json.language }}&gl={{ $json.country.toLowerCase() }}","options":{"timeout":10000}},"id":"8747cf6d-1d23-4dd2-bd8e-e4f81e5bd4dc","name":"Google Suggest","type":"n8n-nodes-base.httpRequest","typeVersion":4.2,"position":[-2240,96],"onError":"continueRegularOutput"},{"parameters":{"jsCode":"// ===========================================\\n// COLLECT SUGGESTIONS FROM BATCH\\n// ===========================================\\nconst items = $input.all();\\nconst suggestions = [];\\n\\nitems.forEach(item => {\\n  try {\\n    const response = item.json;\\n    // Google Suggest returns [query, [suggestions]]\\n    if (Array.isArray(response) && Array.isArray(response[1])) {\\n      const seedKeyword = response[0] || '';\\n      response[1].forEach(sug => {\\n        suggestions.push({\\n          keyword: String(sug).toLowerCase().trim(),\\n          seed_keyword: seedKeyword.toLowerCase().trim(),\\n          search_volume: null,\\n          cpc: null,\\n          competition: null,\\n          source: 'google_suggest'\\n        });\\n      });\\n    }\\n  } catch (e) {\\n    // Skip invalid responses\\n  }\\n});\\n\\nreturn [{ json: { suggestions, count: suggestions.length } }];"},"id":"e3c925e0-4488-4022-ac8d-6bb5b976726c","name":"Collect Suggestions","type":"n8n-nodes-base.code","typeVersion":2,"position":[-2016,96]},{"parameters":{"jsCode":"// ===========================================\\n// MERGE ALL KEYWORD SOURCES + DEDUP\\n// Combines DataForSEO + Google Suggestions\\n// Turkish character normalization\\n// ===========================================\\nconst config = $('Prepare Config').first().json;\\nconst seedKeywords = config.keywords || [];\\n\\nfunction normalizeForComparison(str) {\\n  return str.toLowerCase()\\n    .replace(/ı/g, 'i').replace(/İ/g, 'i')\\n    .replace(/ş/g, 's').replace(/Ş/g, 's')\\n    .replace(/ö/g, 'o').replace(/Ö/g, 'o')\\n    .replace(/ü/g, 'u').replace(/Ü/g, 'u')\\n    .replace(/ç/g, 'c').replace(/Ç/g, 'c')\\n    .replace(/ğ/g, 'g').replace(/Ğ/g, 'g')\\n    .replace(/[^a-z0-9\\\\s]/g, '')\\n    .replace(/\\\\s+/g, ' ')\\n    .trim();\\n}\\n\\nfunction hasTurkishChars(str) {\\n  return /[ıİşŞöÖüÜçÇğĞ]/.test(str);\\n}\\n\\n// Collect DataForSEO results\\nlet dataforseoKeywords = [];\\ntry {\\n  const dfsResponse = $('DataForSEO Bulk').first().json;\\n  if (dfsResponse?.tasks?.[0]?.result && Array.isArray(dfsResponse.tasks[0].result)) {\\n    dataforseoKeywords = dfsResponse.tasks[0].result.map(kw => {\\n      // Find which seed this keyword relates to\\n      let seedKw = seedKeywords.find(s => \\n        kw.keyword?.toLowerCase().includes(s.toLowerCase()) ||\\n        s.toLowerCase().includes(kw.keyword?.toLowerCase()?.substring(0, 10) || '')\\n      ) || seedKeywords[0];\\n      \\n      return {\\n        keyword: (kw.keyword || '').toLowerCase().trim(),\\n        seed_keyword: seedKw,\\n        search_volume: kw.search_volume || 0,\\n        cpc: kw.cpc || 0,\\n        competition: kw.competition || null,\\n        competition_index: kw.competition_index || 0,\\n        source: 'dataforseo'\\n      };\\n    }).filter(kw => kw.keyword && kw.keyword.length >= 2);\\n  }\\n} catch (e) { console.log('DataForSEO parse error:', e.message); }\\n\\n// Collect all Google Suggestions from batches\\nlet allSuggestions = [];\\ntry {\\n  const suggestionNodes = $('Collect Suggestions').all();\\n  suggestionNodes.forEach(node => {\\n    if (node.json.suggestions && Array.isArray(node.json.suggestions)) {\\n      allSuggestions.push(...node.json.suggestions);\\n    }\\n  });\\n} catch (e) { console.log('Suggestions parse error:', e.message); }\\n\\n// Merge and dedupe\\nconst allKeywords = [...dataforseoKeywords, ...allSuggestions];\\nconst seen = new Map();\\n\\nallKeywords.forEach(kw => {\\n  if (!kw.keyword || kw.keyword.length < 2) return;\\n  const normalizedKey = normalizeForComparison(kw.keyword);\\n  if (!normalizedKey || normalizedKey.length < 2) return;\\n  \\n  if (!seen.has(normalizedKey)) {\\n    seen.set(normalizedKey, kw);\\n  } else {\\n    const existing = seen.get(normalizedKey);\\n    // Prefer Turkish characters and higher volume\\n    if (hasTurkishChars(kw.keyword) && !hasTurkishChars(existing.keyword)) {\\n      kw.search_volume = kw.search_volume || existing.search_volume;\\n      kw.cpc = kw.cpc || existing.cpc;\\n      seen.set(normalizedKey, kw);\\n    } else if (kw.search_volume && !existing.search_volume) {\\n      existing.search_volume = kw.search_volume;\\n      existing.cpc = kw.cpc;\\n    }\\n  }\\n});\\n\\n// Add seed keywords if not present\\nconst uniqueKeywords = Array.from(seen.values());\\nseedKeywords.forEach(seed => {\\n  const normalized = normalizeForComparison(seed);\\n  if (!seen.has(normalized)) {\\n    uniqueKeywords.unshift({\\n      keyword: seed,\\n      seed_keyword: seed,\\n      search_volume: null,\\n      cpc: null,\\n      competition: null,\\n      source: 'seed'\\n    });\\n  }\\n});\\n\\n// Sort by volume\\nuniqueKeywords.sort((a, b) => (b.search_volume || 0) - (a.search_volume || 0));\\n\\nreturn [{\\n  json: {\\n    ...config,\\n    keywords: uniqueKeywords,\\n    stats: {\\n      total_seeds: seedKeywords.length,\\n      from_dataforseo: dataforseoKeywords.length,\\n      from_google_suggest: allSuggestions.length,\\n      after_dedup: uniqueKeywords.length\\n    }\\n  }\\n}];"},"id":"9623cb39-ed3a-40a7-9425-5852fc186c3e","name":"Merge All Keywords","type":"n8n-nodes-base.code","typeVersion":2,"position":[-1792,96]},{"parameters":{"jsCode":"// ===========================================\\n// PREPARE CHUNKS FOR GEMINI\\n// Split keywords into 150-keyword chunks\\n// ===========================================\\nconst data = $input.first().json;\\nconst keywords = data.keywords || [];\\nconst CHUNK_SIZE = 150;\\n\\nif (keywords.length === 0) {\\n  return [{ json: { skip: true, message: 'No keywords to filter' } }];\\n}\\n\\nif (!data.enableAiAnalysis) {\\n  return [{ json: { skipAi: true, ...data } }];\\n}\\n\\nconst chunks = [];\\nfor (let i = 0; i < keywords.length; i += CHUNK_SIZE) {\\n  const chunk = keywords.slice(i, i + CHUNK_SIZE);\\n  chunks.push({\\n    chunkIndex: Math.floor(i / CHUNK_SIZE),\\n    totalChunks: Math.ceil(keywords.length / CHUNK_SIZE),\\n    keywords: chunk,\\n    startIndex: i\\n  });\\n}\\n\\n// Store config for later use\\nreturn chunks.map(chunk => ({\\n  json: {\\n    ...chunk,\\n    mainKeyword: data.keywords[0]?.keyword || '',\\n    country: data.country,\\n    language: data.language,\\n    customRules: data.customRules,\\n    aiTemperature: data.aiTemperature,\\n    filterPromptTemplate: data.filterPromptTemplate,\\n    projectId: data.projectId,\\n    clientId: data.clientId,\\n    stats: data.stats\\n  }\\n}));"},"id":"d5b49499-4c75-4683-829c-65df04c5b0b8","name":"Split for Gemini","type":"n8n-nodes-base.code","typeVersion":2,"position":[-1568,96]},{"parameters":{"batchSize":3,"options":{}},"id":"bab30bbb-fd46-4256-a1dc-dcadcc44cb4a","name":"Batch Gemini","type":"n8n-nodes-base.splitInBatches","typeVersion":3,"position":[-1344,96]},{"parameters":{"jsCode":"// ===========================================\\n// BUILD PROMPT FOR THIS CHUNK\\n// ===========================================\\nconst chunk = $json;\\nconst keywords = chunk.keywords || [];\\nlet promptTemplate = chunk.filterPromptTemplate || '';\\n\\nconst keywordCsv = keywords.map((kw, i) => {\\n  const vol = kw.search_volume || 0;\\n  const cpc = kw.cpc ? kw.cpc.toFixed(2) : '0';\\n  const comp = kw.competition || '';\\n  const seed = kw.seed_keyword || '';\\n  return `${i+1}|${kw.keyword}|${vol}|${cpc}|${comp}|${seed}`;\\n}).join('\\\\n');\\n\\nlet prompt = '';\\nif (promptTemplate) {\\n  prompt = promptTemplate\\n    .replace(/\\\\{\\\\{main_keyword\\\\}\\\\}/g, chunk.mainKeyword)\\n    .replace(/\\\\{\\\\{country\\\\}\\\\}/g, chunk.country)\\n    .replace(/\\\\{\\\\{language\\\\}\\\\}/g, chunk.language)\\n    .replace(/\\\\{\\\\{keyword_list\\\\}\\\\}/g, keywordCsv);\\n} else {\\n  prompt = `Sen bir SEO uzmanisin. Keyword listesini analiz et.\\n\\nAna Keyword: ${chunk.mainKeyword}\\nKEYWORDS (No|keyword|volume|cpc|competition|seed):\\n${keywordCsv}\\n\\nHer keyword icin:\\n- Uygunsa: No|approved|intent|cluster|priority|content_type\\n- Uygun degilse: No|rejected||||| reason\\n\\nCIKTI FORMAT: No|status|intent|cluster|priority|content_type|reject_reason`;\\n}\\n\\nif (chunk.customRules) {\\n  prompt += `\\\\n\\\\n🎯 ÖZEL KURALLAR:\\\\n${chunk.customRules}`;\\n}\\n\\nreturn [{\\n  json: {\\n    ...chunk,\\n    filterPrompt: prompt\\n  }\\n}];"},"id":"95ff91a2-3c4b-4116-88a5-7f57928c4a71","name":"Build Prompt","type":"n8n-nodes-base.code","typeVersion":2,"position":[-1120,96]},{"parameters":{"method":"POST","url":"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent","authentication":"genericCredentialType","genericAuthType":"httpQueryAuth","sendBody":true,"specifyBody":"json","jsonBody":"={\\n  \\"contents\\": [{\\n    \\"parts\\": [{\\n      \\"text\\": {{ JSON.stringify($json.filterPrompt) }}\\n    }]\\n  }],\\n  \\"generationConfig\\": {\\n    \\"temperature\\": {{ $json.aiTemperature || 0.3 }},\\n    \\"maxOutputTokens\\": 8192\\n  }\\n}","options":{"timeout":90000}},"id":"b972702c-f72d-4e6a-8518-196dd20512ec","name":"Gemini Filter","type":"n8n-nodes-base.httpRequest","typeVersion":4.2,"position":[-896,96],"credentials":{"httpQueryAuth":{"id":"Hp8gTY1C1efbSfkx","name":"Gemini API"}},"onError":"continueRegularOutput"},{"parameters":{"jsCode":"// ===========================================\\n// PARSE GEMINI RESPONSE FOR THIS CHUNK\\n// ===========================================\\nconst items = $input.all();\\nconst results = [];\\n\\nitems.forEach(item => {\\n  const prevData = item.json;\\n  const geminiResponse = item.json;\\n  const processedKeywords = prevData.keywords || [];\\n  \\n  try {\\n    const text = geminiResponse?.candidates?.[0]?.content?.parts?.[0]?.text || '';\\n    const lines = text.split('\\\\n').filter(l => /^\\\\d+\\\\|/.test(l.trim()));\\n    \\n    const chunkResults = [];\\n    const processedIndices = new Set();\\n    \\n    for (const line of lines) {\\n      const parts = line.split('|').map(p => p.trim());\\n      if (parts.length < 2) continue;\\n      \\n      const no = parseInt(parts[0]);\\n      const status = (parts[1] || '').toLowerCase();\\n      \\n      if (isNaN(no) || no < 1 || no > processedKeywords.length) continue;\\n      \\n      const original = processedKeywords[no - 1];\\n      processedIndices.add(no);\\n      \\n      if (status === 'approved') {\\n        chunkResults.push({\\n          ...original,\\n          index: no,\\n          intent: parts[2] || null,\\n          cluster: parts[3] || null,\\n          priority: parts[4] || 'medium',\\n          content_type: parts[5] || 'cluster',\\n          status: 'approved',\\n          reject_reason: null\\n        });\\n      } else if (status === 'rejected') {\\n        chunkResults.push({\\n          ...original,\\n          index: no,\\n          intent: null,\\n          cluster: parts[3] || null,\\n          priority: null,\\n          content_type: null,\\n          status: 'rejected',\\n          reject_reason: parts[6] || 'filtered'\\n        });\\n      }\\n    }\\n    \\n    // Handle keywords not in response\\n    processedKeywords.forEach((kw, idx) => {\\n      if (!processedIndices.has(idx + 1)) {\\n        chunkResults.push({\\n          ...kw,\\n          index: idx + 1,\\n          intent: null,\\n          cluster: null,\\n          priority: null,\\n          content_type: null,\\n          status: 'pending',\\n          reject_reason: 'AI skipped'\\n        });\\n      }\\n    });\\n    \\n    results.push(...chunkResults);\\n  } catch (e) {\\n    // On error, mark all as pending\\n    processedKeywords.forEach((kw, idx) => {\\n      results.push({\\n        ...kw,\\n        index: idx + 1,\\n        intent: null,\\n        cluster: null,\\n        priority: 'medium',\\n        content_type: 'cluster',\\n        status: 'pending',\\n        reject_reason: 'AI error: ' + e.message\\n      });\\n    });\\n  }\\n});\\n\\nreturn [{ json: { processedKeywords: results, count: results.length } }];"},"id":"9f23670c-2df9-418e-807b-a8e970fd16ca","name":"Parse Chunk","type":"n8n-nodes-base.code","typeVersion":2,"position":[-672,96]},{"parameters":{"jsCode":"// ===========================================\\n// MERGE ALL CHUNK RESULTS\\n// ===========================================\\nconst config = $('Merge All Keywords').first().json;\\nconst chunkResults = $('Parse Chunk').all();\\n\\nlet allKeywords = [];\\nchunkResults.forEach(chunk => {\\n  if (chunk.json.processedKeywords) {\\n    allKeywords.push(...chunk.json.processedKeywords);\\n  }\\n});\\n\\n// Separate approved and rejected\\nconst approved = allKeywords.filter(kw => kw.status === 'approved');\\nconst rejected = allKeywords.filter(kw => kw.status !== 'approved');\\n\\n// Build clusters\\nconst clusters = {};\\napproved.forEach(kw => {\\n  const c = kw.cluster || 'Genel';\\n  if (!clusters[c]) clusters[c] = [];\\n  clusters[c].push(kw.keyword);\\n});\\n\\nreturn [{\\n  json: {\\n    projectId: config.projectId,\\n    clientId: config.clientId,\\n    country: config.country,\\n    language: config.language,\\n    stats: {\\n      ...config.stats,\\n      total_processed: allKeywords.length,\\n      approved_count: approved.length,\\n      rejected_count: rejected.length,\\n      pending_count: allKeywords.filter(k => k.status === 'pending').length\\n    },\\n    approved_keywords: approved,\\n    rejected_keywords: rejected,\\n    all_keywords: allKeywords,\\n    clusters: clusters,\\n    ai_used: true,\\n    processing_time_ms: Date.now() - (config.startTime || Date.now())\\n  }\\n}];"},"id":"13c756b8-2c1e-44d5-9546-48c2d6326735","name":"Merge Results","type":"n8n-nodes-base.code","typeVersion":2,"position":[-448,96]},{"parameters":{"conditions":{"options":{"caseSensitive":true,"leftValue":"","typeValidation":"loose"},"conditions":[{"id":"has-project","leftValue":"={{ $json.projectId }}","rightValue":true,"operator":{"type":"boolean","operation":"exists"}}],"combinator":"and"},"options":{}},"id":"b6a7fe5f-1ba7-41c1-afe8-a53b03f7d29a","name":"IF Save to DB","type":"n8n-nodes-base.if","typeVersion":2,"position":[-224,96]},{"parameters":{"jsCode":"// ===========================================\\n// PREPARE BATCH INSERT\\n// 500 keywords per batch\\n// ===========================================\\nconst data = $input.first().json;\\nconst projectId = data.projectId;\\nconst allKeywords = data.all_keywords || [];\\n\\nif (allKeywords.length === 0) {\\n  return [{ json: { skip: true, batchQuery: '' } }];\\n}\\n\\nfunction esc(str) {\\n  if (str === null || str === undefined) return 'NULL';\\n  return \\"'\\" + String(str).replace(/\\\\\\\\/g, '\\\\\\\\\\\\\\\\').replace(/'/g, \\"''\\") + \\"'\\";\\n}\\n\\nfunction escOrNull(str) {\\n  if (str === null || str === undefined || str === '') return 'NULL';\\n  return \\"'\\" + String(str).replace(/\\\\\\\\/g, '\\\\\\\\\\\\\\\\').replace(/'/g, \\"''\\") + \\"'\\";\\n}\\n\\nfunction normalizeSource(src) {\\n  if (!src) return 'dataforseo';\\n  const first = src.split(',')[0].trim();\\n  return first || 'dataforseo';\\n}\\n\\nconst batchSize = 500;\\nconst batches = [];\\n\\nfor (let i = 0; i < allKeywords.length; i += batchSize) {\\n  const batch = allKeywords.slice(i, i + batchSize);\\n  const values = batch.map(kw => {\\n    const kwType = kw.source?.includes('suggest') ? 'google_suggest' : 'related';\\n    const src = normalizeSource(kw.source);\\n    return `(${projectId}, ${esc(kw.keyword)}, ${escOrNull(kw.seed_keyword)}, '${kwType}', ${kw.search_volume || 'NULL'}, ${kw.cpc || 'NULL'}, ${escOrNull(kw.competition)}, ${escOrNull(kw.intent)}, ${escOrNull(kw.cluster)}, ${escOrNull(kw.priority)}, ${escOrNull(kw.content_type)}, '${src}', '${kw.status || 'pending'}', ${escOrNull(kw.reject_reason)})`;\\n  }).join(',\\\\n');\\n  \\n  const query = `INSERT INTO keyword_results (project_id, keyword, seed_keyword, keyword_type, search_volume, cpc, competition, search_intent, keyword_cluster, content_priority, page_type, source, status, reject_reason) VALUES ${values} ON DUPLICATE KEY UPDATE search_volume=VALUES(search_volume), cpc=VALUES(cpc), search_intent=COALESCE(VALUES(search_intent),search_intent), keyword_cluster=COALESCE(VALUES(keyword_cluster),keyword_cluster), content_priority=COALESCE(VALUES(content_priority),content_priority), page_type=COALESCE(VALUES(page_type),page_type), status=VALUES(status), reject_reason=VALUES(reject_reason)`;\\n  \\n  batches.push({ json: { batchQuery: query, batchIndex: Math.floor(i/batchSize), batchCount: batch.length } });\\n}\\n\\nconsole.log(`[Bulk Save] Total: ${allKeywords.length} keywords, ${batches.length} batches`);\\nreturn batches;"},"id":"7bf6df5c-d6a9-45fb-a6e5-5c94f49dc6c2","name":"Split for DB","type":"n8n-nodes-base.code","typeVersion":2,"position":[0,0]},{"parameters":{"operation":"executeQuery","query":"={{ $json.batchQuery }}","options":{}},"id":"f054c93d-1706-4a57-95c9-1243ca733936","name":"Save to DB","type":"n8n-nodes-base.mySql","typeVersion":2.4,"position":[224,0],"credentials":{"mySql":{"id":"1rDLBK64lV00T0am","name":"SEO Suite MySQL"}},"onError":"continueRegularOutput"},{"parameters":{"jsCode":"// ===========================================\\n// PREPARE FINAL RESPONSE (DB SAVED)\\n// ===========================================\\nconst data = $('Merge Results').first().json;\\nconst savedBatches = $input.all().length;\\n\\nconst approvedKeywords = data.approved_keywords || [];\\nconst rejectedKeywords = data.rejected_keywords || [];\\n\\nreturn [{\\n  json: {\\n    success: true,\\n    message: `Bulk keyword arastirmasi tamamlandi. ${approvedKeywords.length} keyword onaylandi, ${rejectedKeywords.length} reddedildi, ${savedBatches} batch DB'ye kaydedildi.`,\\n    project_id: data.projectId,\\n    stats: {\\n      ...data.stats,\\n      saved_batches: savedBatches,\\n      processing_time_ms: data.processing_time_ms\\n    },\\n    keywords: approvedKeywords.slice(0, 500).map(kw => ({\\n      keyword: kw.keyword,\\n      seed_keyword: kw.seed_keyword,\\n      search_volume: kw.search_volume,\\n      cpc: kw.cpc,\\n      intent: kw.intent,\\n      cluster: kw.cluster,\\n      priority: kw.priority,\\n      content_type: kw.content_type,\\n      status: kw.status\\n    })),\\n    rejected_sample: rejectedKeywords.slice(0, 100).map(kw => ({\\n      keyword: kw.keyword,\\n      seed_keyword: kw.seed_keyword,\\n      reason: kw.reject_reason,\\n      status: kw.status\\n    })),\\n    clusters: data.clusters || {},\\n    ai_used: data.ai_used\\n  }\\n}];"},"id":"2e02626d-c894-4aed-90e9-c4cfa5490208","name":"Response (DB)","type":"n8n-nodes-base.code","typeVersion":2,"position":[448,0]},{"parameters":{"jsCode":"// ===========================================\\n// PREPARE RESPONSE (NO DB SAVE)\\n// ===========================================\\nconst data = $input.first().json;\\n\\nconst approvedKeywords = data.approved_keywords || [];\\nconst rejectedKeywords = data.rejected_keywords || [];\\n\\nreturn [{\\n  json: {\\n    success: true,\\n    message: `Bulk keyword arastirmasi tamamlandi. ${approvedKeywords.length} keyword onaylandi, ${rejectedKeywords.length} reddedildi.`,\\n    project_id: null,\\n    stats: {\\n      ...data.stats,\\n      saved_to_db: 0\\n    },\\n    keywords: approvedKeywords.slice(0, 500).map(kw => ({\\n      keyword: kw.keyword,\\n      seed_keyword: kw.seed_keyword,\\n      search_volume: kw.search_volume,\\n      cpc: kw.cpc,\\n      intent: kw.intent,\\n      cluster: kw.cluster,\\n      priority: kw.priority,\\n      content_type: kw.content_type,\\n      status: kw.status\\n    })),\\n    rejected_sample: rejectedKeywords.slice(0, 100).map(kw => ({\\n      keyword: kw.keyword,\\n      seed_keyword: kw.seed_keyword,\\n      reason: kw.reject_reason,\\n      status: kw.status\\n    })),\\n    clusters: data.clusters || {},\\n    ai_used: data.ai_used\\n  }\\n}];"},"id":"e103edec-7ed0-497e-8e86-b1ae753cec3c","name":"Response (No DB)","type":"n8n-nodes-base.code","typeVersion":2,"position":[0,208]},{"parameters":{"respondWith":"json","responseBody":"={{ $json }}","options":{}},"id":"3d2e586e-17f2-4827-917d-9eb91ee9ea07","name":"Respond Success","type":"n8n-nodes-base.respondToWebhook","typeVersion":1.1,"position":[672,96]}]	{"Webhook Bulk":{"main":[[{"node":"Validate Bulk Input","type":"main","index":0}]]},"Validate Bulk Input":{"main":[[{"node":"IF Valid","type":"main","index":0}]]},"IF Valid":{"main":[[{"node":"Get Client Config","type":"main","index":0}],[{"node":"Respond Error","type":"main","index":0}]]},"Get Client Config":{"main":[[{"node":"Prepare Config","type":"main","index":0}]]},"Prepare Config":{"main":[[{"node":"DataForSEO Bulk","type":"main","index":0}]]},"DataForSEO Bulk":{"main":[[{"node":"Split for Suggest","type":"main","index":0}]]},"Split for Suggest":{"main":[[{"node":"Batch Suggest","type":"main","index":0}]]},"Batch Suggest":{"main":[[{"node":"Google Suggest","type":"main","index":0}],[{"node":"Merge All Keywords","type":"main","index":0}]]},"Google Suggest":{"main":[[{"node":"Collect Suggestions","type":"main","index":0}]]},"Collect Suggestions":{"main":[[{"node":"Batch Suggest","type":"main","index":0}]]},"Merge All Keywords":{"main":[[{"node":"Split for Gemini","type":"main","index":0}]]},"Split for Gemini":{"main":[[{"node":"Batch Gemini","type":"main","index":0}]]},"Batch Gemini":{"main":[[{"node":"Build Prompt","type":"main","index":0}],[{"node":"Merge Results","type":"main","index":0}]]},"Build Prompt":{"main":[[{"node":"Gemini Filter","type":"main","index":0}]]},"Gemini Filter":{"main":[[{"node":"Parse Chunk","type":"main","index":0}]]},"Parse Chunk":{"main":[[{"node":"Batch Gemini","type":"main","index":0}]]},"Merge Results":{"main":[[{"node":"IF Save to DB","type":"main","index":0}]]},"IF Save to DB":{"main":[[{"node":"Split for DB","type":"main","index":0}],[{"node":"Response (No DB)","type":"main","index":0}]]},"Split for DB":{"main":[[{"node":"Save to DB","type":"main","index":0}]]},"Save to DB":{"main":[[{"node":"Response (DB)","type":"main","index":0}]]},"Response (DB)":{"main":[[{"node":"Respond Success","type":"main","index":0}]]},"Response (No DB)":{"main":[[{"node":"Respond Success","type":"main","index":0}]]}}	\N	f	\N
 3a51bf09-3eb8-4c77-b845-f9ea2363a824	adol4O3V4iGsGXpf	Fatih Berkay Bahçeci	2025-12-23 10:30:47.216+00	2025-12-23 10:30:47.216+00	[{"parameters":{"httpMethod":"POST","path":"bulk-keyword-research","responseMode":"responseNode","options":{}},"id":"1da93b88-26a8-4fdc-884f-df74c1cbd947","name":"Webhook Bulk","type":"n8n-nodes-base.webhook","typeVersion":2,"position":[-1536,112],"webhookId":"bulk-keyword-research"},{"parameters":{"jsCode":"// ===========================================\\n// BULK INPUT VALIDATION\\n// ===========================================\\nconst body = $json.body || $json;\\nconst keywords = body.keywords || [];\\nconst projectId = body.project_id;\\nconst clientId = body.client_id;\\nconst country = (body.country || 'TR').toUpperCase();\\nconst language = body.language || 'tr';\\nconst customRules = body.custom_rules || '';\\n\\nif (!Array.isArray(keywords) || keywords.length === 0) {\\n  return [{ json: { isValid: false, error: 'keywords array required', errorCode: 400 }}];\\n}\\n\\nconst cleanKeywords = keywords\\n  .map(k => String(k).trim().toLowerCase())\\n  .filter(k => k.length >= 2)\\n  .slice(0, 100);\\n\\nif (cleanKeywords.length === 0) {\\n  return [{ json: { isValid: false, error: 'Min 1 valid keyword required', errorCode: 400 }}];\\n}\\n\\nconst locationCodes = { 'TR': 2792, 'US': 2840, 'GB': 2826, 'DE': 2276, 'FR': 2250 };\\n\\nreturn [{ json: { \\n  isValid: true,\\n  keywords: cleanKeywords,\\n  keywordCount: cleanKeywords.length,\\n  projectId: projectId ? parseInt(projectId) : null,\\n  clientId: clientId ? parseInt(clientId) : null,\\n  country, language,\\n  locationCode: locationCodes[country] || 2792,\\n  customRules,\\n  startTime: Date.now()\\n}}];"},"id":"6ca24c9e-f2b7-45f5-8982-0c3322bbfd47","name":"Validate Input","type":"n8n-nodes-base.code","typeVersion":2,"position":[-1328,112]},{"parameters":{"conditions":{"options":{"caseSensitive":true,"leftValue":"","typeValidation":"strict"},"conditions":[{"id":"valid","leftValue":"={{ $json.isValid }}","rightValue":true,"operator":{"type":"boolean","operation":"equals"}}],"combinator":"and"},"options":{}},"id":"ad6919c7-fad3-4730-a209-6f0feeb3715d","name":"IF Valid","type":"n8n-nodes-base.if","typeVersion":2,"position":[-1104,112]},{"parameters":{"respondWith":"json","responseBody":"={ \\"success\\": false, \\"error\\": \\"{{ $json.error }}\\" }","options":{"responseCode":"={{ $json.errorCode }}"}},"id":"7cf1f099-286e-43de-97ea-5b4472dfc7a2","name":"Respond Error","type":"n8n-nodes-base.respondToWebhook","typeVersion":1.1,"position":[-880,304]},{"parameters":{"method":"POST","url":"https://api.dataforseo.com/v3/keywords_data/google_ads/keywords_for_keywords/live","sendHeaders":true,"headerParameters":{"parameters":[{"name":"Authorization","value":"Basic b2t0YXlAc2VvYXJ0LmNvbTo0ODk2ZGRhYzQ2OWUyZjIw"},{"name":"Content-Type","value":"application/json"}]},"sendBody":true,"specifyBody":"json","jsonBody":"=[{\\n  \\"keywords\\": {{ JSON.stringify($json.keywords) }},\\n  \\"location_code\\": {{ $json.locationCode }},\\n  \\"language_code\\": \\"{{ $json.language }}\\",\\n  \\"include_seed_keyword\\": true,\\n  \\"sort_by\\": \\"search_volume\\"\\n}]","options":{"timeout":120000}},"id":"9d2eaee7-e125-44f3-b264-7c252dd51d9d","name":"DataForSEO Bulk","type":"n8n-nodes-base.httpRequest","typeVersion":4.2,"position":[-880,112],"onError":"continueRegularOutput"},{"parameters":{"jsCode":"// ===========================================\\n// MERGE & PREPARE FOR GEMINI\\n// ===========================================\\nconst input = $('Validate Input').first().json;\\nconst seedKeywords = input.keywords || [];\\n\\nfunction normalizeForComparison(str) {\\n  return str.toLowerCase()\\n    .replace(/ı/g, 'i').replace(/İ/g, 'i')\\n    .replace(/ş/g, 's').replace(/Ş/g, 's')\\n    .replace(/ö/g, 'o').replace(/Ö/g, 'o')\\n    .replace(/ü/g, 'u').replace(/Ü/g, 'u')\\n    .replace(/ç/g, 'c').replace(/Ç/g, 'c')\\n    .replace(/ğ/g, 'g').replace(/Ğ/g, 'g')\\n    .replace(/[^a-z0-9\\\\s]/g, '').replace(/\\\\s+/g, ' ').trim();\\n}\\n\\n// Parse DataForSEO response\\nlet dataforseoKeywords = [];\\ntry {\\n  const dfsResponse = $input.first().json;\\n  if (dfsResponse?.tasks?.[0]?.result) {\\n    dataforseoKeywords = dfsResponse.tasks[0].result.map(kw => {\\n      let seedKw = seedKeywords.find(s => \\n        kw.keyword?.toLowerCase().includes(s.toLowerCase())\\n      ) || seedKeywords[0];\\n      return {\\n        keyword: (kw.keyword || '').toLowerCase().trim(),\\n        seed_keyword: seedKw,\\n        search_volume: kw.search_volume || 0,\\n        cpc: kw.cpc || 0,\\n        competition: kw.competition || null,\\n        source: 'dataforseo'\\n      };\\n    }).filter(kw => kw.keyword && kw.keyword.length >= 2);\\n  }\\n} catch (e) { console.log('DFS error:', e.message); }\\n\\n// Dedupe\\nconst seen = new Map();\\ndataforseoKeywords.forEach(kw => {\\n  const key = normalizeForComparison(kw.keyword);\\n  if (key.length >= 2 && !seen.has(key)) seen.set(key, kw);\\n});\\n\\n// Add seed keywords if missing\\nseedKeywords.forEach(seed => {\\n  const key = normalizeForComparison(seed);\\n  if (!seen.has(key)) {\\n    seen.set(key, { keyword: seed, seed_keyword: seed, search_volume: null, cpc: null, source: 'seed' });\\n  }\\n});\\n\\nconst uniqueKeywords = Array.from(seen.values())\\n  .sort((a, b) => (b.search_volume || 0) - (a.search_volume || 0));\\n\\n// Take top 150 for AI, rest as pending\\nconst forAI = uniqueKeywords.slice(0, 150);\\nconst pending = uniqueKeywords.slice(150);\\n\\nreturn [{ json: {\\n  ...input,\\n  allKeywords: uniqueKeywords,\\n  forAI: forAI,\\n  pendingKeywords: pending,\\n  stats: {\\n    total_seeds: seedKeywords.length,\\n    from_dataforseo: dataforseoKeywords.length,\\n    unique: uniqueKeywords.length,\\n    for_ai: forAI.length,\\n    pending: pending.length\\n  }\\n}}];"},"id":"b52f287b-2229-4310-b6fb-4e1edfa116b1","name":"Merge Keywords","type":"n8n-nodes-base.code","typeVersion":2,"position":[-656,112]},{"parameters":{"jsCode":"// ===========================================\\n// BUILD GEMINI PROMPT\\n// ===========================================\\nconst data = $input.first().json;\\nconst keywords = data.forAI || [];\\nconst mainKeyword = data.keywords[0] || '';\\n\\nif (keywords.length === 0) {\\n  return [{ json: { ...data, skipAi: true }}];\\n}\\n\\nconst keywordCsv = keywords.map((kw, i) => {\\n  const vol = kw.search_volume || 0;\\n  const cpc = kw.cpc ? kw.cpc.toFixed(2) : '0';\\n  const seed = kw.seed_keyword || '';\\n  return `${i+1}|${kw.keyword}|${vol}|${cpc}|${seed}`;\\n}).join('\\\\n');\\n\\nconst prompt = `Sen bir SEO uzmanisin. Asagidaki keyword listesini analiz et.\\n\\nAna Keyword: ${mainKeyword}\\nUlke: ${data.country}\\n\\nKEYWORDS (No|keyword|volume|cpc|seed):\\n${keywordCsv}\\n\\nHer keyword icin tek satir cikti ver:\\n- Uygunsa: No|approved|intent|cluster|priority|content_type\\n- Uygun degilse: No|rejected|||||reason\\n\\nIntent: informational, commercial, transactional, navigational\\nPriority: high, medium, low\\nContent_type: pillar, cluster, blog, product, faq\\n\\nSadece satirlari yaz, baska bir sey yazma.`;\\n\\nreturn [{ json: { ...data, filterPrompt: prompt, skipAi: false }}];"},"id":"932ae05a-8f92-4df8-90ea-67871a2b3c4c","name":"Build Prompt","type":"n8n-nodes-base.code","typeVersion":2,"position":[-448,112]},{"parameters":{"conditions":{"options":{"caseSensitive":true,"leftValue":"","typeValidation":"strict"},"conditions":[{"id":"skip","leftValue":"={{ $json.skipAi }}","rightValue":true,"operator":{"type":"boolean","operation":"notEquals"}}],"combinator":"and"},"options":{}},"id":"b3d68c64-c671-4514-b238-3f3ae8cd9e40","name":"IF Run AI","type":"n8n-nodes-base.if","typeVersion":2,"position":[-224,112]},{"parameters":{"method":"POST","url":"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent","authentication":"genericCredentialType","genericAuthType":"httpQueryAuth","sendBody":true,"specifyBody":"json","jsonBody":"={\\n  \\"contents\\": [{ \\"parts\\": [{ \\"text\\": {{ JSON.stringify($json.filterPrompt) }} }] }],\\n  \\"generationConfig\\": { \\"temperature\\": 0.3, \\"maxOutputTokens\\": 8192 }\\n}","options":{"timeout":120000}},"id":"5c29be9e-961b-4977-a822-c1d6845d1dbe","name":"Gemini Filter","type":"n8n-nodes-base.httpRequest","typeVersion":4.2,"position":[0,0],"credentials":{"httpQueryAuth":{"id":"Hp8gTY1C1efbSfkx","name":"Gemini API"}},"onError":"continueRegularOutput"},{"parameters":{"jsCode":"// ===========================================\\n// PARSE GEMINI RESPONSE\\n// ===========================================\\nconst prevData = $('Build Prompt').first().json;\\nconst geminiResponse = $input.first().json;\\nconst processedKeywords = prevData.forAI || [];\\nconst pendingKeywords = prevData.pendingKeywords || [];\\n\\nconst approved = [];\\nconst rejected = [];\\n\\ntry {\\n  const text = geminiResponse?.candidates?.[0]?.content?.parts?.[0]?.text || '';\\n  const lines = text.split('\\\\n').filter(l => /^\\\\d+\\\\|/.test(l.trim()));\\n  const processedIndices = new Set();\\n  \\n  for (const line of lines) {\\n    const parts = line.split('|').map(p => p.trim());\\n    if (parts.length < 2) continue;\\n    \\n    const no = parseInt(parts[0]);\\n    const status = (parts[1] || '').toLowerCase();\\n    \\n    if (isNaN(no) || no < 1 || no > processedKeywords.length) continue;\\n    \\n    const original = processedKeywords[no - 1];\\n    processedIndices.add(no);\\n    \\n    if (status === 'approved') {\\n      approved.push({\\n        ...original,\\n        intent: parts[2] || null,\\n        cluster: parts[3] || null,\\n        priority: parts[4] || 'medium',\\n        content_type: parts[5] || 'cluster',\\n        status: 'approved',\\n        reject_reason: null\\n      });\\n    } else {\\n      rejected.push({\\n        ...original,\\n        intent: null, cluster: parts[3] || null,\\n        priority: null, content_type: null,\\n        status: 'rejected',\\n        reject_reason: parts[6] || 'filtered'\\n      });\\n    }\\n  }\\n  \\n  // Handle skipped keywords\\n  processedKeywords.forEach((kw, idx) => {\\n    if (!processedIndices.has(idx + 1)) {\\n      rejected.push({ ...kw, status: 'pending', reject_reason: 'AI skipped' });\\n    }\\n  });\\n} catch (e) {\\n  console.log('Parse error:', e.message);\\n  processedKeywords.forEach(kw => {\\n    approved.push({ ...kw, status: 'approved', priority: 'medium', content_type: 'cluster' });\\n  });\\n}\\n\\n// Add pending keywords\\npendingKeywords.forEach(kw => {\\n  rejected.push({ ...kw, status: 'pending', reject_reason: null });\\n});\\n\\nconst clusters = {};\\napproved.forEach(kw => {\\n  const c = kw.cluster || 'Genel';\\n  if (!clusters[c]) clusters[c] = [];\\n  clusters[c].push(kw.keyword);\\n});\\n\\nreturn [{ json: {\\n  projectId: prevData.projectId,\\n  clientId: prevData.clientId,\\n  mainKeyword: prevData.keywords[0],\\n  stats: { ...prevData.stats, approved: approved.length, rejected: rejected.length },\\n  approved_keywords: approved,\\n  rejected_keywords: rejected,\\n  all_keywords: [...approved, ...rejected],\\n  clusters,\\n  ai_used: true,\\n  processing_time_ms: Date.now() - prevData.startTime\\n}}];"},"id":"9a56f6d1-8137-4eab-9a60-514d94dd7fbc","name":"Parse Response","type":"n8n-nodes-base.code","typeVersion":2,"position":[224,0]},{"parameters":{"jsCode":"// ===========================================\\n// SKIP AI - Mark all as approved\\n// ===========================================\\nconst data = $input.first().json;\\nconst keywords = data.allKeywords || [];\\n\\nconst approved = keywords.slice(0, 50).map(kw => ({\\n  ...kw, status: 'approved', priority: 'medium', content_type: 'cluster'\\n}));\\nconst pending = keywords.slice(50).map(kw => ({\\n  ...kw, status: 'pending', reject_reason: 'AI skipped'\\n}));\\n\\nreturn [{ json: {\\n  projectId: data.projectId,\\n  clientId: data.clientId,\\n  mainKeyword: data.keywords[0],\\n  stats: { ...data.stats, approved: approved.length, rejected: pending.length },\\n  approved_keywords: approved,\\n  rejected_keywords: pending,\\n  all_keywords: [...approved, ...pending],\\n  clusters: { 'Genel': approved.map(k => k.keyword) },\\n  ai_used: false,\\n  processing_time_ms: Date.now() - data.startTime\\n}}];"},"id":"814054a4-2afd-4e4a-977b-0c3f809bed66","name":"Skip AI","type":"n8n-nodes-base.code","typeVersion":2,"position":[0,208]},{"parameters":{"conditions":{"options":{"caseSensitive":true,"leftValue":"","typeValidation":"loose"},"conditions":[{"id":"has-project","leftValue":"={{ $json.projectId }}","rightValue":true,"operator":{"type":"boolean","operation":"exists"}}],"combinator":"and"},"options":{}},"id":"474f73d9-b5e2-42b0-bec8-78799996da7f","name":"IF Save DB","type":"n8n-nodes-base.if","typeVersion":2,"position":[448,112]},{"parameters":{"jsCode":"// ===========================================\\n// PREPARE BATCH INSERT\\n// ===========================================\\nconst data = $input.first().json;\\nconst projectId = data.projectId;\\nconst allKeywords = data.all_keywords || [];\\n\\nif (allKeywords.length === 0) {\\n  return [{ json: { skip: true, batchQuery: '' }}];\\n}\\n\\nfunction esc(str) {\\n  if (str === null || str === undefined) return 'NULL';\\n  return \\"'\\" + String(str).replace(/\\\\\\\\/g, '\\\\\\\\\\\\\\\\').replace(/'/g, \\"''\\") + \\"'\\";\\n}\\n\\nconst values = allKeywords.slice(0, 500).map(kw => {\\n  const kwType = kw.source?.includes('suggest') ? 'google_suggest' : 'related';\\n  const src = (kw.source || 'dataforseo').split(',')[0].trim();\\n  return `(${projectId}, ${esc(kw.keyword)}, ${esc(kw.seed_keyword)}, '${kwType}', ${kw.search_volume || 'NULL'}, ${kw.cpc || 'NULL'}, ${esc(kw.competition)}, ${esc(kw.intent)}, ${esc(kw.cluster)}, ${esc(kw.priority)}, ${esc(kw.content_type)}, '${src}', '${kw.status || 'pending'}', ${esc(kw.reject_reason)})`;\\n}).join(',\\\\n');\\n\\nconst query = `INSERT INTO keyword_results (project_id, keyword, seed_keyword, keyword_type, search_volume, cpc, competition, search_intent, keyword_cluster, content_priority, page_type, source, status, reject_reason) VALUES ${values} ON DUPLICATE KEY UPDATE search_volume=VALUES(search_volume), status=VALUES(status)`;\\n\\nreturn [{ json: { ...data, batchQuery: query }}];"},"id":"62cd0afd-918f-4e20-ae17-c5f54e383faa","name":"Prepare Insert","type":"n8n-nodes-base.code","typeVersion":2,"position":[672,0]},{"parameters":{"operation":"executeQuery","query":"={{ $json.batchQuery }}","options":{}},"id":"09afe8ba-e947-4352-b9ed-f1e32c31d6e4","name":"Save to DB","type":"n8n-nodes-base.mySql","typeVersion":2.4,"position":[880,0],"credentials":{"mySql":{"id":"1rDLBK64lV00T0am","name":"SEO Suite MySQL"}},"onError":"continueRegularOutput"},{"parameters":{"jsCode":"// ===========================================\\n// FINAL RESPONSE\\n// ===========================================\\nconst data = $('Prepare Insert').first().json;\\nconst approved = data.approved_keywords || [];\\nconst rejected = data.rejected_keywords || [];\\n\\nreturn [{ json: {\\n  success: true,\\n  message: `Bulk tamamlandi. ${approved.length} onaylandi, ${rejected.length} reddedildi.`,\\n  project_id: data.projectId,\\n  stats: data.stats,\\n  keywords: approved.slice(0, 200).map(kw => ({\\n    keyword: kw.keyword,\\n    seed_keyword: kw.seed_keyword,\\n    search_volume: kw.search_volume,\\n    intent: kw.intent,\\n    cluster: kw.cluster,\\n    priority: kw.priority,\\n    status: kw.status\\n  })),\\n  rejected: rejected.slice(0, 50).map(kw => ({\\n    keyword: kw.keyword,\\n    reason: kw.reject_reason\\n  })),\\n  clusters: data.clusters,\\n  ai_used: data.ai_used,\\n  processing_time_ms: data.processing_time_ms\\n}}];"},"id":"bfd47cdd-782b-4b84-a198-c44963b0d5b7","name":"Response (DB)","type":"n8n-nodes-base.code","typeVersion":2,"position":[1104,0]},{"parameters":{"jsCode":"// ===========================================\\n// RESPONSE WITHOUT DB\\n// ===========================================\\nconst data = $input.first().json;\\nconst approved = data.approved_keywords || [];\\nconst rejected = data.rejected_keywords || [];\\n\\nreturn [{ json: {\\n  success: true,\\n  message: `Bulk tamamlandi (DB yok). ${approved.length} onaylandi.`,\\n  project_id: null,\\n  stats: data.stats,\\n  keywords: approved.slice(0, 200),\\n  rejected: rejected.slice(0, 50),\\n  clusters: data.clusters,\\n  ai_used: data.ai_used\\n}}];"},"id":"63eff199-c03f-4f95-9dc9-f49d94d86f54","name":"Response (No DB)","type":"n8n-nodes-base.code","typeVersion":2,"position":[672,208]},{"parameters":{"respondWith":"json","responseBody":"={{ $json }}","options":{}},"id":"c2e81111-f134-4653-b2a1-a4344604667c","name":"Respond Success","type":"n8n-nodes-base.respondToWebhook","typeVersion":1.1,"position":[1328,112]}]	{"Webhook Bulk":{"main":[[{"node":"Validate Input","type":"main","index":0}]]},"Validate Input":{"main":[[{"node":"IF Valid","type":"main","index":0}]]},"IF Valid":{"main":[[{"node":"DataForSEO Bulk","type":"main","index":0}],[{"node":"Respond Error","type":"main","index":0}]]},"DataForSEO Bulk":{"main":[[{"node":"Merge Keywords","type":"main","index":0}]]},"Merge Keywords":{"main":[[{"node":"Build Prompt","type":"main","index":0}]]},"Build Prompt":{"main":[[{"node":"IF Run AI","type":"main","index":0}]]},"IF Run AI":{"main":[[{"node":"Gemini Filter","type":"main","index":0}],[{"node":"Skip AI","type":"main","index":0}]]},"Gemini Filter":{"main":[[{"node":"Parse Response","type":"main","index":0}]]},"Parse Response":{"main":[[{"node":"IF Save DB","type":"main","index":0}]]},"Skip AI":{"main":[[{"node":"IF Save DB","type":"main","index":0}]]},"IF Save DB":{"main":[[{"node":"Prepare Insert","type":"main","index":0}],[{"node":"Response (No DB)","type":"main","index":0}]]},"Prepare Insert":{"main":[[{"node":"Save to DB","type":"main","index":0}]]},"Save to DB":{"main":[[{"node":"Response (DB)","type":"main","index":0}]]},"Response (DB)":{"main":[[{"node":"Respond Success","type":"main","index":0}]]},"Response (No DB)":{"main":[[{"node":"Respond Success","type":"main","index":0}]]}}	\N	f	\N
 51c1b5e8-a64d-40b6-b3a9-067e90176b09	adol4O3V4iGsGXpf	Fatih Berkay Bahçeci	2025-12-23 10:45:08.856+00	2025-12-23 10:45:08.856+00	[{"parameters":{"httpMethod":"POST","path":"bulk-keyword-research","responseMode":"responseNode","options":{}},"id":"6601f0c6-3404-43d6-b06b-8e1d4d4b4dc2","name":"Webhook Bulk","type":"n8n-nodes-base.webhook","typeVersion":2,"position":[-1536,112],"webhookId":"bulk-keyword-research"},{"parameters":{"jsCode":"// ===========================================\\n// BULK INPUT VALIDATION\\n// ===========================================\\nconst body = $json.body || $json;\\nconst keywords = body.keywords || [];\\nconst projectId = body.project_id;\\nconst clientId = body.client_id;\\nconst country = (body.country || 'TR').toUpperCase();\\nconst language = body.language || 'tr';\\nconst customRules = body.custom_rules || '';\\n\\nif (!Array.isArray(keywords) || keywords.length === 0) {\\n  return [{ json: { isValid: false, error: 'keywords array required', errorCode: 400 }}];\\n}\\n\\nconst cleanKeywords = keywords\\n  .map(k => String(k).trim().toLowerCase())\\n  .filter(k => k.length >= 2)\\n  .slice(0, 100);\\n\\nif (cleanKeywords.length === 0) {\\n  return [{ json: { isValid: false, error: 'Min 1 valid keyword required', errorCode: 400 }}];\\n}\\n\\nconst locationCodes = { 'TR': 2792, 'US': 2840, 'GB': 2826, 'DE': 2276, 'FR': 2250 };\\n\\nreturn [{ json: { \\n  isValid: true,\\n  keywords: cleanKeywords,\\n  keywordCount: cleanKeywords.length,\\n  projectId: projectId ? parseInt(projectId) : null,\\n  clientId: clientId ? parseInt(clientId) : null,\\n  country, language,\\n  locationCode: locationCodes[country] || 2792,\\n  customRules,\\n  startTime: Date.now()\\n}}];"},"id":"4c535dd9-bc45-43a1-a0d6-2cf0949420f1","name":"Validate Input","type":"n8n-nodes-base.code","typeVersion":2,"position":[-1328,112]},{"parameters":{"conditions":{"options":{"caseSensitive":true,"leftValue":"","typeValidation":"strict"},"conditions":[{"id":"valid","leftValue":"={{ $json.isValid }}","rightValue":true,"operator":{"type":"boolean","operation":"equals"}}],"combinator":"and"},"options":{}},"id":"7a44daad-03aa-4589-9152-91d8c6b51eff","name":"IF Valid","type":"n8n-nodes-base.if","typeVersion":2,"position":[-1104,112]},{"parameters":{"respondWith":"json","responseBody":"={ \\"success\\": false, \\"error\\": \\"{{ $json.error }}\\" }","options":{"responseCode":"={{ $json.errorCode }}"}},"id":"566a4a83-775c-46e4-af45-8a4ef8d0c812","name":"Respond Error","type":"n8n-nodes-base.respondToWebhook","typeVersion":1.1,"position":[-880,304]},{"parameters":{"method":"POST","url":"https://api.dataforseo.com/v3/keywords_data/google_ads/keywords_for_keywords/live","sendHeaders":true,"headerParameters":{"parameters":[{"name":"Authorization","value":"Basic b2t0YXlAc2VvYXJ0LmNvbTo0ODk2ZGRhYzQ2OWUyZjIw"},{"name":"Content-Type","value":"application/json"}]},"sendBody":true,"specifyBody":"json","jsonBody":"=[{\\n  \\"keywords\\": {{ JSON.stringify($json.keywords) }},\\n  \\"location_code\\": {{ $json.locationCode }},\\n  \\"language_code\\": \\"{{ $json.language }}\\",\\n  \\"include_seed_keyword\\": true,\\n  \\"sort_by\\": \\"search_volume\\"\\n}]","options":{"timeout":120000}},"id":"90e66d24-3f21-4925-b006-9230f7284b27","name":"DataForSEO Bulk","type":"n8n-nodes-base.httpRequest","typeVersion":4.2,"position":[-880,112],"onError":"continueRegularOutput"},{"parameters":{"jsCode":"// ===========================================\\n// MERGE & PREPARE FOR GEMINI\\n// ===========================================\\nconst input = $('Validate Input').first().json;\\nconst seedKeywords = input.keywords || [];\\n\\nfunction normalizeForComparison(str) {\\n  return str.toLowerCase()\\n    .replace(/ı/g, 'i').replace(/İ/g, 'i')\\n    .replace(/ş/g, 's').replace(/Ş/g, 's')\\n    .replace(/ö/g, 'o').replace(/Ö/g, 'o')\\n    .replace(/ü/g, 'u').replace(/Ü/g, 'u')\\n    .replace(/ç/g, 'c').replace(/Ç/g, 'c')\\n    .replace(/ğ/g, 'g').replace(/Ğ/g, 'g')\\n    .replace(/[^a-z0-9\\\\s]/g, '').replace(/\\\\s+/g, ' ').trim();\\n}\\n\\n// Find best matching seed for a keyword\\nfunction findBestSeed(keyword, seeds) {\\n  const kwNorm = normalizeForComparison(keyword);\\n  const kwWords = kwNorm.split(' ');\\n  let bestSeed = null;\\n  let bestScore = 0;\\n  \\n  for (const seed of seeds) {\\n    const seedNorm = normalizeForComparison(seed);\\n    const seedWords = seedNorm.split(' ');\\n    \\n    // Count matching words\\n    let matchCount = 0;\\n    for (const sw of seedWords) {\\n      if (sw.length >= 2 && kwWords.some(kw => kw.includes(sw) || sw.includes(kw))) {\\n        matchCount++;\\n      }\\n    }\\n    \\n    // Score based on word match ratio\\n    const score = matchCount / seedWords.length;\\n    if (score > bestScore) {\\n      bestScore = score;\\n      bestSeed = seed;\\n    }\\n  }\\n  \\n  return bestSeed || seeds[0];\\n}\\n\\n// Parse DataForSEO response\\nlet dataforseoKeywords = [];\\ntry {\\n  const dfsResponse = $input.first().json;\\n  if (dfsResponse?.tasks?.[0]?.result) {\\n    dataforseoKeywords = dfsResponse.tasks[0].result.map(kw => {\\n      const keyword = (kw.keyword || '').toLowerCase().trim();\\n      const seedKw = findBestSeed(keyword, seedKeywords);\\n      return {\\n        keyword: keyword,\\n        seed_keyword: seedKw,\\n        search_volume: kw.search_volume || 0,\\n        cpc: kw.cpc || 0,\\n        competition: kw.competition || null,\\n        source: 'dataforseo'\\n      };\\n    }).filter(kw => kw.keyword && kw.keyword.length >= 2);\\n  }\\n} catch (e) { console.log('DFS error:', e.message); }\\n\\n// Dedupe\\nconst seen = new Map();\\ndataforseoKeywords.forEach(kw => {\\n  const key = normalizeForComparison(kw.keyword);\\n  if (key.length >= 2 && !seen.has(key)) seen.set(key, kw);\\n});\\n\\n// Add seed keywords if missing\\nseedKeywords.forEach(seed => {\\n  const key = normalizeForComparison(seed);\\n  if (!seen.has(key)) {\\n    seen.set(key, { keyword: seed, seed_keyword: seed, search_volume: null, cpc: null, source: 'seed' });\\n  }\\n});\\n\\nconst uniqueKeywords = Array.from(seen.values())\\n  .sort((a, b) => (b.search_volume || 0) - (a.search_volume || 0));\\n\\n// Take top 150 for AI, rest as pending\\nconst forAI = uniqueKeywords.slice(0, 150);\\nconst pending = uniqueKeywords.slice(150);\\n\\nreturn [{ json: {\\n  ...input,\\n  allKeywords: uniqueKeywords,\\n  forAI: forAI,\\n  pendingKeywords: pending,\\n  stats: {\\n    total_seeds: seedKeywords.length,\\n    from_dataforseo: dataforseoKeywords.length,\\n    unique: uniqueKeywords.length,\\n    for_ai: forAI.length,\\n    pending: pending.length\\n  }\\n}}];"},"id":"5f5daa2a-2645-42f5-b107-9973712c0fce","name":"Merge Keywords","type":"n8n-nodes-base.code","typeVersion":2,"position":[-656,112]},{"parameters":{"jsCode":"// ===========================================\\n// BUILD GEMINI PROMPT\\n// ===========================================\\nconst data = $input.first().json;\\nconst keywords = data.forAI || [];\\nconst seedKeywords = data.keywords || [];\\n\\nif (keywords.length === 0) {\\n  return [{ json: { ...data, skipAi: true }}];\\n}\\n\\nconst keywordCsv = keywords.map((kw, i) => {\\n  const vol = kw.search_volume || 0;\\n  const cpc = kw.cpc ? kw.cpc.toFixed(2) : '0';\\n  const seed = kw.seed_keyword || '';\\n  return `${i+1}|${kw.keyword}|${vol}|${cpc}|${seed}`;\\n}).join('\\\\n');\\n\\nconst seedList = seedKeywords.join(', ');\\n\\nconst prompt = `Sen bir SEO uzmanisin. Bir musteri icin TOPLU keyword arastirmasi yapiyoruz.\\n\\nMusterinin arastirmak istedigi SEED KEYWORDLER:\\n${seedList}\\n\\nUlke: ${data.country}\\n\\nAsagidaki keywordler DataForSEO'dan bu seed'lere gore cekildi. Her keyword kendi SEED KEYWORD'u ile iliskili oldugu surece ONAYLA.\\n\\nKEYWORDS (No|keyword|volume|cpc|seed_keyword):\\n${keywordCsv}\\n\\nDEGERLENDIRME KURALLARI:\\n1. Her keyword kendi seed_keyword'u ile iliskili mi bak (son sutun)\\n2. Keyword, seed ile alakali ise ONAYLA\\n3. Spam, anlamsiz veya tamamen alakasiz ise REDDET\\n4. Search volume 0 olsa bile alakali ise ONAYLA\\n5. COGU KEYWORD ONAYLANMALI - sadece gercekten alakasiz olanlari reddet\\n\\nHer keyword icin tek satir cikti ver:\\n- Uygunsa: No|approved|intent|cluster|priority|content_type\\n- Uygun degilse: No|rejected|||||reason\\n\\nIntent: informational, commercial, transactional, navigational\\nPriority: high (volume>1000), medium (100-1000), low (<100)\\nContent_type: pillar, cluster, blog, product, faq\\n\\nSadece satirlari yaz, baska bir sey yazma.`;\\n\\nreturn [{ json: { ...data, filterPrompt: prompt, skipAi: false }}];"},"id":"3207ee77-605a-49e8-901b-ee5ea41a7d26","name":"Build Prompt","type":"n8n-nodes-base.code","typeVersion":2,"position":[-448,112]},{"parameters":{"conditions":{"options":{"caseSensitive":true,"leftValue":"","typeValidation":"strict"},"conditions":[{"id":"skip","leftValue":"={{ $json.skipAi }}","rightValue":true,"operator":{"type":"boolean","operation":"notEquals"}}],"combinator":"and"},"options":{}},"id":"ad9bdb94-3945-4f3e-ba8d-70d43351d0a3","name":"IF Run AI","type":"n8n-nodes-base.if","typeVersion":2,"position":[-224,112]},{"parameters":{"method":"POST","url":"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent","authentication":"genericCredentialType","genericAuthType":"httpQueryAuth","sendBody":true,"specifyBody":"json","jsonBody":"={\\n  \\"contents\\": [{ \\"parts\\": [{ \\"text\\": {{ JSON.stringify($json.filterPrompt) }} }] }],\\n  \\"generationConfig\\": { \\"temperature\\": 0.3, \\"maxOutputTokens\\": 8192 }\\n}","options":{"timeout":120000}},"id":"ad2c01df-39f4-4332-8a27-61b46fc71ac3","name":"Gemini Filter","type":"n8n-nodes-base.httpRequest","typeVersion":4.2,"position":[0,0],"credentials":{"httpQueryAuth":{"id":"Hp8gTY1C1efbSfkx","name":"Gemini API"}},"onError":"continueRegularOutput"},{"parameters":{"jsCode":"// ===========================================\\n// PARSE GEMINI RESPONSE\\n// ===========================================\\nconst prevData = $('Build Prompt').first().json;\\nconst geminiResponse = $input.first().json;\\nconst processedKeywords = prevData.forAI || [];\\nconst pendingKeywords = prevData.pendingKeywords || [];\\n\\nconst approved = [];\\nconst rejected = [];\\n\\ntry {\\n  const text = geminiResponse?.candidates?.[0]?.content?.parts?.[0]?.text || '';\\n  const lines = text.split('\\\\n').filter(l => /^\\\\d+\\\\|/.test(l.trim()));\\n  const processedIndices = new Set();\\n  \\n  for (const line of lines) {\\n    const parts = line.split('|').map(p => p.trim());\\n    if (parts.length < 2) continue;\\n    \\n    const no = parseInt(parts[0]);\\n    const status = (parts[1] || '').toLowerCase();\\n    \\n    if (isNaN(no) || no < 1 || no > processedKeywords.length) continue;\\n    \\n    const original = processedKeywords[no - 1];\\n    processedIndices.add(no);\\n    \\n    if (status === 'approved') {\\n      approved.push({\\n        ...original,\\n        intent: parts[2] || null,\\n        cluster: parts[3] || null,\\n        priority: parts[4] || 'medium',\\n        content_type: parts[5] || 'cluster',\\n        status: 'approved',\\n        reject_reason: null\\n      });\\n    } else {\\n      rejected.push({\\n        ...original,\\n        intent: null, cluster: parts[3] || null,\\n        priority: null, content_type: null,\\n        status: 'rejected',\\n        reject_reason: parts[6] || 'filtered'\\n      });\\n    }\\n  }\\n  \\n  // Handle skipped keywords\\n  processedKeywords.forEach((kw, idx) => {\\n    if (!processedIndices.has(idx + 1)) {\\n      rejected.push({ ...kw, status: 'pending', reject_reason: 'AI skipped' });\\n    }\\n  });\\n} catch (e) {\\n  console.log('Parse error:', e.message);\\n  processedKeywords.forEach(kw => {\\n    approved.push({ ...kw, status: 'approved', priority: 'medium', content_type: 'cluster' });\\n  });\\n}\\n\\n// Add pending keywords\\npendingKeywords.forEach(kw => {\\n  rejected.push({ ...kw, status: 'pending', reject_reason: null });\\n});\\n\\nconst clusters = {};\\napproved.forEach(kw => {\\n  const c = kw.cluster || 'Genel';\\n  if (!clusters[c]) clusters[c] = [];\\n  clusters[c].push(kw.keyword);\\n});\\n\\nreturn [{ json: {\\n  projectId: prevData.projectId,\\n  clientId: prevData.clientId,\\n  mainKeyword: prevData.keywords[0],\\n  stats: { ...prevData.stats, approved: approved.length, rejected: rejected.length },\\n  approved_keywords: approved,\\n  rejected_keywords: rejected,\\n  all_keywords: [...approved, ...rejected],\\n  clusters,\\n  ai_used: true,\\n  processing_time_ms: Date.now() - prevData.startTime\\n}}];"},"id":"d5ae869e-5e3f-4281-b889-edc0d53d57ff","name":"Parse Response","type":"n8n-nodes-base.code","typeVersion":2,"position":[224,0]},{"parameters":{"jsCode":"// ===========================================\\n// SKIP AI - Mark all as approved\\n// ===========================================\\nconst data = $input.first().json;\\nconst keywords = data.allKeywords || [];\\n\\nconst approved = keywords.slice(0, 50).map(kw => ({\\n  ...kw, status: 'approved', priority: 'medium', content_type: 'cluster'\\n}));\\nconst pending = keywords.slice(50).map(kw => ({\\n  ...kw, status: 'pending', reject_reason: 'AI skipped'\\n}));\\n\\nreturn [{ json: {\\n  projectId: data.projectId,\\n  clientId: data.clientId,\\n  mainKeyword: data.keywords[0],\\n  stats: { ...data.stats, approved: approved.length, rejected: pending.length },\\n  approved_keywords: approved,\\n  rejected_keywords: pending,\\n  all_keywords: [...approved, ...pending],\\n  clusters: { 'Genel': approved.map(k => k.keyword) },\\n  ai_used: false,\\n  processing_time_ms: Date.now() - data.startTime\\n}}];"},"id":"4abdfc0e-13c1-449e-b563-dfdd39184b11","name":"Skip AI","type":"n8n-nodes-base.code","typeVersion":2,"position":[0,208]},{"parameters":{"conditions":{"options":{"caseSensitive":true,"leftValue":"","typeValidation":"loose"},"conditions":[{"id":"has-project","leftValue":"={{ $json.projectId }}","rightValue":true,"operator":{"type":"boolean","operation":"exists"}}],"combinator":"and"},"options":{}},"id":"0be7e6a8-2cf2-4e2c-89c7-a5dd3a9b5d50","name":"IF Save DB","type":"n8n-nodes-base.if","typeVersion":2,"position":[448,112]},{"parameters":{"jsCode":"// ===========================================\\n// PREPARE BATCH INSERT\\n// ===========================================\\nconst data = $input.first().json;\\nconst projectId = data.projectId;\\nconst allKeywords = data.all_keywords || [];\\n\\nif (allKeywords.length === 0) {\\n  return [{ json: { skip: true, batchQuery: '' }}];\\n}\\n\\nfunction esc(str) {\\n  if (str === null || str === undefined) return 'NULL';\\n  return \\"'\\" + String(str).replace(/\\\\\\\\/g, '\\\\\\\\\\\\\\\\').replace(/'/g, \\"''\\") + \\"'\\";\\n}\\n\\nconst values = allKeywords.slice(0, 500).map(kw => {\\n  const kwType = kw.source?.includes('suggest') ? 'google_suggest' : 'related';\\n  const src = (kw.source || 'dataforseo').split(',')[0].trim();\\n  return `(${projectId}, ${esc(kw.keyword)}, ${esc(kw.seed_keyword)}, '${kwType}', ${kw.search_volume || 'NULL'}, ${kw.cpc || 'NULL'}, ${esc(kw.competition)}, ${esc(kw.intent)}, ${esc(kw.cluster)}, ${esc(kw.priority)}, ${esc(kw.content_type)}, '${src}', '${kw.status || 'pending'}', ${esc(kw.reject_reason)})`;\\n}).join(',\\\\n');\\n\\nconst query = `INSERT INTO keyword_results (project_id, keyword, seed_keyword, keyword_type, search_volume, cpc, competition, search_intent, keyword_cluster, content_priority, page_type, source, status, reject_reason) VALUES ${values} ON DUPLICATE KEY UPDATE search_volume=VALUES(search_volume), status=VALUES(status)`;\\n\\nreturn [{ json: { ...data, batchQuery: query }}];"},"id":"44491a31-0007-4568-bc40-3b16966dd36c","name":"Prepare Insert","type":"n8n-nodes-base.code","typeVersion":2,"position":[672,0]},{"parameters":{"operation":"executeQuery","query":"={{ $json.batchQuery }}","options":{}},"id":"961770c2-a030-4005-82c1-8bb404d13f98","name":"Save to DB","type":"n8n-nodes-base.mySql","typeVersion":2.4,"position":[880,0],"credentials":{"mySql":{"id":"1rDLBK64lV00T0am","name":"SEO Suite MySQL"}},"onError":"continueRegularOutput"},{"parameters":{"jsCode":"// ===========================================\\n// FINAL RESPONSE\\n// ===========================================\\nconst data = $('Prepare Insert').first().json;\\nconst approved = data.approved_keywords || [];\\nconst rejected = data.rejected_keywords || [];\\n\\nreturn [{ json: {\\n  success: true,\\n  message: `Bulk tamamlandi. ${approved.length} onaylandi, ${rejected.length} reddedildi.`,\\n  project_id: data.projectId,\\n  stats: data.stats,\\n  keywords: approved.slice(0, 200).map(kw => ({\\n    keyword: kw.keyword,\\n    seed_keyword: kw.seed_keyword,\\n    search_volume: kw.search_volume,\\n    intent: kw.intent,\\n    cluster: kw.cluster,\\n    priority: kw.priority,\\n    status: kw.status\\n  })),\\n  rejected: rejected.slice(0, 50).map(kw => ({\\n    keyword: kw.keyword,\\n    reason: kw.reject_reason\\n  })),\\n  clusters: data.clusters,\\n  ai_used: data.ai_used,\\n  processing_time_ms: data.processing_time_ms\\n}}];"},"id":"abe52224-57e2-4f7b-93d1-ea179e4cd570","name":"Response (DB)","type":"n8n-nodes-base.code","typeVersion":2,"position":[1104,0]},{"parameters":{"jsCode":"// ===========================================\\n// RESPONSE WITHOUT DB\\n// ===========================================\\nconst data = $input.first().json;\\nconst approved = data.approved_keywords || [];\\nconst rejected = data.rejected_keywords || [];\\n\\nreturn [{ json: {\\n  success: true,\\n  message: `Bulk tamamlandi (DB yok). ${approved.length} onaylandi.`,\\n  project_id: null,\\n  stats: data.stats,\\n  keywords: approved.slice(0, 200),\\n  rejected: rejected.slice(0, 50),\\n  clusters: data.clusters,\\n  ai_used: data.ai_used\\n}}];"},"id":"45a55e99-dcb7-4b61-8cef-5d490f144f09","name":"Response (No DB)","type":"n8n-nodes-base.code","typeVersion":2,"position":[672,208]},{"parameters":{"respondWith":"json","responseBody":"={{ $json }}","options":{}},"id":"9b0e65f2-2f6e-4a90-b46c-6f6e0d1e17a1","name":"Respond Success","type":"n8n-nodes-base.respondToWebhook","typeVersion":1.1,"position":[1328,112]}]	{"Webhook Bulk":{"main":[[{"node":"Validate Input","type":"main","index":0}]]},"Validate Input":{"main":[[{"node":"IF Valid","type":"main","index":0}]]},"IF Valid":{"main":[[{"node":"DataForSEO Bulk","type":"main","index":0}],[{"node":"Respond Error","type":"main","index":0}]]},"DataForSEO Bulk":{"main":[[{"node":"Merge Keywords","type":"main","index":0}]]},"Merge Keywords":{"main":[[{"node":"Build Prompt","type":"main","index":0}]]},"Build Prompt":{"main":[[{"node":"IF Run AI","type":"main","index":0}]]},"IF Run AI":{"main":[[{"node":"Gemini Filter","type":"main","index":0}],[{"node":"Skip AI","type":"main","index":0}]]},"Gemini Filter":{"main":[[{"node":"Parse Response","type":"main","index":0}]]},"Parse Response":{"main":[[{"node":"IF Save DB","type":"main","index":0}]]},"Skip AI":{"main":[[{"node":"IF Save DB","type":"main","index":0}]]},"IF Save DB":{"main":[[{"node":"Prepare Insert","type":"main","index":0}],[{"node":"Response (No DB)","type":"main","index":0}]]},"Prepare Insert":{"main":[[{"node":"Save to DB","type":"main","index":0}]]},"Save to DB":{"main":[[{"node":"Response (DB)","type":"main","index":0}]]},"Response (DB)":{"main":[[{"node":"Respond Success","type":"main","index":0}]]},"Response (No DB)":{"main":[[{"node":"Respond Success","type":"main","index":0}]]}}	\N	f	\N
 5693bb4c-1bc1-4781-8fc9-b9cdbba5aa06	sWwmP23m89DQTpVI	Fatih Berkay Bahçeci	2025-12-23 19:43:18.467+00	2025-12-23 19:43:18.467+00	[{"parameters":{"httpMethod":"POST","path":"bulk-keyword-research","responseMode":"responseNode","options":{}},"id":"7a4686a8-c032-49ac-8603-2e91eeb6fc03","name":"Webhook","type":"n8n-nodes-base.webhook","typeVersion":2,"position":[-656,112],"webhookId":"bulk-keyword-research"},{"parameters":{"jsCode":"const body = $json.body || $json;\\nconst keywords = body.keywords || [];\\nconst projectId = body.project_id;\\nconst clientId = body.client_id;\\nconst country = (body.country || 'TR').toUpperCase();\\nconst language = body.language || 'tr';\\n\\nif (!Array.isArray(keywords) || keywords.length === 0) {\\n  return [{json: {error: 'keywords array required', code: 400}}];\\n}\\n\\nconst seeds = keywords\\n  .map(k => String(k).trim().toLowerCase())\\n  .filter(k => k.length >= 2)\\n  .slice(0, 20);\\n\\nif (seeds.length === 0) {\\n  return [{json: {error: 'valid keywords required', code: 400}}];\\n}\\n\\nconst locCodes = {TR: 2792, US: 2840, GB: 2826, DE: 2276};\\n\\n// Clear static data for fresh run\\nconst ctx = $getWorkflowStaticData('global');\\nctx.results = [];\\nctx.projectId = projectId ? parseInt(projectId) : null;\\nctx.clientId = clientId ? parseInt(clientId) : null;\\nctx.startTime = Date.now();\\nctx.totalSeeds = seeds.length;\\n\\n// Return each seed as separate item\\nreturn seeds.map(seed => ({\\n  json: {\\n    seed,\\n    locationCode: locCodes[country] || 2792,\\n    language\\n  }\\n}));"},"id":"e00aa475-179b-4157-bf38-b4d274937271","name":"Validate","type":"n8n-nodes-base.code","typeVersion":2,"position":[-448,112]},{"parameters":{"options":{}},"id":"84410ee5-19a9-47fb-9197-545c7da900c0","name":"Loop Seeds","type":"n8n-nodes-base.splitInBatches","typeVersion":3,"position":[-224,112]},{"parameters":{"workflowId":{"__rl":true,"mode":"id","value":"MhHeIUZBSMtqRRrR"},"options":{}},"id":"467d2bcd-e6d2-467c-b0a1-da31ba66bcbb","name":"Process Seed","type":"n8n-nodes-base.executeWorkflow","typeVersion":1.2,"position":[0,0]},{"parameters":{"jsCode":"const result = $input.first().json;\\n\\n// Accumulate results in static data\\nconst ctx = $getWorkflowStaticData('global');\\nif (!ctx.results) ctx.results = [];\\n\\nctx.results.push({\\n  seed: result.seed,\\n  approved: result.approved || [],\\n  rejected: result.rejected || [],\\n  stats: result.stats || {approved: 0, rejected: 0}\\n});\\n\\nreturn [{json: {accumulated: ctx.results.length}}];"},"id":"f416ec62-fbdc-49a6-ad95-eb1d9120c79a","name":"Accumulate","type":"n8n-nodes-base.code","typeVersion":2,"position":[224,0]},{"parameters":{"jsCode":"const ctx = $getWorkflowStaticData('global');\\nconst results = ctx.results || [];\\nconst projectId = ctx.projectId;\\nconst clientId = ctx.clientId;\\nconst startTime = ctx.startTime;\\nconst totalSeeds = ctx.totalSeeds;\\n\\n// Combine all results\\nconst allApproved = [];\\nconst allRejected = [];\\nconst perSeed = {};\\n\\nresults.forEach(r => {\\n  allApproved.push(...(r.approved || []));\\n  allRejected.push(...(r.rejected || []));\\n  perSeed[r.seed] = r.stats;\\n});\\n\\n// Clear static data\\ndelete ctx.results;\\ndelete ctx.projectId;\\ndelete ctx.clientId;\\ndelete ctx.startTime;\\ndelete ctx.totalSeeds;\\n\\nreturn [{json: {\\n  projectId,\\n  clientId,\\n  stats: {\\n    total_seeds: totalSeeds,\\n    total_approved: allApproved.length,\\n    total_rejected: allRejected.length,\\n    per_seed: perSeed\\n  },\\n  approved_keywords: allApproved,\\n  rejected_keywords: allRejected,\\n  startTime\\n}}];"},"id":"9df0fd50-cbc1-4670-b30d-4bd75f83920c","name":"Finalize","type":"n8n-nodes-base.code","typeVersion":2,"position":[0,304]},{"parameters":{"conditions":{"options":{"leftValue":"","typeValidation":"loose"},"conditions":[{"leftValue":"={{ $json.projectId }}","rightValue":true,"operator":{"type":"boolean","operation":"exists"}}]},"options":{}},"id":"5e518832-eeb2-44cd-88a3-f92b63aa3c73","name":"IF DB","type":"n8n-nodes-base.if","typeVersion":2,"position":[224,304]},{"parameters":{"jsCode":"const d = $input.first().json;\\nconst all = [...(d.approved_keywords || []), ...(d.rejected_keywords || [])];\\n\\nif (!all.length || !d.projectId) {\\n  return [{json: {...d, query: 'SELECT 1'}}];\\n}\\n\\nconst esc = s => s == null ? 'NULL' : \\"'\\" + String(s).replace(/'/g, \\"''\\") + \\"'\\";\\n\\nconst vals = all.slice(0, 2000).map(k => \\n  `(${d.projectId},${esc(k.keyword)},${esc(k.seed_keyword)},'related',${k.search_volume || 'NULL'},${k.cpc || 'NULL'},NULL,NULL,${esc(k.seed_keyword)},${esc(k.priority || 'medium')},'cluster','dataforseo','${k.status}',NULL)`\\n).join(',');\\n\\nconst query = `INSERT INTO keyword_results(project_id,keyword,seed_keyword,keyword_type,search_volume,cpc,competition,search_intent,keyword_cluster,content_priority,page_type,source,status,reject_reason) VALUES ${vals} ON DUPLICATE KEY UPDATE search_volume=VALUES(search_volume),status=VALUES(status),seed_keyword=VALUES(seed_keyword)`;\\n\\nreturn [{json: {...d, query}}];"},"id":"8b70f825-ef2e-4d4e-bcda-2a2ec3ed6b0f","name":"Build SQL","type":"n8n-nodes-base.code","typeVersion":2,"position":[448,208]},{"parameters":{"operation":"executeQuery","query":"={{ $json.query }}","options":{}},"id":"78f44e52-56f6-40de-b182-4d70964b37bb","name":"MySQL","type":"n8n-nodes-base.mySql","typeVersion":2.4,"position":[672,208],"credentials":{"mySql":{"id":"1rDLBK64lV00T0am","name":"SEO Suite MySQL"}},"onError":"continueRegularOutput"},{"parameters":{"jsCode":"const d = $('Build SQL').first().json;\\nreturn [{json: {\\n  success: true,\\n  message: `Bulk tamamlandi: ${d.approved_keywords?.length || 0} ana sonuc, ${d.rejected_keywords?.length || 0} diger`,\\n  project_id: d.projectId,\\n  stats: d.stats,\\n  keywords: (d.approved_keywords || []).map(k => ({\\n    keyword: k.keyword,\\n    seed_keyword: k.seed_keyword,\\n    search_volume: k.search_volume,\\n    priority: k.priority,\\n    status: k.status\\n  })),\\n  rejected_keywords: (d.rejected_keywords || []).map(k => ({\\n    keyword: k.keyword,\\n    seed_keyword: k.seed_keyword,\\n    search_volume: k.search_volume\\n  })),\\n  processing_time_ms: Date.now() - d.startTime\\n}}];"},"id":"abeac08c-751c-4558-9b77-7c35715baefe","name":"Response DB","type":"n8n-nodes-base.code","typeVersion":2,"position":[880,208]},{"parameters":{"jsCode":"const d = $input.first().json;\\nreturn [{json: {\\n  success: true,\\n  message: `Bulk tamamlandi: ${d.approved_keywords?.length || 0} ana sonuc, ${d.rejected_keywords?.length || 0} diger`,\\n  project_id: null,\\n  stats: d.stats,\\n  keywords: (d.approved_keywords || []).map(k => ({\\n    keyword: k.keyword,\\n    seed_keyword: k.seed_keyword,\\n    search_volume: k.search_volume,\\n    priority: k.priority,\\n    status: k.status\\n  })),\\n  rejected_keywords: (d.rejected_keywords || []).map(k => ({\\n    keyword: k.keyword,\\n    seed_keyword: k.seed_keyword,\\n    search_volume: k.search_volume\\n  })),\\n  processing_time_ms: Date.now() - d.startTime\\n}}];"},"id":"c23881c5-dc7d-4f9d-bf66-4d48b199d8a4","name":"Response No DB","type":"n8n-nodes-base.code","typeVersion":2,"position":[448,400]},{"parameters":{"respondWith":"json","responseBody":"={{ $json }}","options":{}},"id":"4ca429dc-b6c8-44a3-870e-aba7b21191fd","name":"Respond","type":"n8n-nodes-base.respondToWebhook","typeVersion":1.1,"position":[1104,304]}]	{"Webhook":{"main":[[{"node":"Validate","type":"main","index":0}]]},"Validate":{"main":[[{"node":"Loop Seeds","type":"main","index":0}]]},"Loop Seeds":{"main":[[{"node":"Process Seed","type":"main","index":0}],[{"node":"Finalize","type":"main","index":0}]]},"Process Seed":{"main":[[{"node":"Accumulate","type":"main","index":0}]]},"Accumulate":{"main":[[{"node":"Loop Seeds","type":"main","index":0}]]},"Finalize":{"main":[[{"node":"IF DB","type":"main","index":0}]]},"IF DB":{"main":[[{"node":"Build SQL","type":"main","index":0}],[{"node":"Response No DB","type":"main","index":0}]]},"Build SQL":{"main":[[{"node":"MySQL","type":"main","index":0}]]},"MySQL":{"main":[[{"node":"Response DB","type":"main","index":0}]]},"Response DB":{"main":[[{"node":"Respond","type":"main","index":0}]]},"Response No DB":{"main":[[{"node":"Respond","type":"main","index":0}]]}}	\N	f	\N
@@ -2962,7 +2840,7 @@ e06053c4-e931-487a-94ae-31c187226716	adol4O3V4iGsGXpf	Fatih Berkay Bahçeci	2025
 
 
 --
--- Data for Name: workflow_publish_history; Type: TABLE DATA; Schema: public; Owner: n8n
+-- Data for Name: workflow_publish_history; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.workflow_publish_history (id, "workflowId", "versionId", event, "userId", "createdAt") FROM stdin;
@@ -2987,7 +2865,7 @@ COPY public.workflow_publish_history (id, "workflowId", "versionId", event, "use
 
 
 --
--- Data for Name: workflow_statistics; Type: TABLE DATA; Schema: public; Owner: n8n
+-- Data for Name: workflow_statistics; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.workflow_statistics (count, "latestEvent", name, "workflowId", "rootCount") FROM stdin;
@@ -3044,7 +2922,7 @@ COPY public.workflow_statistics (count, "latestEvent", name, "workflowId", "root
 
 
 --
--- Data for Name: workflows_tags; Type: TABLE DATA; Schema: public; Owner: n8n
+-- Data for Name: workflows_tags; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.workflows_tags ("workflowId", "tagId") FROM stdin;
@@ -3068,84 +2946,84 @@ adol4O3V4iGsGXpf	1
 
 
 --
--- Name: auth_provider_sync_history_id_seq; Type: SEQUENCE SET; Schema: public; Owner: n8n
+-- Name: auth_provider_sync_history_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
 SELECT pg_catalog.setval('public.auth_provider_sync_history_id_seq', 1, false);
 
 
 --
--- Name: execution_annotations_id_seq; Type: SEQUENCE SET; Schema: public; Owner: n8n
+-- Name: execution_annotations_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
 SELECT pg_catalog.setval('public.execution_annotations_id_seq', 1, false);
 
 
 --
--- Name: execution_entity_id_seq; Type: SEQUENCE SET; Schema: public; Owner: n8n
+-- Name: execution_entity_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
 SELECT pg_catalog.setval('public.execution_entity_id_seq', 719, true);
 
 
 --
--- Name: execution_metadata_temp_id_seq; Type: SEQUENCE SET; Schema: public; Owner: n8n
+-- Name: execution_metadata_temp_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
 SELECT pg_catalog.setval('public.execution_metadata_temp_id_seq', 1, false);
 
 
 --
--- Name: insights_by_period_id_seq; Type: SEQUENCE SET; Schema: public; Owner: n8n
+-- Name: insights_by_period_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.insights_by_period_id_seq', 296, true);
+SELECT pg_catalog.setval('public.insights_by_period_id_seq', 304, true);
 
 
 --
--- Name: insights_metadata_metaId_seq; Type: SEQUENCE SET; Schema: public; Owner: n8n
+-- Name: insights_metadata_metaId_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
 SELECT pg_catalog.setval('public."insights_metadata_metaId_seq"', 73, true);
 
 
 --
--- Name: insights_raw_id_seq; Type: SEQUENCE SET; Schema: public; Owner: n8n
+-- Name: insights_raw_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
 SELECT pg_catalog.setval('public.insights_raw_id_seq', 930, true);
 
 
 --
--- Name: migrations_id_seq; Type: SEQUENCE SET; Schema: public; Owner: n8n
+-- Name: migrations_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
 SELECT pg_catalog.setval('public.migrations_id_seq', 123, true);
 
 
 --
--- Name: oauth_user_consents_id_seq; Type: SEQUENCE SET; Schema: public; Owner: n8n
+-- Name: oauth_user_consents_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
 SELECT pg_catalog.setval('public.oauth_user_consents_id_seq', 1, false);
 
 
 --
--- Name: workflow_dependency_id_seq; Type: SEQUENCE SET; Schema: public; Owner: n8n
+-- Name: workflow_dependency_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
 SELECT pg_catalog.setval('public.workflow_dependency_id_seq', 265, true);
 
 
 --
--- Name: workflow_publish_history_id_seq; Type: SEQUENCE SET; Schema: public; Owner: n8n
+-- Name: workflow_publish_history_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
 SELECT pg_catalog.setval('public.workflow_publish_history_id_seq', 32, true);
 
 
 --
--- Name: test_run PK_011c050f566e9db509a0fadb9b9; Type: CONSTRAINT; Schema: public; Owner: n8n
+-- Name: test_run PK_011c050f566e9db509a0fadb9b9; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.test_run
@@ -3153,7 +3031,7 @@ ALTER TABLE ONLY public.test_run
 
 
 --
--- Name: installed_packages PK_08cc9197c39b028c1e9beca225940576fd1a5804; Type: CONSTRAINT; Schema: public; Owner: n8n
+-- Name: installed_packages PK_08cc9197c39b028c1e9beca225940576fd1a5804; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.installed_packages
@@ -3161,7 +3039,7 @@ ALTER TABLE ONLY public.installed_packages
 
 
 --
--- Name: execution_metadata PK_17a0b6284f8d626aae88e1c16e4; Type: CONSTRAINT; Schema: public; Owner: n8n
+-- Name: execution_metadata PK_17a0b6284f8d626aae88e1c16e4; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.execution_metadata
@@ -3169,7 +3047,7 @@ ALTER TABLE ONLY public.execution_metadata
 
 
 --
--- Name: project_relation PK_1caaa312a5d7184a003be0f0cb6; Type: CONSTRAINT; Schema: public; Owner: n8n
+-- Name: project_relation PK_1caaa312a5d7184a003be0f0cb6; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.project_relation
@@ -3177,7 +3055,7 @@ ALTER TABLE ONLY public.project_relation
 
 
 --
--- Name: chat_hub_sessions PK_1eafef1273c70e4464fec703412; Type: CONSTRAINT; Schema: public; Owner: n8n
+-- Name: chat_hub_sessions PK_1eafef1273c70e4464fec703412; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.chat_hub_sessions
@@ -3185,7 +3063,7 @@ ALTER TABLE ONLY public.chat_hub_sessions
 
 
 --
--- Name: folder_tag PK_27e4e00852f6b06a925a4d83a3e; Type: CONSTRAINT; Schema: public; Owner: n8n
+-- Name: folder_tag PK_27e4e00852f6b06a925a4d83a3e; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.folder_tag
@@ -3193,7 +3071,7 @@ ALTER TABLE ONLY public.folder_tag
 
 
 --
--- Name: role PK_35c9b140caaf6da09cfabb0d675; Type: CONSTRAINT; Schema: public; Owner: n8n
+-- Name: role PK_35c9b140caaf6da09cfabb0d675; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.role
@@ -3201,7 +3079,7 @@ ALTER TABLE ONLY public.role
 
 
 --
--- Name: project PK_4d68b1358bb5b766d3e78f32f57; Type: CONSTRAINT; Schema: public; Owner: n8n
+-- Name: project PK_4d68b1358bb5b766d3e78f32f57; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.project
@@ -3209,7 +3087,7 @@ ALTER TABLE ONLY public.project
 
 
 --
--- Name: workflow_dependency PK_52325e34cd7a2f0f67b0f3cad65; Type: CONSTRAINT; Schema: public; Owner: n8n
+-- Name: workflow_dependency PK_52325e34cd7a2f0f67b0f3cad65; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.workflow_dependency
@@ -3217,7 +3095,7 @@ ALTER TABLE ONLY public.workflow_dependency
 
 
 --
--- Name: invalid_auth_token PK_5779069b7235b256d91f7af1a15; Type: CONSTRAINT; Schema: public; Owner: n8n
+-- Name: invalid_auth_token PK_5779069b7235b256d91f7af1a15; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.invalid_auth_token
@@ -3225,7 +3103,7 @@ ALTER TABLE ONLY public.invalid_auth_token
 
 
 --
--- Name: shared_workflow PK_5ba87620386b847201c9531c58f; Type: CONSTRAINT; Schema: public; Owner: n8n
+-- Name: shared_workflow PK_5ba87620386b847201c9531c58f; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.shared_workflow
@@ -3233,7 +3111,7 @@ ALTER TABLE ONLY public.shared_workflow
 
 
 --
--- Name: folder PK_6278a41a706740c94c02e288df8; Type: CONSTRAINT; Schema: public; Owner: n8n
+-- Name: folder PK_6278a41a706740c94c02e288df8; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.folder
@@ -3241,7 +3119,7 @@ ALTER TABLE ONLY public.folder
 
 
 --
--- Name: data_table_column PK_673cb121ee4a8a5e27850c72c51; Type: CONSTRAINT; Schema: public; Owner: n8n
+-- Name: data_table_column PK_673cb121ee4a8a5e27850c72c51; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.data_table_column
@@ -3249,7 +3127,7 @@ ALTER TABLE ONLY public.data_table_column
 
 
 --
--- Name: annotation_tag_entity PK_69dfa041592c30bbc0d4b84aa00; Type: CONSTRAINT; Schema: public; Owner: n8n
+-- Name: annotation_tag_entity PK_69dfa041592c30bbc0d4b84aa00; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.annotation_tag_entity
@@ -3257,7 +3135,7 @@ ALTER TABLE ONLY public.annotation_tag_entity
 
 
 --
--- Name: oauth_refresh_tokens PK_74abaed0b30711b6532598b0392; Type: CONSTRAINT; Schema: public; Owner: n8n
+-- Name: oauth_refresh_tokens PK_74abaed0b30711b6532598b0392; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.oauth_refresh_tokens
@@ -3265,7 +3143,7 @@ ALTER TABLE ONLY public.oauth_refresh_tokens
 
 
 --
--- Name: chat_hub_messages PK_7704a5add6baed43eef835f0bfb; Type: CONSTRAINT; Schema: public; Owner: n8n
+-- Name: chat_hub_messages PK_7704a5add6baed43eef835f0bfb; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.chat_hub_messages
@@ -3273,7 +3151,7 @@ ALTER TABLE ONLY public.chat_hub_messages
 
 
 --
--- Name: execution_annotations PK_7afcf93ffa20c4252869a7c6a23; Type: CONSTRAINT; Schema: public; Owner: n8n
+-- Name: execution_annotations PK_7afcf93ffa20c4252869a7c6a23; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.execution_annotations
@@ -3281,7 +3159,7 @@ ALTER TABLE ONLY public.execution_annotations
 
 
 --
--- Name: oauth_user_consents PK_85b9ada746802c8993103470f05; Type: CONSTRAINT; Schema: public; Owner: n8n
+-- Name: oauth_user_consents PK_85b9ada746802c8993103470f05; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.oauth_user_consents
@@ -3289,7 +3167,7 @@ ALTER TABLE ONLY public.oauth_user_consents
 
 
 --
--- Name: migrations PK_8c82d7f526340ab734260ea46be; Type: CONSTRAINT; Schema: public; Owner: n8n
+-- Name: migrations PK_8c82d7f526340ab734260ea46be; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.migrations
@@ -3297,7 +3175,7 @@ ALTER TABLE ONLY public.migrations
 
 
 --
--- Name: installed_nodes PK_8ebd28194e4f792f96b5933423fc439df97d9689; Type: CONSTRAINT; Schema: public; Owner: n8n
+-- Name: installed_nodes PK_8ebd28194e4f792f96b5933423fc439df97d9689; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.installed_nodes
@@ -3305,7 +3183,7 @@ ALTER TABLE ONLY public.installed_nodes
 
 
 --
--- Name: shared_credentials PK_8ef3a59796a228913f251779cff; Type: CONSTRAINT; Schema: public; Owner: n8n
+-- Name: shared_credentials PK_8ef3a59796a228913f251779cff; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.shared_credentials
@@ -3313,7 +3191,7 @@ ALTER TABLE ONLY public.shared_credentials
 
 
 --
--- Name: test_case_execution PK_90c121f77a78a6580e94b794bce; Type: CONSTRAINT; Schema: public; Owner: n8n
+-- Name: test_case_execution PK_90c121f77a78a6580e94b794bce; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.test_case_execution
@@ -3321,7 +3199,7 @@ ALTER TABLE ONLY public.test_case_execution
 
 
 --
--- Name: user_api_keys PK_978fa5caa3468f463dac9d92e69; Type: CONSTRAINT; Schema: public; Owner: n8n
+-- Name: user_api_keys PK_978fa5caa3468f463dac9d92e69; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.user_api_keys
@@ -3329,7 +3207,7 @@ ALTER TABLE ONLY public.user_api_keys
 
 
 --
--- Name: execution_annotation_tags PK_979ec03d31294cca484be65d11f; Type: CONSTRAINT; Schema: public; Owner: n8n
+-- Name: execution_annotation_tags PK_979ec03d31294cca484be65d11f; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.execution_annotation_tags
@@ -3337,7 +3215,7 @@ ALTER TABLE ONLY public.execution_annotation_tags
 
 
 --
--- Name: webhook_entity PK_b21ace2e13596ccd87dc9bf4ea6; Type: CONSTRAINT; Schema: public; Owner: n8n
+-- Name: webhook_entity PK_b21ace2e13596ccd87dc9bf4ea6; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.webhook_entity
@@ -3345,7 +3223,7 @@ ALTER TABLE ONLY public.webhook_entity
 
 
 --
--- Name: insights_by_period PK_b606942249b90cc39b0265f0575; Type: CONSTRAINT; Schema: public; Owner: n8n
+-- Name: insights_by_period PK_b606942249b90cc39b0265f0575; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.insights_by_period
@@ -3353,7 +3231,7 @@ ALTER TABLE ONLY public.insights_by_period
 
 
 --
--- Name: workflow_history PK_b6572dd6173e4cd06fe79937b58; Type: CONSTRAINT; Schema: public; Owner: n8n
+-- Name: workflow_history PK_b6572dd6173e4cd06fe79937b58; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.workflow_history
@@ -3361,7 +3239,7 @@ ALTER TABLE ONLY public.workflow_history
 
 
 --
--- Name: scope PK_bfc45df0481abd7f355d6187da1; Type: CONSTRAINT; Schema: public; Owner: n8n
+-- Name: scope PK_bfc45df0481abd7f355d6187da1; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.scope
@@ -3369,7 +3247,7 @@ ALTER TABLE ONLY public.scope
 
 
 --
--- Name: oauth_clients PK_c4759172d3431bae6f04e678e0d; Type: CONSTRAINT; Schema: public; Owner: n8n
+-- Name: oauth_clients PK_c4759172d3431bae6f04e678e0d; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.oauth_clients
@@ -3377,7 +3255,7 @@ ALTER TABLE ONLY public.oauth_clients
 
 
 --
--- Name: workflow_publish_history PK_c788f7caf88e91e365c97d6d04a; Type: CONSTRAINT; Schema: public; Owner: n8n
+-- Name: workflow_publish_history PK_c788f7caf88e91e365c97d6d04a; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.workflow_publish_history
@@ -3385,7 +3263,7 @@ ALTER TABLE ONLY public.workflow_publish_history
 
 
 --
--- Name: processed_data PK_ca04b9d8dc72de268fe07a65773; Type: CONSTRAINT; Schema: public; Owner: n8n
+-- Name: processed_data PK_ca04b9d8dc72de268fe07a65773; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.processed_data
@@ -3393,7 +3271,7 @@ ALTER TABLE ONLY public.processed_data
 
 
 --
--- Name: settings PK_dc0fe14e6d9943f268e7b119f69ab8bd; Type: CONSTRAINT; Schema: public; Owner: n8n
+-- Name: settings PK_dc0fe14e6d9943f268e7b119f69ab8bd; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.settings
@@ -3401,7 +3279,7 @@ ALTER TABLE ONLY public.settings
 
 
 --
--- Name: oauth_access_tokens PK_dcd71f96a5d5f4bf79e67d322bf; Type: CONSTRAINT; Schema: public; Owner: n8n
+-- Name: oauth_access_tokens PK_dcd71f96a5d5f4bf79e67d322bf; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.oauth_access_tokens
@@ -3409,7 +3287,7 @@ ALTER TABLE ONLY public.oauth_access_tokens
 
 
 --
--- Name: data_table PK_e226d0001b9e6097cbfe70617cb; Type: CONSTRAINT; Schema: public; Owner: n8n
+-- Name: data_table PK_e226d0001b9e6097cbfe70617cb; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.data_table
@@ -3417,7 +3295,7 @@ ALTER TABLE ONLY public.data_table
 
 
 --
--- Name: user PK_ea8f538c94b6e352418254ed6474a81f; Type: CONSTRAINT; Schema: public; Owner: n8n
+-- Name: user PK_ea8f538c94b6e352418254ed6474a81f; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public."user"
@@ -3425,7 +3303,7 @@ ALTER TABLE ONLY public."user"
 
 
 --
--- Name: insights_raw PK_ec15125755151e3a7e00e00014f; Type: CONSTRAINT; Schema: public; Owner: n8n
+-- Name: insights_raw PK_ec15125755151e3a7e00e00014f; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.insights_raw
@@ -3433,7 +3311,7 @@ ALTER TABLE ONLY public.insights_raw
 
 
 --
--- Name: chat_hub_agents PK_f39a3b36bbdf0e2979ddb21cf78; Type: CONSTRAINT; Schema: public; Owner: n8n
+-- Name: chat_hub_agents PK_f39a3b36bbdf0e2979ddb21cf78; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.chat_hub_agents
@@ -3441,7 +3319,7 @@ ALTER TABLE ONLY public.chat_hub_agents
 
 
 --
--- Name: insights_metadata PK_f448a94c35218b6208ce20cf5a1; Type: CONSTRAINT; Schema: public; Owner: n8n
+-- Name: insights_metadata PK_f448a94c35218b6208ce20cf5a1; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.insights_metadata
@@ -3449,7 +3327,7 @@ ALTER TABLE ONLY public.insights_metadata
 
 
 --
--- Name: oauth_authorization_codes PK_fb91ab932cfbd694061501cc20f; Type: CONSTRAINT; Schema: public; Owner: n8n
+-- Name: oauth_authorization_codes PK_fb91ab932cfbd694061501cc20f; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.oauth_authorization_codes
@@ -3457,7 +3335,7 @@ ALTER TABLE ONLY public.oauth_authorization_codes
 
 
 --
--- Name: binary_data PK_fc3691585b39408bb0551122af6; Type: CONSTRAINT; Schema: public; Owner: n8n
+-- Name: binary_data PK_fc3691585b39408bb0551122af6; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.binary_data
@@ -3465,7 +3343,7 @@ ALTER TABLE ONLY public.binary_data
 
 
 --
--- Name: role_scope PK_role_scope; Type: CONSTRAINT; Schema: public; Owner: n8n
+-- Name: role_scope PK_role_scope; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.role_scope
@@ -3473,7 +3351,7 @@ ALTER TABLE ONLY public.role_scope
 
 
 --
--- Name: oauth_user_consents UQ_083721d99ce8db4033e2958ebb4; Type: CONSTRAINT; Schema: public; Owner: n8n
+-- Name: oauth_user_consents UQ_083721d99ce8db4033e2958ebb4; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.oauth_user_consents
@@ -3481,7 +3359,7 @@ ALTER TABLE ONLY public.oauth_user_consents
 
 
 --
--- Name: data_table_column UQ_8082ec4890f892f0bc77473a123; Type: CONSTRAINT; Schema: public; Owner: n8n
+-- Name: data_table_column UQ_8082ec4890f892f0bc77473a123; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.data_table_column
@@ -3489,7 +3367,7 @@ ALTER TABLE ONLY public.data_table_column
 
 
 --
--- Name: data_table UQ_b23096ef747281ac944d28e8b0d; Type: CONSTRAINT; Schema: public; Owner: n8n
+-- Name: data_table UQ_b23096ef747281ac944d28e8b0d; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.data_table
@@ -3497,7 +3375,7 @@ ALTER TABLE ONLY public.data_table
 
 
 --
--- Name: user UQ_e12875dfb3b1d92d7d7c5377e2; Type: CONSTRAINT; Schema: public; Owner: n8n
+-- Name: user UQ_e12875dfb3b1d92d7d7c5377e2; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public."user"
@@ -3505,7 +3383,7 @@ ALTER TABLE ONLY public."user"
 
 
 --
--- Name: auth_identity auth_identity_pkey; Type: CONSTRAINT; Schema: public; Owner: n8n
+-- Name: auth_identity auth_identity_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.auth_identity
@@ -3513,7 +3391,7 @@ ALTER TABLE ONLY public.auth_identity
 
 
 --
--- Name: auth_provider_sync_history auth_provider_sync_history_pkey; Type: CONSTRAINT; Schema: public; Owner: n8n
+-- Name: auth_provider_sync_history auth_provider_sync_history_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.auth_provider_sync_history
@@ -3521,7 +3399,7 @@ ALTER TABLE ONLY public.auth_provider_sync_history
 
 
 --
--- Name: credentials_entity credentials_entity_pkey; Type: CONSTRAINT; Schema: public; Owner: n8n
+-- Name: credentials_entity credentials_entity_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.credentials_entity
@@ -3529,7 +3407,7 @@ ALTER TABLE ONLY public.credentials_entity
 
 
 --
--- Name: event_destinations event_destinations_pkey; Type: CONSTRAINT; Schema: public; Owner: n8n
+-- Name: event_destinations event_destinations_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.event_destinations
@@ -3537,7 +3415,7 @@ ALTER TABLE ONLY public.event_destinations
 
 
 --
--- Name: execution_data execution_data_pkey; Type: CONSTRAINT; Schema: public; Owner: n8n
+-- Name: execution_data execution_data_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.execution_data
@@ -3545,7 +3423,7 @@ ALTER TABLE ONLY public.execution_data
 
 
 --
--- Name: execution_entity pk_e3e63bbf986767844bbe1166d4e; Type: CONSTRAINT; Schema: public; Owner: n8n
+-- Name: execution_entity pk_e3e63bbf986767844bbe1166d4e; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.execution_entity
@@ -3553,7 +3431,7 @@ ALTER TABLE ONLY public.execution_entity
 
 
 --
--- Name: workflow_statistics pk_workflow_statistics; Type: CONSTRAINT; Schema: public; Owner: n8n
+-- Name: workflow_statistics pk_workflow_statistics; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.workflow_statistics
@@ -3561,7 +3439,7 @@ ALTER TABLE ONLY public.workflow_statistics
 
 
 --
--- Name: workflows_tags pk_workflows_tags; Type: CONSTRAINT; Schema: public; Owner: n8n
+-- Name: workflows_tags pk_workflows_tags; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.workflows_tags
@@ -3569,7 +3447,7 @@ ALTER TABLE ONLY public.workflows_tags
 
 
 --
--- Name: tag_entity tag_entity_pkey; Type: CONSTRAINT; Schema: public; Owner: n8n
+-- Name: tag_entity tag_entity_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.tag_entity
@@ -3577,7 +3455,7 @@ ALTER TABLE ONLY public.tag_entity
 
 
 --
--- Name: variables variables_pkey; Type: CONSTRAINT; Schema: public; Owner: n8n
+-- Name: variables variables_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.variables
@@ -3585,7 +3463,7 @@ ALTER TABLE ONLY public.variables
 
 
 --
--- Name: workflow_entity workflow_entity_pkey; Type: CONSTRAINT; Schema: public; Owner: n8n
+-- Name: workflow_entity workflow_entity_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.workflow_entity
@@ -3593,287 +3471,287 @@ ALTER TABLE ONLY public.workflow_entity
 
 
 --
--- Name: IDX_070b5de842ece9ccdda0d9738b; Type: INDEX; Schema: public; Owner: n8n
+-- Name: IDX_070b5de842ece9ccdda0d9738b; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX "IDX_070b5de842ece9ccdda0d9738b" ON public.workflow_publish_history USING btree ("workflowId", "versionId");
 
 
 --
--- Name: IDX_14f68deffaf858465715995508; Type: INDEX; Schema: public; Owner: n8n
+-- Name: IDX_14f68deffaf858465715995508; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX "IDX_14f68deffaf858465715995508" ON public.folder USING btree ("projectId", id);
 
 
 --
--- Name: IDX_1d8ab99d5861c9388d2dc1cf73; Type: INDEX; Schema: public; Owner: n8n
+-- Name: IDX_1d8ab99d5861c9388d2dc1cf73; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX "IDX_1d8ab99d5861c9388d2dc1cf73" ON public.insights_metadata USING btree ("workflowId");
 
 
 --
--- Name: IDX_1e31657f5fe46816c34be7c1b4; Type: INDEX; Schema: public; Owner: n8n
+-- Name: IDX_1e31657f5fe46816c34be7c1b4; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX "IDX_1e31657f5fe46816c34be7c1b4" ON public.workflow_history USING btree ("workflowId");
 
 
 --
--- Name: IDX_1ef35bac35d20bdae979d917a3; Type: INDEX; Schema: public; Owner: n8n
+-- Name: IDX_1ef35bac35d20bdae979d917a3; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX "IDX_1ef35bac35d20bdae979d917a3" ON public.user_api_keys USING btree ("apiKey");
 
 
 --
--- Name: IDX_56900edc3cfd16612e2ef2c6a8; Type: INDEX; Schema: public; Owner: n8n
+-- Name: IDX_56900edc3cfd16612e2ef2c6a8; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX "IDX_56900edc3cfd16612e2ef2c6a8" ON public.binary_data USING btree ("sourceType", "sourceId");
 
 
 --
--- Name: IDX_5f0643f6717905a05164090dde; Type: INDEX; Schema: public; Owner: n8n
+-- Name: IDX_5f0643f6717905a05164090dde; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX "IDX_5f0643f6717905a05164090dde" ON public.project_relation USING btree ("userId");
 
 
 --
--- Name: IDX_60b6a84299eeb3f671dfec7693; Type: INDEX; Schema: public; Owner: n8n
+-- Name: IDX_60b6a84299eeb3f671dfec7693; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX "IDX_60b6a84299eeb3f671dfec7693" ON public.insights_by_period USING btree ("periodStart", type, "periodUnit", "metaId");
 
 
 --
--- Name: IDX_61448d56d61802b5dfde5cdb00; Type: INDEX; Schema: public; Owner: n8n
+-- Name: IDX_61448d56d61802b5dfde5cdb00; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX "IDX_61448d56d61802b5dfde5cdb00" ON public.project_relation USING btree ("projectId");
 
 
 --
--- Name: IDX_63d7bbae72c767cf162d459fcc; Type: INDEX; Schema: public; Owner: n8n
+-- Name: IDX_63d7bbae72c767cf162d459fcc; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX "IDX_63d7bbae72c767cf162d459fcc" ON public.user_api_keys USING btree ("userId", label);
 
 
 --
--- Name: IDX_8e4b4774db42f1e6dda3452b2a; Type: INDEX; Schema: public; Owner: n8n
+-- Name: IDX_8e4b4774db42f1e6dda3452b2a; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX "IDX_8e4b4774db42f1e6dda3452b2a" ON public.test_case_execution USING btree ("testRunId");
 
 
 --
--- Name: IDX_97f863fa83c4786f1956508496; Type: INDEX; Schema: public; Owner: n8n
+-- Name: IDX_97f863fa83c4786f1956508496; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX "IDX_97f863fa83c4786f1956508496" ON public.execution_annotations USING btree ("executionId");
 
 
 --
--- Name: IDX_UniqueRoleDisplayName; Type: INDEX; Schema: public; Owner: n8n
+-- Name: IDX_UniqueRoleDisplayName; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX "IDX_UniqueRoleDisplayName" ON public.role USING btree ("displayName");
 
 
 --
--- Name: IDX_a3697779b366e131b2bbdae297; Type: INDEX; Schema: public; Owner: n8n
+-- Name: IDX_a3697779b366e131b2bbdae297; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX "IDX_a3697779b366e131b2bbdae297" ON public.execution_annotation_tags USING btree ("tagId");
 
 
 --
--- Name: IDX_a4ff2d9b9628ea988fa9e7d0bf; Type: INDEX; Schema: public; Owner: n8n
+-- Name: IDX_a4ff2d9b9628ea988fa9e7d0bf; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX "IDX_a4ff2d9b9628ea988fa9e7d0bf" ON public.workflow_dependency USING btree ("workflowId");
 
 
 --
--- Name: IDX_ae51b54c4bb430cf92f48b623f; Type: INDEX; Schema: public; Owner: n8n
+-- Name: IDX_ae51b54c4bb430cf92f48b623f; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX "IDX_ae51b54c4bb430cf92f48b623f" ON public.annotation_tag_entity USING btree (name);
 
 
 --
--- Name: IDX_c1519757391996eb06064f0e7c; Type: INDEX; Schema: public; Owner: n8n
+-- Name: IDX_c1519757391996eb06064f0e7c; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX "IDX_c1519757391996eb06064f0e7c" ON public.execution_annotation_tags USING btree ("annotationId");
 
 
 --
--- Name: IDX_cec8eea3bf49551482ccb4933e; Type: INDEX; Schema: public; Owner: n8n
+-- Name: IDX_cec8eea3bf49551482ccb4933e; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX "IDX_cec8eea3bf49551482ccb4933e" ON public.execution_metadata USING btree ("executionId", key);
 
 
 --
--- Name: IDX_d6870d3b6e4c185d33926f423c; Type: INDEX; Schema: public; Owner: n8n
+-- Name: IDX_d6870d3b6e4c185d33926f423c; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX "IDX_d6870d3b6e4c185d33926f423c" ON public.test_run USING btree ("workflowId");
 
 
 --
--- Name: IDX_e48a201071ab85d9d09119d640; Type: INDEX; Schema: public; Owner: n8n
+-- Name: IDX_e48a201071ab85d9d09119d640; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX "IDX_e48a201071ab85d9d09119d640" ON public.workflow_dependency USING btree ("dependencyKey");
 
 
 --
--- Name: IDX_e7fe1cfda990c14a445937d0b9; Type: INDEX; Schema: public; Owner: n8n
+-- Name: IDX_e7fe1cfda990c14a445937d0b9; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX "IDX_e7fe1cfda990c14a445937d0b9" ON public.workflow_dependency USING btree ("dependencyType");
 
 
 --
--- Name: IDX_execution_entity_deletedAt; Type: INDEX; Schema: public; Owner: n8n
+-- Name: IDX_execution_entity_deletedAt; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX "IDX_execution_entity_deletedAt" ON public.execution_entity USING btree ("deletedAt");
 
 
 --
--- Name: IDX_role_scope_scopeSlug; Type: INDEX; Schema: public; Owner: n8n
+-- Name: IDX_role_scope_scopeSlug; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX "IDX_role_scope_scopeSlug" ON public.role_scope USING btree ("scopeSlug");
 
 
 --
--- Name: IDX_workflow_entity_name; Type: INDEX; Schema: public; Owner: n8n
+-- Name: IDX_workflow_entity_name; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX "IDX_workflow_entity_name" ON public.workflow_entity USING btree (name);
 
 
 --
--- Name: idx_07fde106c0b471d8cc80a64fc8; Type: INDEX; Schema: public; Owner: n8n
+-- Name: idx_07fde106c0b471d8cc80a64fc8; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX idx_07fde106c0b471d8cc80a64fc8 ON public.credentials_entity USING btree (type);
 
 
 --
--- Name: idx_16f4436789e804e3e1c9eeb240; Type: INDEX; Schema: public; Owner: n8n
+-- Name: idx_16f4436789e804e3e1c9eeb240; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX idx_16f4436789e804e3e1c9eeb240 ON public.webhook_entity USING btree ("webhookId", method, "pathLength");
 
 
 --
--- Name: idx_812eb05f7451ca757fb98444ce; Type: INDEX; Schema: public; Owner: n8n
+-- Name: idx_812eb05f7451ca757fb98444ce; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX idx_812eb05f7451ca757fb98444ce ON public.tag_entity USING btree (name);
 
 
 --
--- Name: idx_execution_entity_stopped_at_status_deleted_at; Type: INDEX; Schema: public; Owner: n8n
+-- Name: idx_execution_entity_stopped_at_status_deleted_at; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX idx_execution_entity_stopped_at_status_deleted_at ON public.execution_entity USING btree ("stoppedAt", status, "deletedAt") WHERE (("stoppedAt" IS NOT NULL) AND ("deletedAt" IS NULL));
 
 
 --
--- Name: idx_execution_entity_wait_till_status_deleted_at; Type: INDEX; Schema: public; Owner: n8n
+-- Name: idx_execution_entity_wait_till_status_deleted_at; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX idx_execution_entity_wait_till_status_deleted_at ON public.execution_entity USING btree ("waitTill", status, "deletedAt") WHERE (("waitTill" IS NOT NULL) AND ("deletedAt" IS NULL));
 
 
 --
--- Name: idx_execution_entity_workflow_id_started_at; Type: INDEX; Schema: public; Owner: n8n
+-- Name: idx_execution_entity_workflow_id_started_at; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX idx_execution_entity_workflow_id_started_at ON public.execution_entity USING btree ("workflowId", "startedAt") WHERE (("startedAt" IS NOT NULL) AND ("deletedAt" IS NULL));
 
 
 --
--- Name: idx_workflows_tags_workflow_id; Type: INDEX; Schema: public; Owner: n8n
+-- Name: idx_workflows_tags_workflow_id; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX idx_workflows_tags_workflow_id ON public.workflows_tags USING btree ("workflowId");
 
 
 --
--- Name: pk_credentials_entity_id; Type: INDEX; Schema: public; Owner: n8n
+-- Name: pk_credentials_entity_id; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX pk_credentials_entity_id ON public.credentials_entity USING btree (id);
 
 
 --
--- Name: pk_tag_entity_id; Type: INDEX; Schema: public; Owner: n8n
+-- Name: pk_tag_entity_id; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX pk_tag_entity_id ON public.tag_entity USING btree (id);
 
 
 --
--- Name: pk_workflow_entity_id; Type: INDEX; Schema: public; Owner: n8n
+-- Name: pk_workflow_entity_id; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX pk_workflow_entity_id ON public.workflow_entity USING btree (id);
 
 
 --
--- Name: project_relation_role_idx; Type: INDEX; Schema: public; Owner: n8n
+-- Name: project_relation_role_idx; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX project_relation_role_idx ON public.project_relation USING btree (role);
 
 
 --
--- Name: project_relation_role_project_idx; Type: INDEX; Schema: public; Owner: n8n
+-- Name: project_relation_role_project_idx; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX project_relation_role_project_idx ON public.project_relation USING btree ("projectId", role);
 
 
 --
--- Name: user_role_idx; Type: INDEX; Schema: public; Owner: n8n
+-- Name: user_role_idx; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX user_role_idx ON public."user" USING btree ("roleSlug");
 
 
 --
--- Name: variables_global_key_unique; Type: INDEX; Schema: public; Owner: n8n
+-- Name: variables_global_key_unique; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX variables_global_key_unique ON public.variables USING btree (key) WHERE ("projectId" IS NULL);
 
 
 --
--- Name: variables_project_key_unique; Type: INDEX; Schema: public; Owner: n8n
+-- Name: variables_project_key_unique; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX variables_project_key_unique ON public.variables USING btree ("projectId", key) WHERE ("projectId" IS NOT NULL);
 
 
 --
--- Name: workflow_entity workflow_version_increment; Type: TRIGGER; Schema: public; Owner: n8n
+-- Name: workflow_entity workflow_version_increment; Type: TRIGGER; Schema: public; Owner: -
 --
 
 CREATE TRIGGER workflow_version_increment BEFORE UPDATE ON public.workflow_entity FOR EACH ROW EXECUTE FUNCTION public.increment_workflow_version();
 
 
 --
--- Name: processed_data FK_06a69a7032c97a763c2c7599464; Type: FK CONSTRAINT; Schema: public; Owner: n8n
+-- Name: processed_data FK_06a69a7032c97a763c2c7599464; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.processed_data
@@ -3881,7 +3759,7 @@ ALTER TABLE ONLY public.processed_data
 
 
 --
--- Name: workflow_entity FK_08d6c67b7f722b0039d9d5ed620; Type: FK CONSTRAINT; Schema: public; Owner: n8n
+-- Name: workflow_entity FK_08d6c67b7f722b0039d9d5ed620; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.workflow_entity
@@ -3889,7 +3767,7 @@ ALTER TABLE ONLY public.workflow_entity
 
 
 --
--- Name: insights_metadata FK_1d8ab99d5861c9388d2dc1cf733; Type: FK CONSTRAINT; Schema: public; Owner: n8n
+-- Name: insights_metadata FK_1d8ab99d5861c9388d2dc1cf733; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.insights_metadata
@@ -3897,7 +3775,7 @@ ALTER TABLE ONLY public.insights_metadata
 
 
 --
--- Name: workflow_history FK_1e31657f5fe46816c34be7c1b4b; Type: FK CONSTRAINT; Schema: public; Owner: n8n
+-- Name: workflow_history FK_1e31657f5fe46816c34be7c1b4b; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.workflow_history
@@ -3905,7 +3783,7 @@ ALTER TABLE ONLY public.workflow_history
 
 
 --
--- Name: chat_hub_messages FK_1f4998c8a7dec9e00a9ab15550e; Type: FK CONSTRAINT; Schema: public; Owner: n8n
+-- Name: chat_hub_messages FK_1f4998c8a7dec9e00a9ab15550e; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.chat_hub_messages
@@ -3913,7 +3791,7 @@ ALTER TABLE ONLY public.chat_hub_messages
 
 
 --
--- Name: oauth_user_consents FK_21e6c3c2d78a097478fae6aaefa; Type: FK CONSTRAINT; Schema: public; Owner: n8n
+-- Name: oauth_user_consents FK_21e6c3c2d78a097478fae6aaefa; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.oauth_user_consents
@@ -3921,7 +3799,7 @@ ALTER TABLE ONLY public.oauth_user_consents
 
 
 --
--- Name: insights_metadata FK_2375a1eda085adb16b24615b69c; Type: FK CONSTRAINT; Schema: public; Owner: n8n
+-- Name: insights_metadata FK_2375a1eda085adb16b24615b69c; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.insights_metadata
@@ -3929,7 +3807,7 @@ ALTER TABLE ONLY public.insights_metadata
 
 
 --
--- Name: chat_hub_messages FK_25c9736e7f769f3a005eef4b372; Type: FK CONSTRAINT; Schema: public; Owner: n8n
+-- Name: chat_hub_messages FK_25c9736e7f769f3a005eef4b372; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.chat_hub_messages
@@ -3937,7 +3815,7 @@ ALTER TABLE ONLY public.chat_hub_messages
 
 
 --
--- Name: execution_metadata FK_31d0b4c93fb85ced26f6005cda3; Type: FK CONSTRAINT; Schema: public; Owner: n8n
+-- Name: execution_metadata FK_31d0b4c93fb85ced26f6005cda3; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.execution_metadata
@@ -3945,7 +3823,7 @@ ALTER TABLE ONLY public.execution_metadata
 
 
 --
--- Name: shared_credentials FK_416f66fc846c7c442970c094ccf; Type: FK CONSTRAINT; Schema: public; Owner: n8n
+-- Name: shared_credentials FK_416f66fc846c7c442970c094ccf; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.shared_credentials
@@ -3953,7 +3831,7 @@ ALTER TABLE ONLY public.shared_credentials
 
 
 --
--- Name: variables FK_42f6c766f9f9d2edcc15bdd6e9b; Type: FK CONSTRAINT; Schema: public; Owner: n8n
+-- Name: variables FK_42f6c766f9f9d2edcc15bdd6e9b; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.variables
@@ -3961,7 +3839,7 @@ ALTER TABLE ONLY public.variables
 
 
 --
--- Name: chat_hub_agents FK_441ba2caba11e077ce3fbfa2cd8; Type: FK CONSTRAINT; Schema: public; Owner: n8n
+-- Name: chat_hub_agents FK_441ba2caba11e077ce3fbfa2cd8; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.chat_hub_agents
@@ -3969,7 +3847,7 @@ ALTER TABLE ONLY public.chat_hub_agents
 
 
 --
--- Name: project_relation FK_5f0643f6717905a05164090dde7; Type: FK CONSTRAINT; Schema: public; Owner: n8n
+-- Name: project_relation FK_5f0643f6717905a05164090dde7; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.project_relation
@@ -3977,7 +3855,7 @@ ALTER TABLE ONLY public.project_relation
 
 
 --
--- Name: project_relation FK_61448d56d61802b5dfde5cdb002; Type: FK CONSTRAINT; Schema: public; Owner: n8n
+-- Name: project_relation FK_61448d56d61802b5dfde5cdb002; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.project_relation
@@ -3985,7 +3863,7 @@ ALTER TABLE ONLY public.project_relation
 
 
 --
--- Name: insights_by_period FK_6414cfed98daabbfdd61a1cfbc0; Type: FK CONSTRAINT; Schema: public; Owner: n8n
+-- Name: insights_by_period FK_6414cfed98daabbfdd61a1cfbc0; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.insights_by_period
@@ -3993,7 +3871,7 @@ ALTER TABLE ONLY public.insights_by_period
 
 
 --
--- Name: oauth_authorization_codes FK_64d965bd072ea24fb6da55468cd; Type: FK CONSTRAINT; Schema: public; Owner: n8n
+-- Name: oauth_authorization_codes FK_64d965bd072ea24fb6da55468cd; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.oauth_authorization_codes
@@ -4001,7 +3879,7 @@ ALTER TABLE ONLY public.oauth_authorization_codes
 
 
 --
--- Name: chat_hub_messages FK_6afb260449dd7a9b85355d4e0c9; Type: FK CONSTRAINT; Schema: public; Owner: n8n
+-- Name: chat_hub_messages FK_6afb260449dd7a9b85355d4e0c9; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.chat_hub_messages
@@ -4009,7 +3887,7 @@ ALTER TABLE ONLY public.chat_hub_messages
 
 
 --
--- Name: insights_raw FK_6e2e33741adef2a7c5d66befa4e; Type: FK CONSTRAINT; Schema: public; Owner: n8n
+-- Name: insights_raw FK_6e2e33741adef2a7c5d66befa4e; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.insights_raw
@@ -4017,7 +3895,7 @@ ALTER TABLE ONLY public.insights_raw
 
 
 --
--- Name: workflow_publish_history FK_6eab5bd9eedabe9c54bd879fc40; Type: FK CONSTRAINT; Schema: public; Owner: n8n
+-- Name: workflow_publish_history FK_6eab5bd9eedabe9c54bd879fc40; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.workflow_publish_history
@@ -4025,7 +3903,7 @@ ALTER TABLE ONLY public.workflow_publish_history
 
 
 --
--- Name: oauth_access_tokens FK_7234a36d8e49a1fa85095328845; Type: FK CONSTRAINT; Schema: public; Owner: n8n
+-- Name: oauth_access_tokens FK_7234a36d8e49a1fa85095328845; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.oauth_access_tokens
@@ -4033,7 +3911,7 @@ ALTER TABLE ONLY public.oauth_access_tokens
 
 
 --
--- Name: installed_nodes FK_73f857fc5dce682cef8a99c11dbddbc969618951; Type: FK CONSTRAINT; Schema: public; Owner: n8n
+-- Name: installed_nodes FK_73f857fc5dce682cef8a99c11dbddbc969618951; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.installed_nodes
@@ -4041,7 +3919,7 @@ ALTER TABLE ONLY public.installed_nodes
 
 
 --
--- Name: oauth_access_tokens FK_78b26968132b7e5e45b75876481; Type: FK CONSTRAINT; Schema: public; Owner: n8n
+-- Name: oauth_access_tokens FK_78b26968132b7e5e45b75876481; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.oauth_access_tokens
@@ -4049,7 +3927,7 @@ ALTER TABLE ONLY public.oauth_access_tokens
 
 
 --
--- Name: chat_hub_sessions FK_7bc13b4c7e6afbfaf9be326c189; Type: FK CONSTRAINT; Schema: public; Owner: n8n
+-- Name: chat_hub_sessions FK_7bc13b4c7e6afbfaf9be326c189; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.chat_hub_sessions
@@ -4057,7 +3935,7 @@ ALTER TABLE ONLY public.chat_hub_sessions
 
 
 --
--- Name: folder FK_804ea52f6729e3940498bd54d78; Type: FK CONSTRAINT; Schema: public; Owner: n8n
+-- Name: folder FK_804ea52f6729e3940498bd54d78; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.folder
@@ -4065,7 +3943,7 @@ ALTER TABLE ONLY public.folder
 
 
 --
--- Name: shared_credentials FK_812c2852270da1247756e77f5a4; Type: FK CONSTRAINT; Schema: public; Owner: n8n
+-- Name: shared_credentials FK_812c2852270da1247756e77f5a4; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.shared_credentials
@@ -4073,7 +3951,7 @@ ALTER TABLE ONLY public.shared_credentials
 
 
 --
--- Name: test_case_execution FK_8e4b4774db42f1e6dda3452b2af; Type: FK CONSTRAINT; Schema: public; Owner: n8n
+-- Name: test_case_execution FK_8e4b4774db42f1e6dda3452b2af; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.test_case_execution
@@ -4081,7 +3959,7 @@ ALTER TABLE ONLY public.test_case_execution
 
 
 --
--- Name: data_table_column FK_930b6e8faaf88294cef23484160; Type: FK CONSTRAINT; Schema: public; Owner: n8n
+-- Name: data_table_column FK_930b6e8faaf88294cef23484160; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.data_table_column
@@ -4089,7 +3967,7 @@ ALTER TABLE ONLY public.data_table_column
 
 
 --
--- Name: folder_tag FK_94a60854e06f2897b2e0d39edba; Type: FK CONSTRAINT; Schema: public; Owner: n8n
+-- Name: folder_tag FK_94a60854e06f2897b2e0d39edba; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.folder_tag
@@ -4097,7 +3975,7 @@ ALTER TABLE ONLY public.folder_tag
 
 
 --
--- Name: execution_annotations FK_97f863fa83c4786f19565084960; Type: FK CONSTRAINT; Schema: public; Owner: n8n
+-- Name: execution_annotations FK_97f863fa83c4786f19565084960; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.execution_annotations
@@ -4105,7 +3983,7 @@ ALTER TABLE ONLY public.execution_annotations
 
 
 --
--- Name: chat_hub_agents FK_9c61ad497dcbae499c96a6a78ba; Type: FK CONSTRAINT; Schema: public; Owner: n8n
+-- Name: chat_hub_agents FK_9c61ad497dcbae499c96a6a78ba; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.chat_hub_agents
@@ -4113,7 +3991,7 @@ ALTER TABLE ONLY public.chat_hub_agents
 
 
 --
--- Name: chat_hub_sessions FK_9f9293d9f552496c40e0d1a8f80; Type: FK CONSTRAINT; Schema: public; Owner: n8n
+-- Name: chat_hub_sessions FK_9f9293d9f552496c40e0d1a8f80; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.chat_hub_sessions
@@ -4121,7 +3999,7 @@ ALTER TABLE ONLY public.chat_hub_sessions
 
 
 --
--- Name: execution_annotation_tags FK_a3697779b366e131b2bbdae2976; Type: FK CONSTRAINT; Schema: public; Owner: n8n
+-- Name: execution_annotation_tags FK_a3697779b366e131b2bbdae2976; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.execution_annotation_tags
@@ -4129,7 +4007,7 @@ ALTER TABLE ONLY public.execution_annotation_tags
 
 
 --
--- Name: shared_workflow FK_a45ea5f27bcfdc21af9b4188560; Type: FK CONSTRAINT; Schema: public; Owner: n8n
+-- Name: shared_workflow FK_a45ea5f27bcfdc21af9b4188560; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.shared_workflow
@@ -4137,7 +4015,7 @@ ALTER TABLE ONLY public.shared_workflow
 
 
 --
--- Name: workflow_dependency FK_a4ff2d9b9628ea988fa9e7d0bf8; Type: FK CONSTRAINT; Schema: public; Owner: n8n
+-- Name: workflow_dependency FK_a4ff2d9b9628ea988fa9e7d0bf8; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.workflow_dependency
@@ -4145,7 +4023,7 @@ ALTER TABLE ONLY public.workflow_dependency
 
 
 --
--- Name: oauth_user_consents FK_a651acea2f6c97f8c4514935486; Type: FK CONSTRAINT; Schema: public; Owner: n8n
+-- Name: oauth_user_consents FK_a651acea2f6c97f8c4514935486; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.oauth_user_consents
@@ -4153,7 +4031,7 @@ ALTER TABLE ONLY public.oauth_user_consents
 
 
 --
--- Name: oauth_refresh_tokens FK_a699f3ed9fd0c1b19bc2608ac53; Type: FK CONSTRAINT; Schema: public; Owner: n8n
+-- Name: oauth_refresh_tokens FK_a699f3ed9fd0c1b19bc2608ac53; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.oauth_refresh_tokens
@@ -4161,7 +4039,7 @@ ALTER TABLE ONLY public.oauth_refresh_tokens
 
 
 --
--- Name: folder FK_a8260b0b36939c6247f385b8221; Type: FK CONSTRAINT; Schema: public; Owner: n8n
+-- Name: folder FK_a8260b0b36939c6247f385b8221; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.folder
@@ -4169,7 +4047,7 @@ ALTER TABLE ONLY public.folder
 
 
 --
--- Name: oauth_authorization_codes FK_aa8d3560484944c19bdf79ffa16; Type: FK CONSTRAINT; Schema: public; Owner: n8n
+-- Name: oauth_authorization_codes FK_aa8d3560484944c19bdf79ffa16; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.oauth_authorization_codes
@@ -4177,7 +4055,7 @@ ALTER TABLE ONLY public.oauth_authorization_codes
 
 
 --
--- Name: chat_hub_messages FK_acf8926098f063cdbbad8497fd1; Type: FK CONSTRAINT; Schema: public; Owner: n8n
+-- Name: chat_hub_messages FK_acf8926098f063cdbbad8497fd1; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.chat_hub_messages
@@ -4185,7 +4063,7 @@ ALTER TABLE ONLY public.chat_hub_messages
 
 
 --
--- Name: oauth_refresh_tokens FK_b388696ce4d8be7ffbe8d3e4b69; Type: FK CONSTRAINT; Schema: public; Owner: n8n
+-- Name: oauth_refresh_tokens FK_b388696ce4d8be7ffbe8d3e4b69; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.oauth_refresh_tokens
@@ -4193,7 +4071,7 @@ ALTER TABLE ONLY public.oauth_refresh_tokens
 
 
 --
--- Name: workflow_publish_history FK_b4cfbc7556d07f36ca177f5e473; Type: FK CONSTRAINT; Schema: public; Owner: n8n
+-- Name: workflow_publish_history FK_b4cfbc7556d07f36ca177f5e473; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.workflow_publish_history
@@ -4201,7 +4079,7 @@ ALTER TABLE ONLY public.workflow_publish_history
 
 
 --
--- Name: workflow_publish_history FK_c01316f8c2d7101ec4fa9809267; Type: FK CONSTRAINT; Schema: public; Owner: n8n
+-- Name: workflow_publish_history FK_c01316f8c2d7101ec4fa9809267; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.workflow_publish_history
@@ -4209,7 +4087,7 @@ ALTER TABLE ONLY public.workflow_publish_history
 
 
 --
--- Name: execution_annotation_tags FK_c1519757391996eb06064f0e7c8; Type: FK CONSTRAINT; Schema: public; Owner: n8n
+-- Name: execution_annotation_tags FK_c1519757391996eb06064f0e7c8; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.execution_annotation_tags
@@ -4217,7 +4095,7 @@ ALTER TABLE ONLY public.execution_annotation_tags
 
 
 --
--- Name: data_table FK_c2a794257dee48af7c9abf681de; Type: FK CONSTRAINT; Schema: public; Owner: n8n
+-- Name: data_table FK_c2a794257dee48af7c9abf681de; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.data_table
@@ -4225,7 +4103,7 @@ ALTER TABLE ONLY public.data_table
 
 
 --
--- Name: project_relation FK_c6b99592dc96b0d836d7a21db91; Type: FK CONSTRAINT; Schema: public; Owner: n8n
+-- Name: project_relation FK_c6b99592dc96b0d836d7a21db91; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.project_relation
@@ -4233,7 +4111,7 @@ ALTER TABLE ONLY public.project_relation
 
 
 --
--- Name: test_run FK_d6870d3b6e4c185d33926f423c8; Type: FK CONSTRAINT; Schema: public; Owner: n8n
+-- Name: test_run FK_d6870d3b6e4c185d33926f423c8; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.test_run
@@ -4241,7 +4119,7 @@ ALTER TABLE ONLY public.test_run
 
 
 --
--- Name: shared_workflow FK_daa206a04983d47d0a9c34649ce; Type: FK CONSTRAINT; Schema: public; Owner: n8n
+-- Name: shared_workflow FK_daa206a04983d47d0a9c34649ce; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.shared_workflow
@@ -4249,7 +4127,7 @@ ALTER TABLE ONLY public.shared_workflow
 
 
 --
--- Name: folder_tag FK_dc88164176283de80af47621746; Type: FK CONSTRAINT; Schema: public; Owner: n8n
+-- Name: folder_tag FK_dc88164176283de80af47621746; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.folder_tag
@@ -4257,7 +4135,7 @@ ALTER TABLE ONLY public.folder_tag
 
 
 --
--- Name: user_api_keys FK_e131705cbbc8fb589889b02d457; Type: FK CONSTRAINT; Schema: public; Owner: n8n
+-- Name: user_api_keys FK_e131705cbbc8fb589889b02d457; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.user_api_keys
@@ -4265,7 +4143,7 @@ ALTER TABLE ONLY public.user_api_keys
 
 
 --
--- Name: chat_hub_messages FK_e22538eb50a71a17954cd7e076c; Type: FK CONSTRAINT; Schema: public; Owner: n8n
+-- Name: chat_hub_messages FK_e22538eb50a71a17954cd7e076c; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.chat_hub_messages
@@ -4273,7 +4151,7 @@ ALTER TABLE ONLY public.chat_hub_messages
 
 
 --
--- Name: test_case_execution FK_e48965fac35d0f5b9e7f51d8c44; Type: FK CONSTRAINT; Schema: public; Owner: n8n
+-- Name: test_case_execution FK_e48965fac35d0f5b9e7f51d8c44; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.test_case_execution
@@ -4281,7 +4159,7 @@ ALTER TABLE ONLY public.test_case_execution
 
 
 --
--- Name: chat_hub_messages FK_e5d1fa722c5a8d38ac204746662; Type: FK CONSTRAINT; Schema: public; Owner: n8n
+-- Name: chat_hub_messages FK_e5d1fa722c5a8d38ac204746662; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.chat_hub_messages
@@ -4289,7 +4167,7 @@ ALTER TABLE ONLY public.chat_hub_messages
 
 
 --
--- Name: chat_hub_sessions FK_e9ecf8ede7d989fcd18790fe36a; Type: FK CONSTRAINT; Schema: public; Owner: n8n
+-- Name: chat_hub_sessions FK_e9ecf8ede7d989fcd18790fe36a; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.chat_hub_sessions
@@ -4297,7 +4175,7 @@ ALTER TABLE ONLY public.chat_hub_sessions
 
 
 --
--- Name: user FK_eaea92ee7bfb9c1b6cd01505d56; Type: FK CONSTRAINT; Schema: public; Owner: n8n
+-- Name: user FK_eaea92ee7bfb9c1b6cd01505d56; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public."user"
@@ -4305,7 +4183,7 @@ ALTER TABLE ONLY public."user"
 
 
 --
--- Name: role_scope FK_role; Type: FK CONSTRAINT; Schema: public; Owner: n8n
+-- Name: role_scope FK_role; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.role_scope
@@ -4313,7 +4191,7 @@ ALTER TABLE ONLY public.role_scope
 
 
 --
--- Name: role_scope FK_scope; Type: FK CONSTRAINT; Schema: public; Owner: n8n
+-- Name: role_scope FK_scope; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.role_scope
@@ -4321,7 +4199,7 @@ ALTER TABLE ONLY public.role_scope
 
 
 --
--- Name: auth_identity auth_identity_userId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: n8n
+-- Name: auth_identity auth_identity_userId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.auth_identity
@@ -4329,7 +4207,7 @@ ALTER TABLE ONLY public.auth_identity
 
 
 --
--- Name: execution_data execution_data_fk; Type: FK CONSTRAINT; Schema: public; Owner: n8n
+-- Name: execution_data execution_data_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.execution_data
@@ -4337,7 +4215,7 @@ ALTER TABLE ONLY public.execution_data
 
 
 --
--- Name: execution_entity fk_execution_entity_workflow_id; Type: FK CONSTRAINT; Schema: public; Owner: n8n
+-- Name: execution_entity fk_execution_entity_workflow_id; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.execution_entity
@@ -4345,7 +4223,7 @@ ALTER TABLE ONLY public.execution_entity
 
 
 --
--- Name: webhook_entity fk_webhook_entity_workflow_id; Type: FK CONSTRAINT; Schema: public; Owner: n8n
+-- Name: webhook_entity fk_webhook_entity_workflow_id; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.webhook_entity
@@ -4353,7 +4231,7 @@ ALTER TABLE ONLY public.webhook_entity
 
 
 --
--- Name: workflow_entity fk_workflow_parent_folder; Type: FK CONSTRAINT; Schema: public; Owner: n8n
+-- Name: workflow_entity fk_workflow_parent_folder; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.workflow_entity
@@ -4361,7 +4239,7 @@ ALTER TABLE ONLY public.workflow_entity
 
 
 --
--- Name: workflow_statistics fk_workflow_statistics_workflow_id; Type: FK CONSTRAINT; Schema: public; Owner: n8n
+-- Name: workflow_statistics fk_workflow_statistics_workflow_id; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.workflow_statistics
@@ -4369,7 +4247,7 @@ ALTER TABLE ONLY public.workflow_statistics
 
 
 --
--- Name: workflows_tags fk_workflows_tags_tag_id; Type: FK CONSTRAINT; Schema: public; Owner: n8n
+-- Name: workflows_tags fk_workflows_tags_tag_id; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.workflows_tags
@@ -4377,7 +4255,7 @@ ALTER TABLE ONLY public.workflows_tags
 
 
 --
--- Name: workflows_tags fk_workflows_tags_workflow_id; Type: FK CONSTRAINT; Schema: public; Owner: n8n
+-- Name: workflows_tags fk_workflows_tags_workflow_id; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.workflows_tags
@@ -4388,5 +4266,5 @@ ALTER TABLE ONLY public.workflows_tags
 -- PostgreSQL database dump complete
 --
 
-\unrestrict NaeW1NfiwjZ3UFaXuQkZnVhpDBbabJNvV4QoROUysn8eFbsiXmY1l7RkGcs2bDP
+\unrestrict WsAPP3rjnyAaKsZfrIcTlKtvM9Hamg5RPc7hYpOBcegjiVZauhowV0N2BIQhhEV
 
