@@ -114,6 +114,7 @@ interface RecentProject {
   client?: { name: string };
   total_keywords_found?: number;
   created_at: string;
+  seed_keywords?: string | string[];
 }
 
 interface AICategory {
