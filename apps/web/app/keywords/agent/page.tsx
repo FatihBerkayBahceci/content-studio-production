@@ -1718,7 +1718,7 @@ export default function KeywordAgentPage() {
                         <option value="" className="bg-zinc-800 text-white">Proje seçin...</option>
                         {bulkProjects.map(p => (
                           <option key={p.id} value={p.id} className="bg-zinc-800 text-white">
-                            {p.name} ({p.total_keywords_found || 0} keyword)
+                            {p.main_keyword} ({p.total_keywords_found || 0} keyword)
                           </option>
                         ))}
                       </select>
