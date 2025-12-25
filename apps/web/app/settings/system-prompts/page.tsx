@@ -33,6 +33,9 @@ const WORKFLOW_USAGE: Record<string, { workflow: string; description: string }[]
   'keyword-filter': [
     { workflow: 'WF-101b AI Keyword Filter', description: 'AI ile keyword filtreleme' }
   ],
+  'bulk-keyword-filter': [
+    { workflow: 'WF-BULK-KEYWORD Single Seed', description: 'Toplu keyword araştırması - AI filtreleme' }
+  ],
   'content-gap-analyzer': [
     { workflow: 'WF-106 Content Gap Finder', description: 'İçerik boşluğu analizi' }
   ],

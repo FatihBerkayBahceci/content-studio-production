@@ -99,7 +99,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     }
 
     // Build update query dynamically
-    const allowedFields = ['status', 'total_keywords_found', 'total_competitors_analyzed', 'total_paa_found', 'bulk_stats', 'seed_keywords'];
+    const allowedFields = ['project_name', 'status', 'total_keywords_found', 'total_competitors_analyzed', 'total_paa_found', 'bulk_stats', 'seed_keywords', 'ai_categories', 'ai_categorization_done'];
     const updates: string[] = [];
     const values: unknown[] = [];
 
@@ -107,7 +107,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       if (body[field] !== undefined) {
         updates.push(`${field} = ?`);
         // JSON stringify object fields
-        if ((field === 'bulk_stats' || field === 'seed_keywords') && typeof body[field] === 'object') {
+        if ((field === 'bulk_stats' || field === 'seed_keywords' || field === 'ai_categories') && typeof body[field] === 'object') {
           values.push(JSON.stringify(body[field]));
         } else {
           values.push(body[field]);
@@ -141,6 +141,62 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     console.error('Error updating project:', error);
     return NextResponse.json(
       { success: false, error: 'Proje güncellenemedi' },
+      { status: 500 }
+    );
+  }
+}
+
+// DELETE /api/projects/[projectId] - Delete a project
+export async function DELETE(request: NextRequest, { params }: RouteParams) {
+  try {
+    const session = await getSession();
+    if (!session?.user) {
+      return NextResponse.json(
+        { success: false, error: 'Yetkilendirme gerekli' },
+        { status: 401 }
+      );
+    }
+
+    const { projectId } = params;
+
+    // First get the project to check permissions
+    const findSql = `
+      SELECT id, client_id FROM keyword_projects
+      WHERE uuid = ? OR id = ?
+      LIMIT 1
+    `;
+    const projects = await query(findSql, [projectId, projectId]);
+    const project = Array.isArray(projects) && projects.length > 0 ? projects[0] : null;
+
+    if (!project) {
+      return NextResponse.json(
+        { success: false, error: 'Proje bulunamadı' },
+        { status: 404 }
+      );
+    }
+
+    // Check access (admin or has access to client)
+    if (session.user.role !== 'admin' && !canAccessClient(session.user, project.client_id)) {
+      return NextResponse.json(
+        { success: false, error: 'Bu projeyi silme yetkiniz yok' },
+        { status: 403 }
+      );
+    }
+
+    // Delete related keyword results first
+    await query('DELETE FROM keyword_results WHERE project_id = ?', [project.id]);
+
+    // Delete the project
+    await query('DELETE FROM keyword_projects WHERE id = ?', [project.id]);
+
+    return NextResponse.json({
+      success: true,
+      message: 'Proje silindi',
+    });
+  } catch (error) {
+    console.error('Error deleting project:', error);
+    return NextResponse.json(
+      { success: false, error: 'Proje silinemedi' },
       { status: 500 }
     );
   }

@@ -9,6 +9,7 @@ import { UserMenu } from '@/components/auth/user-menu';
 const pageTitles: Record<string, string> = {
   '/': 'Dashboard',
   '/clients': 'Müşteriler',
+  '/projects': 'Projeler',
   '/tool1': 'Keyword Research',
   '/tool1/new': 'Yeni Proje',
   '/tool2': 'Content Studio',

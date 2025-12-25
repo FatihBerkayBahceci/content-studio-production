@@ -13,6 +13,8 @@ import {
   Zap,
   User,
   X,
+  FolderKanban,
+  MessageSquareCode,
 } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import { useUIStore } from '@/lib/stores/ui-store';
@@ -33,6 +35,12 @@ const menuItems = [
     icon: Users,
   },
   {
+    key: 'projects',
+    label: 'Projeler',
+    url: '/projects',
+    icon: FolderKanban,
+  },
+  {
     key: 'quick-keywords',
     label: 'Hızlı Keyword',
     url: '/keywords/agent',
@@ -43,6 +51,12 @@ const menuItems = [
     label: 'Keyword Research',
     url: '/tool1',
     icon: Search,
+  },
+  {
+    key: 'system-prompts',
+    label: 'System Prompts',
+    url: '/settings/system-prompts',
+    icon: MessageSquareCode,
   },
 ];
 

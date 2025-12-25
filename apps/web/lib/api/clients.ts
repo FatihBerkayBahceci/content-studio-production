@@ -67,6 +67,7 @@ export interface ClientWithConfig extends Client {
   default_country?: string;
   created_at?: string;
   updated_at?: string;
+  logo_url?: string;
 
   // Content settings
   system_prompt_id?: number | null;

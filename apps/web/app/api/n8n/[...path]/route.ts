@@ -79,12 +79,16 @@ async function proxyRequest(request: NextRequest, path: string) {
       if (path.includes('keyword-research')) {
         console.log('[n8n Proxy] keyword-research response:', {
           success: data.success,
+          project_id: data.project_id,
+          project_uuid: data.project_uuid,
+          projectUuid: data.projectUuid,
           hasKeywords: !!data.keywords,
           keywordsType: typeof data.keywords,
           keywordsIsArray: Array.isArray(data.keywords),
           keywordsLength: data.keywords?.length,
           statsTotal: data.stats?.total,
-          message: data.message?.substring(0, 100)
+          message: data.message?.substring(0, 100),
+          allKeys: Object.keys(data)
         });
       }
     } catch (parseError) {
