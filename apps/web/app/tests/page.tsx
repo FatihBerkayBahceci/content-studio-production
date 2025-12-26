@@ -54,7 +54,7 @@ function TestRow({ scenario, onStatusChange }: { scenario: TestScenario; onStatu
                 ? 'bg-emerald-500/20 text-emerald-400'
                 : 'text-zinc-600 hover:text-emerald-400 hover:bg-emerald-500/10'
             )}
-            title="Basarili"
+            title="Başarılı"
           >
             <Check className="h-4 w-4" />
           </button>
@@ -67,7 +67,7 @@ function TestRow({ scenario, onStatusChange }: { scenario: TestScenario; onStatu
                 ? 'bg-red-500/20 text-red-400'
                 : 'text-zinc-600 hover:text-red-400 hover:bg-red-500/10'
             )}
-            title="Basarisiz"
+            title="Başarısız"
           >
             <X className="h-4 w-4" />
           </button>
@@ -80,7 +80,7 @@ function TestRow({ scenario, onStatusChange }: { scenario: TestScenario; onStatu
                 ? 'bg-amber-500/20 text-amber-400'
                 : 'text-zinc-600 hover:text-amber-400 hover:bg-amber-500/10'
             )}
-            title="Kismen"
+            title="Kısmen"
           >
             <Minus className="h-4 w-4" />
           </button>
@@ -90,7 +90,7 @@ function TestRow({ scenario, onStatusChange }: { scenario: TestScenario; onStatu
         <button
           onClick={() => setShowNote(!showNote)}
           className="p-1.5 text-zinc-600 hover:text-white rounded-lg hover:bg-white/5"
-          title="Not ekle"
+          title="Not Ekle"
         >
           {showNote ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
         </button>
@@ -119,7 +119,7 @@ function TestRow({ scenario, onStatusChange }: { scenario: TestScenario; onStatu
 
 export default function TestsPage() {
   const { data: scenarios, isLoading, refetch } = useTestScenarios();
-  const [expandedCategories, setExpandedCategories] = useState<string[]>(['ui_ux', 'backend']);
+  const [expandedCategories, setExpandedCategories] = useState<string[]>([]);
 
   const toggleCategory = (cat: string) => {
     setExpandedCategories(prev =>
@@ -150,10 +150,10 @@ export default function TestsPage() {
   return (
     <div className="min-h-screen text-white p-6 max-w-4xl mx-auto">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-xl font-bold">Test Senaryolari</h1>
+        <h1 className="text-xl font-bold">Test Senaryoları</h1>
         <div className="flex items-center gap-4 text-sm">
-          <span className="text-emerald-400">{uiStats.passed + backendStats.passed} basarili</span>
-          <span className="text-red-400">{uiStats.failed + backendStats.failed} basarisiz</span>
+          <span className="text-emerald-400">{uiStats.passed + backendStats.passed} başarılı</span>
+          <span className="text-red-400">{uiStats.failed + backendStats.failed} başarısız</span>
           <span className="text-zinc-500">{(scenarios?.length || 0)} toplam</span>
         </div>
       </div>

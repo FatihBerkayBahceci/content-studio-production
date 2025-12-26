@@ -61,7 +61,7 @@ const menuItems = [
   },
   {
     key: 'tests',
-    label: 'Test Senaryolari',
+    label: 'Test Senaryoları',
     url: '/tests',
     icon: ClipboardCheck,
   },
