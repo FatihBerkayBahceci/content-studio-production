@@ -17,6 +17,7 @@ export const ROLE_MENU_PERMISSIONS: Record<UserRole, string[]> = {
     'quick-keywords',
     'keyword-research',
     'system-prompts',
+    'tests',
   ],
 };
 

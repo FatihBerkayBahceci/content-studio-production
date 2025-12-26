@@ -15,6 +15,7 @@ import {
   X,
   FolderKanban,
   MessageSquareCode,
+  ClipboardCheck,
 } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import { useUIStore } from '@/lib/stores/ui-store';
@@ -57,6 +58,12 @@ const menuItems = [
     label: 'System Prompts',
     url: '/settings/system-prompts',
     icon: MessageSquareCode,
+  },
+  {
+    key: 'tests',
+    label: 'Test Senaryolari',
+    url: '/tests',
+    icon: ClipboardCheck,
   },
 ];
 
